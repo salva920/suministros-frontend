@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "suministros-backend/server.js",
+      "src": "ferreteria-backend/server.js",
       "use": "@vercel/node"
     },
     {
@@ -16,11 +16,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/suministros-backend/server.js"
+      "dest": "/ferreteria-backend/server.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "/ferreteria-frontend/build/$1"
     }
   ]
 }
