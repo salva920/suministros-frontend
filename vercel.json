@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "ferreteria-backend/*.js",
+      "src": "ferreteria-backend/server.js",
       "use": "@vercel/node"
     },
     {
