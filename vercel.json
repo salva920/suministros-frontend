@@ -2,11 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "ferreteria-backend/server.js",
+      "src": "ferreteria-frontend/ferreteria-backend/server.js",
       "use": "@vercel/node"
     },
     {
-      "src": "package.json",
+      "src": "ferreteria-frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "build"
@@ -16,11 +16,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/ferreteria-backend/server.js"
+      "dest": "ferreteria-frontend/ferreteria-backend/server.js" 
     },
     {
       "src": "/(.*)",
-      "dest": "/ferreteria-frontend/build/$1"
+      "dest": "ferreteria-frontend/build/$1"
     }
   ]
 }
