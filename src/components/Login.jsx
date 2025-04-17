@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Paper, Typography, TextField, Button, Grid, Link, Alert } from '@mui/material';
 import { Lock as LockIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -7,16 +7,33 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = '/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
+
+  // Función para probar la conexión al servidor
+  const testConnection = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/ping`);
+      console.log('Conexión exitosa:', response.data);
+    } catch (error) {
+      console.error('Error de conexión:', error.toJSON());
+      setErrorMessage("No se pudo conectar al servidor");
+    }
+  };
+
+  // Prueba la conexión al cargar el componente
+  useEffect(() => {
+    testConnection();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
 
     if (!username || !password) {
       toast.error('Por favor, completa todos los campos.');
@@ -80,9 +97,9 @@ const Login = () => {
             </Grid>
             <Grid item sx={{ width: '100%' }}>
               <form onSubmit={handleSubmit}>
-                {error && (
+                {errorMessage && (
                   <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
+                    {errorMessage}
                   </Alert>
                 )}
                 <TextField
