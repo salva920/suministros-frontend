@@ -1,19 +1,25 @@
 {
   "version": 2,
-  "build": {
-    "env": {
-      "NODE_VERSION": "18" // Versión de Node.js para el backend
+  "builds": [
+    {
+      "src": "ferreteria-frontend/ferreteria-backend/package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["ferreteria-frontend/ferreteria-backend/**/*"]
+      }
     },
-    "output": "ferreteria-frontend/build" // Ruta del build del frontend
-  },
+    {
+      "src": "ferreteria-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "ferreteria-frontend/ferreteria-backend/server.js", 
-      "methods": ["GET", "POST", "PUT", "DELETE"],
-      "headers": {
-        "Access-Control-Allow-Origin": "https://suministros-frontend.vercel.app"
-      }
+      "dest": "ferreteria-frontend/ferreteria-backend/server.js"
     },
     {
       "src": "/(.*)",
