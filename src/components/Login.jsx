@@ -18,11 +18,16 @@ const Login = () => {
   // Función para probar la conexión al servidor
   const testConnection = async () => {
     try {
+      console.log('Intentando conectar a:', `${API_URL}/ping`);
       const response = await axios.get(`${API_URL}/ping`);
-      console.log('Conexión exitosa:', response.data);
+      console.log('Respuesta completa:', response);
+      console.log('Datos recibidos:', response.data);
     } catch (error) {
-      console.error('Error de conexión:', error.toJSON());
-      setErrorMessage("No se pudo conectar al servidor");
+      console.error('Detalles del error:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data
+      });
     }
   };
 
