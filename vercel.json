@@ -2,10 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "ferreteria-frontend/ferreteria-backend/package.json",
+      "src": "ferreteria-frontend/ferreteria-backend/server.js",
       "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["ferreteria-frontend/ferreteria-backend/**/*"]
+      "config": { 
+        "includeFiles": ["ferreteria-frontend/ferreteria-backend/**/*.js"],
+        "maxLambdaSize": "50mb"
       }
     },
     {
@@ -19,14 +20,14 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "ferreteria-frontend/ferreteria-backend/server.js"
+      "dest": "ferreteria-frontend/ferreteria-backend/server.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "https://suministros-frontend.vercel.app"
+      }
     },
     {
       "src": "/(.*)",
-      "dest": "ferreteria-frontend/build/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
+      "dest": "ferreteria-frontend/build/$1"
     }
   ]
 }
