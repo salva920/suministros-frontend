@@ -7,7 +7,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = 'http://localhost:5000/api'; // Añadir constante API_URL
+const API_URL = '/api';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -24,7 +24,7 @@ const Login = () => {
     }
 
     try {
-      const response = await axios.post(`${API_URL}/login`, { // Usar API_URL
+      const response = await axios.post(`${API_URL}/login`, {
         username,
         password 
       });
