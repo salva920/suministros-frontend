@@ -18,15 +18,25 @@ const Login = () => {
   // Función para probar la conexión al servidor
   const testConnection = async () => {
     try {
-      console.log('Intentando conectar a:', `${API_URL}/ping`);
-      const response = await axios.get(`${API_URL}/ping`);
-      console.log('Respuesta completa:', response);
-      console.log('Datos recibidos:', response.data);
+      const response = await axios.get(`${API_URL}/ping`, {
+        timeout: 5000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.data?.message === "Pong!") {
+        console.log('✅ Conexión exitosa con el servidor');
+      } else {
+        console.warn('⚠️ Respuesta inesperada:', response.data);
+      }
     } catch (error) {
-      console.error('Detalles del error:', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data
+      console.error('❌ Error de conexión:', {
+        URL: error.config?.url,
+        Método: error.config?.method,
+        Código: error.code,
+        Mensaje: error.message,
+        Respuesta: error.response?.data
       });
     }
   };
