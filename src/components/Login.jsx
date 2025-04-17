@@ -7,13 +7,13 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = 'http://localhost:5000/api'; // Añadir constante API_URL
-
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
+
+  const API_URL = process.env.REACT_APP_API_URL;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,11 +24,11 @@ const Login = () => {
     }
 
     try {
-      const response = await axios.post(`${API_URL}/login`, { // Usar API_URL
+      const response = await axios.post(`${API_URL}/api/login`, {
         username,
-        password 
+        password
       });
-      
+      console.log('Respuesta del servidor:', response.data);
       if (response.data.auth) {
         localStorage.setItem('token', response.data.token);
         sessionStorage.setItem('isLoggedIn', 'true');
@@ -36,15 +36,8 @@ const Login = () => {
         navigate('/dashboard', { replace: true });
       }
     } catch (error) {
-      console.error('Error en autenticación:', error);
-      if (error.response) {
-        // Manejo de errores del servidor
-        error.response.status === 401 
-          ? toast.error('Credenciales inválidas')
-          : toast.error('Error en el servidor');
-      } else {
-        toast.error('Error de conexión');
-      }
+      console.error("Error detallado:", error.toJSON());
+      setErrorMessage("Error en la autenticación. Inténtalo de nuevo.");
     }
   };
 
@@ -80,9 +73,9 @@ const Login = () => {
             </Grid>
             <Grid item sx={{ width: '100%' }}>
               <form onSubmit={handleSubmit}>
-                {error && (
+                {errorMessage && (
                   <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
+                    {errorMessage}
                   </Alert>
                 )}
                 <TextField
