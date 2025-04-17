@@ -1,21 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "ferreteria-frontend/ferreteria-backend/server.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["ferreteria-frontend/ferreteria-backend/**/*"]
-      }
-    },
-    {
-      "src": "ferreteria-frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    }
-  ],
   "routes": [
     {
       "src": "/api/(.*)",
