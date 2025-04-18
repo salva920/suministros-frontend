@@ -200,7 +200,11 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
 
   const handleAgregarProducto = async () => {
     try {
+<<<<<<< HEAD
       const response = await fetch('https://suministros-backend.vercel.app/api/productos', {
+=======
+      const response = await fetch('https://suministros-backend.vercel.app/api/products', {
+>>>>>>> 038a6b8e4692decb0f4d83d2143fd09f7edaed75
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
