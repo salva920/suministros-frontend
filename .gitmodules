@@ -1,3 +1,4 @@
-     [submodule "ferreteria-backend"]
-         path = ferreteria-backend
-         url = https://github.com/salva920/suministros-backend.git
+[submodule "ferreteria-backend"]
+    path = ferreteria-backend
+    url = https://github.com/salva920/suministros-backend.git
+    branch = main
