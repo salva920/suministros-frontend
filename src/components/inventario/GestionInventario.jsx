@@ -21,7 +21,7 @@ import axios from 'axios';
 import TasaCambio from '../TasaCambio';
 import { VpnKey } from '@mui/icons-material';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const StyledTable = styled(Table)(({ theme }) => ({
   '& .MuiTableCell-root': {
