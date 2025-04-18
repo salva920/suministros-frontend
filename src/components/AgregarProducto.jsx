@@ -9,7 +9,7 @@ import { styled } from '@mui/material/styles';
 import axios from 'axios';
 import moment from 'moment';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 // Componentes estilizados
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -198,7 +198,29 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
     }
   };
 
-  
+  const handleAgregarProducto = async () => {
+    try {
+      const response = await fetch('https://suministros-backend.vercel.app/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Si usas autenticación, añade el token aquí:
+          // 'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          nombre: 'Ejemplo', 
+          precio: 100 
+        }),
+      });
+
+      if (!response.ok) throw new Error('Error en la respuesta');
+      
+      const data = await response.json();
+      console.log('Producto agregado:', data);
+    } catch (error) {
+      console.error('Error al agregar producto:', error);
+    }
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
