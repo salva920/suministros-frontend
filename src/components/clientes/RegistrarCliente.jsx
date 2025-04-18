@@ -16,7 +16,7 @@ import axios from 'axios';
 import Pagination from '@mui/material/Pagination';
 import RegistroClienteDialog from '../ventas/RegistroClienteDialog'; 
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClose }) => {
   const [clientes, setClientes] = useState([]);
