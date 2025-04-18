@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Paper, Typography, TextField, Button, Grid, Link, Alert } from '@mui/material';
 import { Lock as LockIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -7,16 +7,48 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = 'http://localhost:5000/api'; // Añadir constante API_URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
+
+  // Función para probar la conexión al servidor
+  const testConnection = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/ping`, {
+        timeout: 5000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.data?.message === "Pong!") {
+        console.log('✅ Conexión exitosa con el servidor');
+      } else {
+        console.warn('⚠️ Respuesta inesperada:', response.data);
+      }
+    } catch (error) {
+      console.error('❌ Error de conexión:', {
+        URL: error.config?.url,
+        Método: error.config?.method,
+        Código: error.code,
+        Mensaje: error.message,
+        Respuesta: error.response?.data
+      });
+    }
+  };
+
+  // Prueba la conexión al cargar el componente
+  useEffect(() => {
+    testConnection();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
 
     if (!username || !password) {
       toast.error('Por favor, completa todos los campos.');
@@ -24,7 +56,7 @@ const Login = () => {
     }
 
     try {
-      const response = await axios.post(`${API_URL}/login`, { // Usar API_URL
+      const response = await axios.post(`${API_URL}/login`, {
         username,
         password 
       });
@@ -80,9 +112,9 @@ const Login = () => {
             </Grid>
             <Grid item sx={{ width: '100%' }}>
               <form onSubmit={handleSubmit}>
-                {error && (
+                {errorMessage && (
                   <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
+                    {errorMessage}
                   </Alert>
                 )}
                 <TextField
