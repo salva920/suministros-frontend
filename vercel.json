@@ -16,11 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/ferreteria-backend/server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/ferreteria-frontend/build/$1"
+      "dest": "ferreteria-backend/server.js"
     }
   ]
 }
