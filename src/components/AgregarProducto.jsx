@@ -198,34 +198,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
     }
   };
 
-  const handleAgregarProducto = async () => {
-    try {
-<<<<<<< HEAD
-      const response = await fetch('https://suministros-backend.vercel.app/api/productos', {
-=======
-      const response = await fetch('https://suministros-backend.vercel.app/api/products', {
->>>>>>> 038a6b8e4692decb0f4d83d2143fd09f7edaed75
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Si usas autenticación, añade el token aquí:
-          // 'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          nombre: 'Ejemplo', 
-          precio: 100 
-        }),
-      });
-
-      if (!response.ok) throw new Error('Error en la respuesta');
-      
-      const data = await response.json();
-      console.log('Producto agregado:', data);
-    } catch (error) {
-      console.error('Error al agregar producto:', error);
-    }
-  };
-
+ 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <StyledPaper component="form" onSubmit={handleSubmit}>
