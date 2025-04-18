@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const TasaCambio = () => {
   const [tasa, setTasa] = useState('');
