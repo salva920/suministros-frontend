@@ -23,3 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 
 .vercel
+
+# Ignorar estas carpetas
+ferreteria-backend/
+suministros-frontend/
