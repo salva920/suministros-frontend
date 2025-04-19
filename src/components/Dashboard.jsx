@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AppBar, Toolbar, Typography, Container, Grid, Paper, TextField, IconButton, Button, Card, CardContent } from '@mui/material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -11,11 +11,15 @@ const Dashboard = () => {
   const [ventas, setVentas] = useState(0);
   const [productos, setProductos] = useState([]);
   const [clientes, setClientes] = useState(0);
-  const [lowStockProducts, setLowStockProducts] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
+
+  const lowStockProducts = useMemo(() => 
+    productos.filter(p => p.stock < 5), 
+    [productos]
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,7 +46,6 @@ const Dashboard = () => {
         setVentas(Number(ventasTotales.toFixed(2)));
         setProductos(productosBajoStock);
         setClientes(totalClientes);
-        setLowStockProducts(productosBajoStock.filter(p => p.stock < 5));
 
         if (lowStockProducts.length > 0) {
           toast.warning(`${lowStockProducts.length} productos con bajo stock`, {
@@ -63,7 +66,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, []);
+  }, [productosBajoStock]);
 
   useEffect(() => {
     if (location.state?.fromLogin) {
