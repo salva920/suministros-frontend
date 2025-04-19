@@ -8,9 +8,9 @@ import { logout } from '../services/authService';
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const Dashboard = () => {
-  const [ventas, setVentas] = useState([]);
-  const [productos, setProductos] = useState([]);
-  const [clientes, setClientes] = useState([]);
+  const [ventas, setVentas] = useState(0);
+  const [productosBajoStock, setProductosBajoStock] = useState([]);
+  const [totalClientes, setTotalClientes] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const location = useLocation();
@@ -19,20 +19,17 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${API_URL}/dashboard`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-
-        if (!response.ok) throw new Error('Error al obtener datos');
-
+        const response = await fetch(`${API_URL}/dashboard`);
+        
+        if (!response.ok) {
+          throw new Error('Error al obtener datos del dashboard');
+        }
+        
         const data = await response.json();
-
+        
         setVentas(data.ventasTotales || 0);
-      setProductos(data.productosBajoStock || []);
-      setClientes(data.totalClientes || 0);
-      setLowStockProducts(data.productosBajoStock || []);
+        setProductosBajoStock(data.productosBajoStock || []);
+        setTotalClientes(data.totalClientes || 0);
 
         const lowStock = data.productos.filter(p => p.stock < 5);
         setLowStockProducts(lowStock);
@@ -51,7 +48,6 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  // Mostrar notificación al cargar el dashboard
   useEffect(() => {
     if (location.state?.fromLogin) {
       toast.success('¡Inicio de sesión exitoso!', {
@@ -66,10 +62,9 @@ const Dashboard = () => {
     }
   }, [location]);
 
-  // Cálculos para el resumen
-    const totalVentas = ventas; // Ya viene calculado del backend
-    const totalProductosBajoStock = productos.length;
-    const totalClientesRegistrados = clientes;
+  const totalVentas = ventas;
+  const totalProductosBajoStock = productosBajoStock.length;
+  const totalClientesRegistrados = totalClientes;
 
   const handleLogout = () => {
     logout();
@@ -79,7 +74,6 @@ const Dashboard = () => {
 
   return (
     <>
-      {/* Barra de Navegación */}
       <AppBar position="static" style={{ background: '#1A365D' }}>
         <Toolbar>
           <Typography variant="h6" style={{ 
@@ -118,22 +112,19 @@ const Dashboard = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Contenido Principal */}
       <Container 
         maxWidth="xl" 
         sx={{ 
           marginTop: '2rem',
           paddingLeft: { xs: 2, sm: 3, md: 4 },
           paddingRight: { xs: 2, sm: 3, md: 4 },
-          width: '100%', // Asegura que ocupe todo el ancho
+          width: '100%',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center' // Centra el contenido horizontalmente
+          alignItems: 'center'
         }}
       >
-        {/* Resumen General */}
         <Grid container spacing={3}>
-          {/* Card de Ventas Totales */}
           <Grid item xs={12} sm={4}>
             <Card>
               <CardContent>
@@ -147,7 +138,6 @@ const Dashboard = () => {
             </Card>
           </Grid>
 
-          {/* Card de Productos con Bajo Stock */}
           <Grid item xs={12} sm={4}>
             <Card>
               <CardContent>
@@ -161,7 +151,6 @@ const Dashboard = () => {
             </Card>
           </Grid>
 
-          {/* Card de Clientes Registrados */}
           <Grid item xs={12} sm={4}>
             <Card>
               <CardContent>
@@ -176,7 +165,6 @@ const Dashboard = () => {
           </Grid>
         </Grid>
 
-        {/* Botones de Acceso Rápido */}
         <Grid container spacing={3} style={{ marginBottom: '2rem' }}>
           <Grid item xs={12} md={3}>
             <Button
@@ -284,7 +272,6 @@ const Dashboard = () => {
           </Grid>
         </Grid>
 
-        {/* Notificaciones de Bajo Stock */}
         {lowStockProducts.length > 0 && (
           <Grid container spacing={3}>
             <Grid item xs={12}>
