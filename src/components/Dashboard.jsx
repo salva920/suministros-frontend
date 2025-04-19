@@ -9,39 +9,56 @@ const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backe
 
 const Dashboard = () => {
   const [ventas, setVentas] = useState(0);
-  const [productosBajoStock, setProductosBajoStock] = useState([]);
-  const [totalClientes, setTotalClientes] = useState(0);
+  const [productos, setProductos] = useState([]);
+  const [clientes, setClientes] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`${API_URL}/dashboard`);
+        setCargando(true);
+        const response = await fetch(`${API_URL}/api/dashboard`);
         
         if (!response.ok) {
-          throw new Error('Error al obtener datos del dashboard');
+          throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
         }
         
-        const data = await response.json();
+        const result = await response.json();
         
-        setVentas(data.ventasTotales || 0);
-        setProductosBajoStock(data.productosBajoStock || []);
-        setTotalClientes(data.totalClientes || 0);
+        if (!result.ventasTotales || !Array.isArray(result.productosBajoStock)) {
+          throw new Error('Estructura de datos inválida del servidor');
+        }
+        
+        const {
+          ventasTotales = 0,
+          productosBajoStock = [],
+          totalClientes = 0
+        } = result;
+        
+        setVentas(Number(ventasTotales.toFixed(2)));
+        setProductos(productosBajoStock);
+        setClientes(totalClientes);
+        setLowStockProducts(productosBajoStock.filter(p => p.stock < 5));
 
-        const lowStock = data.productos.filter(p => p.stock < 5);
-        setLowStockProducts(lowStock);
-
-        if (lowStock.length > 0) {
-          toast.warning(`${lowStock.length} productos con bajo stock`, {
+        if (lowStockProducts.length > 0) {
+          toast.warning(`${lowStockProducts.length} productos con bajo stock`, {
             position: "top-right",
             autoClose: 10000,
           });
         }
       } catch (error) {
-        toast.error(error.message);
+        console.error('Error detallado:', {
+          message: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
+        toast.error(`Error crítico: ${error.message}`);
+      } finally {
+        setCargando(false);
       }
     };
 
@@ -63,8 +80,8 @@ const Dashboard = () => {
   }, [location]);
 
   const totalVentas = ventas;
-  const totalProductosBajoStock = productosBajoStock.length;
-  const totalClientesRegistrados = totalClientes;
+  const totalProductosBajoStock = productos.length;
+  const totalClientesRegistrados = clientes;
 
   const handleLogout = () => {
     logout();
@@ -132,7 +149,7 @@ const Dashboard = () => {
                   Ventas Totales
                 </Typography>
                 <Typography variant="h4" style={{ color: '#FFD700' }}>
-                  ${totalVentas.toFixed(2)}
+                  ${totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </Typography>
               </CardContent>
             </Card>
@@ -144,8 +161,8 @@ const Dashboard = () => {
                 <Typography variant="h6" gutterBottom>
                   Productos con Bajo Stock
                 </Typography>
-                <Typography variant="h4" color={totalProductosBajoStock > 0 ? 'error' : 'inherit'}>
-                  {totalProductosBajoStock}
+                <Typography variant="h4" color={lowStockProducts.length > 0 ? 'error' : 'inherit'}>
+                  {lowStockProducts.length}
                 </Typography>
               </CardContent>
             </Card>
@@ -158,7 +175,7 @@ const Dashboard = () => {
                   Clientes Registrados
                 </Typography>
                 <Typography variant="h4">
-                  {totalClientesRegistrados}
+                  {totalClientesRegistrados.toLocaleString()}
                 </Typography>
               </CardContent>
             </Card>
