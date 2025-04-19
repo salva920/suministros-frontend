@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import { ExitToApp, Search, PointOfSale, Inventory, Settings, People } from '@mui/icons-material';
 import { logout } from '../services/authService';
 
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
+
 const Dashboard = () => {
   const [ventas, setVentas] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -15,24 +17,37 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const ventasStorage = JSON.parse(localStorage.getItem('ventas')) || [];
-    const productosStorage = JSON.parse(localStorage.getItem('productos')) || [];
-    const clientesStorage = JSON.parse(localStorage.getItem('clientes')) || [];
-    
-    setVentas(ventasStorage);
-    setProductos(productosStorage);
-    setClientes(clientesStorage);
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`${API_URL}/dashboard`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
 
-    // Verificar productos con bajo stock
-    const lowStock = productosStorage.filter(p => p.stock < 5);
-    setLowStockProducts(lowStock);
+        if (!response.ok) throw new Error('Error al obtener datos');
 
-    if (lowStock.length > 0) {
-      toast.warning(`${lowStock.length} productos con bajo stock`, {
-        position: "top-right",
-        autoClose: 10000,
-      });
-    }
+        const data = await response.json();
+
+        setVentas(data.ventas);
+        setProductos(data.productos);
+        setClientes(data.clientes);
+
+        const lowStock = data.productos.filter(p => p.stock < 5);
+        setLowStockProducts(lowStock);
+
+        if (lowStock.length > 0) {
+          toast.warning(`${lowStock.length} productos con bajo stock`, {
+            position: "top-right",
+            autoClose: 10000,
+          });
+        }
+      } catch (error) {
+        toast.error(error.message);
+      }
+    };
+
+    fetchData();
   }, []);
 
   // Mostrar notificación al cargar el dashboard
