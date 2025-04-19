@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Container, Grid, Paper, TextField, IconButton, Button } from '@mui/material';
+import { AppBar, Toolbar, Typography, Container, Grid, Paper, TextField, IconButton, Button, Card, CardContent } from '@mui/material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ExitToApp, Search, PointOfSale, Inventory, Settings, People } from '@mui/icons-material';
@@ -29,9 +29,10 @@ const Dashboard = () => {
 
         const data = await response.json();
 
-        setVentas(data.ventas);
-        setProductos(data.productos);
-        setClientes(data.clientes);
+        setVentas(data.ventasTotales || 0);
+      setProductos(data.productosBajoStock || []);
+      setClientes(data.totalClientes || 0);
+      setLowStockProducts(data.productosBajoStock || []);
 
         const lowStock = data.productos.filter(p => p.stock < 5);
         setLowStockProducts(lowStock);
@@ -66,9 +67,9 @@ const Dashboard = () => {
   }, [location]);
 
   // Cálculos para el resumen
-  const totalVentas = ventas.reduce((acc, v) => acc + v.total, 0);
-  const totalProductos = productos.length;
-  const totalClientes = clientes.length;
+    const totalVentas = ventas; // Ya viene calculado del backend
+    const totalProductosBajoStock = productos.length;
+    const totalClientesRegistrados = clientes;
 
   const handleLogout = () => {
     logout();
@@ -131,39 +132,47 @@ const Dashboard = () => {
         }}
       >
         {/* Resumen General */}
-        <Grid container spacing={3} style={{ marginBottom: '2rem' }}>
-          <Grid item xs={12} md={3}>
-            <Paper style={{ 
-              padding: '1.5rem', 
-              textAlign: 'center',
-              background: 'linear-gradient(45deg, #C62828 30%, #D84315 90%)',
-              color: 'white'
-            }}>
-              <Typography variant="h6">Ventas Totales</Typography>
-              <Typography variant="h4" style={{ color: '#FFD700' }}>
-                ${totalVentas.toFixed(2)}
-              </Typography>
-            </Paper>
+        <Grid container spacing={3}>
+          {/* Card de Ventas Totales */}
+          <Grid item xs={12} sm={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Ventas Totales
+                </Typography>
+                <Typography variant="h4" style={{ color: '#FFD700' }}>
+                  ${totalVentas.toFixed(2)}
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Paper style={{ padding: '1.5rem', textAlign: 'center' }}>
-              <Typography variant="h6">Productos</Typography>
-              <Typography variant="h4">{totalProductos}</Typography>
-            </Paper>
+
+          {/* Card de Productos con Bajo Stock */}
+          <Grid item xs={12} sm={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Productos con Bajo Stock
+                </Typography>
+                <Typography variant="h4" color={totalProductosBajoStock > 0 ? 'error' : 'inherit'}>
+                  {totalProductosBajoStock}
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Paper style={{ padding: '1.5rem', textAlign: 'center' }}>
-              <Typography variant="h6">Clientes</Typography>
-              <Typography variant="h4">{totalClientes}</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Paper style={{ padding: '1.5rem', textAlign: 'center' }}>
-              <Typography variant="h6">Productos con Bajo Stock</Typography>
-              <Typography variant="h4" color={lowStockProducts.length > 0 ? 'error' : 'inherit'}>
-                {lowStockProducts.length}
-              </Typography>
-            </Paper>
+
+          {/* Card de Clientes Registrados */}
+          <Grid item xs={12} sm={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Clientes Registrados
+                </Typography>
+                <Typography variant="h4">
+                  {totalClientesRegistrados}
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
 
