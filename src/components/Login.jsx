@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Container, Paper, Typography, TextField, Button, Grid, Link, Alert } from '@mui/material';
 import { Lock as LockIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -7,58 +7,26 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
-
-  // Función para probar la conexión al servidor
-  const testConnection = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/ping`, {
-        timeout: 5000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.data?.message === "Pong!") {
-        console.log('✅ Conexión exitosa con el servidor');
-      } else {
-        console.warn('⚠️ Respuesta inesperada:', response.data);
-      }
-    } catch (error) {
-      console.error('❌ Error de conexión:', {
-        URL: error.config?.url,
-        Método: error.config?.method,
-        Código: error.code,
-        Mensaje: error.message,
-        Respuesta: error.response?.data
-      });
-    }
-  };
-
-  // Prueba la conexión al cargar el componente
-  useEffect(() => {
-    testConnection();
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!username || !password) {
+    if (!email || !password) {
       toast.error('Por favor, completa todos los campos.');
       return;
     }
 
     try {
       const response = await axios.post(`${API_URL}/login`, {
-        username,
+        email,
         password 
       });
       
@@ -120,11 +88,11 @@ const Login = () => {
                 )}
                 <TextField
                   fullWidth
-                  label="Usuario"
+                  label="Correo electrónico"
                   variant="outlined"
                   margin="normal"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   sx={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     borderRadius: '8px',
