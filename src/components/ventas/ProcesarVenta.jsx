@@ -14,7 +14,7 @@ import moment from 'moment';
 import axios from 'axios';
 import ListadoHistorialVentas from './ListadoHistorialVentas';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 const PIN_VALIDO = '1234';
 
 function TabPanel(props) {

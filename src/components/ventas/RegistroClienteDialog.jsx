@@ -12,7 +12,7 @@ import axios from 'axios';
 import moment from 'moment';
 
 // Definir la URL de la API
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiPaper-root': {

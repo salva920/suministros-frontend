@@ -12,7 +12,7 @@ import RegistroClienteDialog from './RegistroClienteDialog';
 import { toast } from 'react-hot-toast';
 import GenerarFactura from './GenerarFactura';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const ListadoHistorialVentas = () => {
   const [ventas, setVentas] = useState([]);
