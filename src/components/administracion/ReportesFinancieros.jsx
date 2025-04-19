@@ -3,7 +3,7 @@ import { Container, Typography, Grid, Paper, Select, MenuItem, FormControl, Inpu
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const ReportesFinancieros = () => {
   const [ventas, setVentas] = useState([]);

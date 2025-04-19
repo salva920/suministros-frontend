@@ -14,7 +14,7 @@ import DatePicker from 'react-datepicker';
 import axios from 'axios';
 import 'react-datepicker/dist/react-datepicker.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const ControlFinanciero = () => {
   const [ventas, setVentas] = useState([]);

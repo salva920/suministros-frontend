@@ -17,7 +17,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) => {
   const theme = useTheme();
