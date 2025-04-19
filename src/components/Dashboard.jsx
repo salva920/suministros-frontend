@@ -15,6 +15,7 @@ const Dashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
+  const [lowStockProducts, setLowStockProducts] = useState([]);
 
   const lowStockProducts = useMemo(() => 
     productos.filter(p => p.stock < 5), 
@@ -46,6 +47,7 @@ const Dashboard = () => {
         setVentas(Number(ventasTotales.toFixed(2)));
         setProductos(productosBajoStock);
         setClientes(totalClientes);
+        setLowStockProducts(productosBajoStock.filter(p => p.stock < 5));
 
         if (lowStockProducts.length > 0) {
           toast.warning(`${lowStockProducts.length} productos con bajo stock`, {
@@ -66,7 +68,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [productosBajoStock]);
+  }, []);
 
   useEffect(() => {
     if (location.state?.fromLogin) {
