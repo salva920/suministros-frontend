@@ -62,7 +62,7 @@ const HistorialSalidas = () => {
   const [passwordError, setPasswordError] = useState(false);
   const openFilter = Boolean(filterAnchorEl);
 
-  const API_URL = 'http://localhost:5000/api';
+  const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
   // Función para cargar el historial de salidas desde la API
   const cargarHistorial = async () => {

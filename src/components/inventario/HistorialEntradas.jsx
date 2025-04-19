@@ -17,7 +17,7 @@ import {
 import { saveAs } from 'file-saver';
 import moment from 'moment';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 // 1. Implementamos nuestra propia función debounce
 function useDebounce(value, delay) {
