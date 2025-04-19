@@ -10,7 +10,7 @@ import 'react-toastify/dist/ReactToastify.css';
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
@@ -19,14 +19,14 @@ const Login = () => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!email || !password) {
+    if (!username || !password) {
       toast.error('Por favor, completa todos los campos.');
       return;
     }
 
     try {
       const response = await axios.post(`${API_URL}/login`, {
-        email,
+        username,
         password 
       });
       
@@ -88,11 +88,11 @@ const Login = () => {
                 )}
                 <TextField
                   fullWidth
-                  label="Correo electrónico"
+                  label="Usuario"
                   variant="outlined"
                   margin="normal"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   sx={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     borderRadius: '8px',
