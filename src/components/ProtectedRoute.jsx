@@ -1,18 +1,16 @@
 // components/ProtectedRoute.js
-import React, { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 const ProtectedRoute = () => {
-  const [isAuth, setIsAuth] = useState(true); // Estado inicial como autenticado
+  const location = useLocation();
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsAuth(!!token);
-  }, []);
+    if (!token) {
+      localStorage.removeItem('token');
+    }
+  }, [location]);
 
-  if (!isAuth) return <Navigate to="/" replace />;
-  
-  return <Outlet />;
+  return token ? <Outlet /> : <Navigate to="/" replace />;
 };
-
-export default ProtectedRoute;
