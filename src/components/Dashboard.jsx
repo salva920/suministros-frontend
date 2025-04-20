@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ExitToApp, Search, PointOfSale, Inventory, Settings, People } from '@mui/icons-material';
 import { logout } from '../services/authService';
+import WarningIcon from '@mui/icons-material/Warning';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -15,7 +16,6 @@ const Dashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
-  const [lowStockProducts, setLowStockProducts] = useState([]);
 
   const lowStockProducts = useMemo(() => 
     productos.filter(p => p.stock < 5), 
@@ -29,25 +29,21 @@ const Dashboard = () => {
         const response = await fetch(`${API_URL}/api/dashboard`);
         
         if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
         
         const result = await response.json();
         
-        if (!result.ventasTotales || !Array.isArray(result.productosBajoStock)) {
-          throw new Error('Estructura de datos inválida del servidor');
+        if (!result || 
+            typeof result.ventasTotales !== 'number' ||
+            !Array.isArray(result.productosBajoStock) ||
+            typeof result.totalClientes !== 'number') {
+          throw new Error('Estructura de datos inválida');
         }
         
-        const {
-          ventasTotales = 0,
-          productosBajoStock = [],
-          totalClientes = 0
-        } = result;
-        
-        setVentas(Number(ventasTotales.toFixed(2)));
-        setProductos(productosBajoStock);
-        setClientes(totalClientes);
-        setLowStockProducts(productosBajoStock.filter(p => p.stock < 5));
+        setVentas(Number(result.ventasTotales.toFixed(2)));
+        setProductos(result.productosBajoStock);
+        setClientes(result.totalClientes);
 
         if (lowStockProducts.length > 0) {
           toast.warning(`${lowStockProducts.length} productos con bajo stock`, {
@@ -56,8 +52,8 @@ const Dashboard = () => {
           });
         }
       } catch (error) {
-        console.error('Error detallado:', {
-          message: error.message,
+        console.error('Error en carga de datos:', {
+          error: error.message,
           stack: error.stack,
           timestamp: new Date().toISOString()
         });
@@ -297,19 +293,28 @@ const Dashboard = () => {
         {lowStockProducts.length > 0 && (
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Paper style={{ 
-                padding: '1.5rem',
+              <Paper elevation={3} style={{ 
+                padding: '1.5rem', 
                 borderLeft: '6px solid #FF6B35',
-                borderRadius: '8px',
-                background: '#FFF3E0',
-                marginTop: '2rem'
+                backgroundColor: '#FFF3E0'
               }}>
-                <Typography variant="h6" gutterBottom style={{ color: '#C62828' }}>
-                  Productos con Bajo Stock
+                <Typography 
+                  variant="h6" 
+                  gutterBottom 
+                  style={{ 
+                    color: '#C62828', 
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <WarningIcon fontSize="inherit" />
+                  Productos con Bajo Stock ({lowStockProducts.length})
                 </Typography>
+                
                 <Grid container spacing={2}>
-                  {lowStockProducts.map((producto, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
+                  {lowStockProducts.map((producto) => (
+                    <Grid item xs={12} sm={6} md={4} key={producto._id}>
                       <Paper style={{ 
                         padding: '1rem',
                         border: '1px solid #FFCC80',
