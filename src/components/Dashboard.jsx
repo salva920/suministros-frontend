@@ -36,7 +36,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         setCargando(true);
-        const response = await fetch(`${API_URL}/dashboard`);
+        const response = await fetch(`${API_URL}/api/dashboard`);
 
         
         if (!response.ok) {
