@@ -1,24 +1,18 @@
+// components/ProtectedRoute.js
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
 const ProtectedRoute = () => {
-  const [isAuth, setIsAuth] = useState(null);
+  const [isAuth, setIsAuth] = useState(true); // Estado inicial como autenticado
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      const sessionActive = sessionStorage.getItem('isLoggedIn');
-      setIsAuth(!!token && !!sessionActive);
-    };
-    
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
+    const token = localStorage.getItem('token');
+    setIsAuth(!!token);
   }, []);
 
-  if (isAuth === null) return null; // Esperar verificación inicial
+  if (!isAuth) return <Navigate to="/" replace />;
   
-  return isAuth ? <Outlet /> : <Navigate to="/" replace />;
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

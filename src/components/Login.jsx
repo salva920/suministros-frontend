@@ -31,8 +31,8 @@ const Login = () => {
       });
       
       if (response.data.auth) {
-        localStorage.setItem('token', response.data.token);
-        sessionStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('token', 'authenticated');
+        sessionStorage.setItem('isLoggedIn', 'true');  
         toast.success('Bienvenido al sistema');
         navigate('/dashboard', { replace: true });
       }
