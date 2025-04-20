@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Dialog, DialogTitle, DialogContent, DialogActions, 
   Grid, Typography, TableContainer, Table, TableHead, 
   TableRow, TableCell, TableBody, Chip, TextField, 
-  Button, IconButton, Box, Divider, InputAdornment, Paper, CircularProgress, useMediaQuery, useTheme
+  Button, IconButton, Box, Divider, InputAdornment, Paper, CircularProgress, useMediaQuery, useTheme, Slide
 } from '@mui/material';
 import { Print, AttachMoney, CheckCircle, Payment } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -12,10 +12,7 @@ import axios from 'axios';
 import moment from 'moment';
 import { toast } from 'react-hot-toast';
 import CloseIcon from '@mui/icons-material/Close';
-import Slide from '@mui/material/Slide';
-
-// Definir la URL de la API
-const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
+import { API_URL } from '../../config';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiPaper-root': {
@@ -48,6 +45,11 @@ const InfoItem = ({ label, value, icon }) => (
   </Grid>
 );
 
+// Transición para diálogo móvil
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
+
 const RegistroClienteDialog = ({ 
   open, 
   onClose, 
@@ -70,6 +72,7 @@ const RegistroClienteDialog = ({
   const [telefono, setTelefono] = useState(clienteSeleccionado?.telefono || '');
   const [direccion, setDireccion] = useState(clienteSeleccionado?.direccion || '');
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Actualizar ventasActualizadas cuando cambien las ventasCliente
   useEffect(() => {
@@ -209,10 +212,29 @@ const RegistroClienteDialog = ({
     setVentaSeleccionada(null);
   };
 
-  // Transición para diálogo móvil
-  const Transition = React.forwardRef(function Transition(props, ref) {
-    return <Slide direction="up" ref={ref} {...props} />;
-  });
+  // Calcular deuda total al cambiar montos de abono
+  useEffect(() => {
+    const calcularDeuda = () => {
+      // Validar que ventasActualizadas sea un array
+      if (!Array.isArray(ventasActualizadas)) {
+        console.error('ventasActualizadas no es un array:', ventasActualizadas);
+        setDeudaTotalCalculada(0);
+        return;
+      }
+
+      // Calcular deuda total restando los abonos
+      const total = ventasActualizadas.reduce((acc, venta) => {
+        const abono = parseFloat(montosAbono[venta._id] || 0);
+        return acc + (venta.saldoPendiente - abono);
+      }, 0);
+      
+      // Actualizar estado
+      setDeudaTotalCalculada(total);
+    };
+
+    // Ejecutar cálculo
+    calcularDeuda();
+  }, [ventasActualizadas, montosAbono]);
 
   return (
     <Dialog 
@@ -220,15 +242,12 @@ const RegistroClienteDialog = ({
       onClose={onClose} 
       maxWidth="md" 
       fullWidth
-      // Pantalla completa en móviles
-      fullScreen={useMediaQuery(theme.breakpoints.down('sm'))}
-      // Transición suave en móviles
-      TransitionComponent={useMediaQuery(theme.breakpoints.down('sm')) ? Transition : undefined}
+      fullScreen={isMobile}
+      TransitionComponent={isMobile ? Transition : undefined}
     >
       <DialogTitle>
         {clienteSeleccionado ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
-        {/* Botón de cerrar para móviles */}
-        {useMediaQuery(theme.breakpoints.down('sm')) && (
+        {isMobile && (
           <IconButton
             aria-label="close"
             onClick={onClose}
@@ -311,7 +330,7 @@ const RegistroClienteDialog = ({
               }}
             >
               <Table 
-                size={useMediaQuery(theme.breakpoints.down('sm')) ? "small" : "medium"}
+                size={isMobile ? "small" : "medium"}
                 stickyHeader
               >
                 <TableHead>
@@ -377,7 +396,7 @@ const RegistroClienteDialog = ({
       }}>
         <Button 
           onClick={onClose}
-          fullWidth={useMediaQuery(theme.breakpoints.down('sm'))}
+          fullWidth={isMobile}
           sx={{ mb: { xs: 1, sm: 0 } }}
         >
           Cancelar
@@ -387,7 +406,7 @@ const RegistroClienteDialog = ({
           variant="contained" 
           color="primary"
           disabled={loading}
-          fullWidth={useMediaQuery(theme.breakpoints.down('sm'))}
+          fullWidth={isMobile}
         >
           {loading ? <CircularProgress size={24} /> : 'Guardar'}
         </Button>
