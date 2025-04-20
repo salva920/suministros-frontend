@@ -122,20 +122,30 @@ const ListadoHistorialVentas = () => {
   // Función para manejar el clic en "Ver"
   const handleVerCliente = async (venta) => {
     try {
+      setCargando(true); // Añadir indicador de carga
+      
       // Obtener todas las ventas del cliente
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
           cliente: venta.cliente._id,
-          saldoPendiente: false // Obtener todas las ventas, no solo las pendientes
+          limit: 100 // Asegurar que se obtengan suficientes ventas
         }
       });
-
+      
+      console.log('Ventas del cliente:', response.data.ventas); // Agregar log para depuración
+      
+      if (!response.data.ventas || response.data.ventas.length === 0) {
+        toast.info('El cliente no tiene ventas registradas');
+      }
+      
       setClienteSeleccionado(venta.cliente);
-      setVentasCliente(response.data.ventas); // Usar todas las ventas del cliente
+      setVentasCliente(response.data.ventas);
       setMostrarRegistroCliente(true);
     } catch (error) {
       console.error('Error al obtener ventas del cliente:', error);
-      toast.error('Error al cargar historial del cliente'); // Mostrar notificación de error
+      toast.error('Error al cargar historial del cliente');
+    } finally {
+      setCargando(false);
     }
   };
 

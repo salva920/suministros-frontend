@@ -3,13 +3,14 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, 
   Grid, Typography, TableContainer, Table, TableHead, 
   TableRow, TableCell, TableBody, Chip, TextField, 
-  Button, IconButton, Box, Divider, InputAdornment
+  Button, IconButton, Box, Divider, InputAdornment, Paper, CircularProgress
 } from '@mui/material';
 import { Print, AttachMoney, CheckCircle, Payment } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import GenerarFactura from './GenerarFactura.jsx'; // Importar el componente GenerarFactura
 import axios from 'axios';
 import moment from 'moment';
+import { toast } from 'react-hot-toast';
 
 // Definir la URL de la API
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
@@ -62,6 +63,7 @@ const RegistroClienteDialog = ({
   const [mostrarGenerarFactura, setMostrarGenerarFactura] = useState(false);
   const [montosAbono, setMontosAbono] = useState({});
   const [deudaTotalCalculada, setDeudaTotalCalculada] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   // Actualizar ventasActualizadas cuando cambien las ventasCliente
   useEffect(() => {
@@ -77,6 +79,58 @@ const RegistroClienteDialog = ({
     };
     calcularDeuda();
   }, [ventasActualizadas]);
+
+  // Asegurar carga de ventas pendientes al abrir el modal
+  useEffect(() => {
+    const cargarVentasPendientes = async () => {
+      // Solo cargar si hay un cliente seleccionado y el modal está abierto
+      if (open && clienteSeleccionado?._id) {
+        try {
+          setLoading(true);
+          
+          const response = await fetch(`${API_URL}/ventas/pendientes/${clienteSeleccionado._id}`);
+          
+          if (!response.ok) {
+            throw new Error('Error al cargar ventas pendientes');
+          }
+          
+          const data = await response.json();
+          
+          // Validar la estructura de datos
+          if (!data.success || !Array.isArray(data.ventas)) {
+            throw new Error('Formato de respuesta inválido');
+          }
+          
+          // Actualizar estado con las ventas pendientes
+          setVentasActualizadas(data.ventas);
+          
+          // Calcular deuda total inicial
+          const totalDeuda = data.ventas.reduce(
+            (acc, venta) => acc + (venta.saldoPendiente || 0), 
+            0
+          );
+          
+          setDeudaTotalCalculada(totalDeuda);
+          
+          // Inicializar montos de abono en cero para cada venta
+          const montosIniciales = data.ventas.reduce((acc, venta) => {
+            acc[venta._id] = 0;
+            return acc;
+          }, {});
+          
+          setMontosAbono(montosIniciales);
+          
+        } catch (error) {
+          console.error('Error al cargar ventas pendientes:', error);
+          toast.error(`Error: ${error.message}`);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    cargarVentasPendientes();
+  }, [open, clienteSeleccionado?._id]); // Dependencias correctas
 
   // Manejar cambio en los inputs de abono
   const handleMontoChange = (ventaId, monto) => {
