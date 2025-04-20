@@ -59,29 +59,33 @@ const RegistroClienteDialog = ({
 
   // Cargar ventas al abrir el diálogo
   useEffect(() => {
-    const cargarVentas = async () => {
+    const cargarVentasPendientes = async () => {
       if (open && clienteSeleccionado?._id) {
         try {
           setLoading(true);
-          const response = await axios.get(`${API_URL}/ventas`, {
+          
+          const response = await axios.get(`${API_URL}/api/ventas/pendientes`, {
             params: {
-              cliente: clienteSeleccionado._id,
-              saldoPendiente: 'true',
-              limit: 1000
+              clienteId: clienteSeleccionado._id,
+              limit: 0 // 0 = sin límite (traer todas)
             }
           });
+
+          if (response.data.success) {
+            setVentas(response.data.ventas);
+            inicializarMontosAbono(response.data.ventas);
+          }
           
-          setVentas(response.data.ventas);
-          inicializarMontosAbono(response.data.ventas);
         } catch (error) {
-          toast.error('Error al cargar historial de ventas');
+          console.error('Error cargando ventas:', error);
+          toast.error(`Error: ${error.response?.data?.message || error.message}`);
         } finally {
           setLoading(false);
         }
       }
     };
-
-    cargarVentas();
+    
+    if (open) cargarVentasPendientes();
   }, [open, clienteSeleccionado?._id]);
 
   const inicializarMontosAbono = (ventas) => {

@@ -61,21 +61,24 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [deudaTotal, setDeudaTotal] = useState(0);
   const navigate = useNavigate();
 
-  const cargarClientes = useCallback(async () => {
+  const cargarClientes = useCallback(async (page = pagina, limit = porPagina) => {
     setCargando(true);
     try {
-      const response = await axios.get(`${API_URL}/clientes`);
+      const response = await axios.get(`${API_URL}/clientes?page=${page}&limit=${limit}`);
       setClientes(response.data.clientes);
+      setTotalClientes(response.data.total); // Asegurar total actualizado
     } catch (error) {
       console.error(error);
+      toast.error('Error al cargar clientes');
     } finally {
       setCargando(false);
     }
-  }, [setCargando]);
+  }, [pagina, porPagina]);
 
-  useEffect(() => {
-    cargarClientes();
-  }, [cargarClientes]);
+ // Actualizar useEffect para recargar al cambiar página
+useEffect(() => {
+  cargarClientes(pagina, porPagina);
+}, [pagina, porPagina, cargarClientes]);
 
   const filtrarClientes = useCallback(() => {
     return clientes.filter(cliente => {
@@ -229,7 +232,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   };
 
   const handleEliminarCliente = async (id) => {
-    if (!id) {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       toast.error('ID de cliente inválido');
       return;
     }
@@ -237,9 +240,9 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     try {
       await axios.delete(`${API_URL}/clientes/${id}`);
       toast.success('Cliente eliminado correctamente');
-      cargarClientes();
+      cargarClientes(pagina, porPagina); // Recargar con paginación actual
     } catch (error) {
-      console.error('Error al eliminar el cliente:', error);
+      console.error('Error al eliminar  el cliente:', error);
       toast.error(error.response?.data?.message || 'Error al eliminar el cliente');
     }
   };
