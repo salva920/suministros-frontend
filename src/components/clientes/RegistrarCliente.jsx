@@ -283,36 +283,40 @@ useEffect(() => {
   };
 
   // Modificar la función handleVerVentas para validar el ID
-const handleVerVentas = async (cliente) => {
-  try {
-    setCargandoVentas(true);
-    
-    if (!cliente?._id) { // Validación crítica
-      throw new Error('Cliente no tiene ID válido');
-    }
-
-    const response = await axios.get(`${API_URL}/ventas`, {
-      params: {
-        cliente: cliente._id.toString(), // Convertir a string
-        limit: 1000
+  const handleVerVentas = async (cliente) => {
+    try {
+      // Validación reforzada
+      if (!cliente || !cliente._id || !mongoose.Types.ObjectId.isValid(cliente._id.toString())) {
+        throw new Error('Cliente no válido para consultar ventas');
       }
-    });
-
-    // Validar estructura de respuesta
-    if (!response.data?.ventas) {
-      throw new Error('Formato de respuesta inválido');
+  
+      setCargandoVentas(true);
+      
+      const response = await axios.get(`${API_URL}/ventas`, {
+        params: {
+          cliente: cliente._id.toString(),
+          limit: 1000
+        },
+        timeout: 15000
+      });
+  
+      if (!response.data?.ventas) {
+        throw new Error('Estructura de respuesta incorrecta');
+      }
+  
+      setVentasCliente(response.data.ventas);
+      setMostrarDialogoVentas(true);
+  
+    } catch (error) {
+      toast.error(`Error: ${error.message}`);
+      console.error('Detalle técnico:', {
+        clienteId: cliente?._id,
+        error: error.response?.data || error.message
+      });
+    } finally {
+      setCargandoVentas(false);
     }
-
-    setVentasCliente(response.data.ventas);
-    setMostrarDialogoVentas(true);
-
-  } catch (error) {
-    toast.error(`Error al cargar ventas: ${error.message}`);
-    console.error('Detalle:', error.response?.data || error);
-  } finally {
-    setCargandoVentas(false);
-  }
-};
+  };
 
   useEffect(() => {
     clientesFiltrados.forEach(cliente => {
