@@ -731,7 +731,10 @@ useEffect(() => {
                     </IconButton>
                     <IconButton
                       color="info"
-                      onClick={() => handleVerVentas(cliente)}
+                      onClick={() => {
+                        setClienteSeleccionado(cliente); // Asegurar cliente seleccionado
+                        handleVerVentas(cliente);
+                      }}
                       title="Ver Historial de Ventas"
                     >
                       <Receipt />
