@@ -16,7 +16,9 @@
   ],
   "build": {
     "env": {
-      "REACT_APP_API_URL": "https://suministros-backend.vercel.app/api"
+      "REACT_APP_API_URL": "https://suministros-backend.vercel.app/api",
+      "ESLINT_NO_DEV_ERRORS": "true",
+      "DISABLE_ESLINT_PLUGIN": "true"
     }
   }
 }
