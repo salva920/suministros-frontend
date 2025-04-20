@@ -3,7 +3,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, 
   Grid, Typography, TableContainer, Table, TableHead, 
   TableRow, TableCell, TableBody, Chip, TextField, 
-  Button, IconButton, Box, Divider
+  Button, IconButton, Box, Divider, InputAdornment
 } from '@mui/material';
 import { Print, AttachMoney, CheckCircle, Payment } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -70,13 +70,13 @@ const RegistroClienteDialog = ({
 
   useEffect(() => {
     const calcularDeuda = () => {
-      const total = ventasCliente.reduce(
+      const total = ventasActualizadas.reduce(
         (acc, venta) => acc + (venta.saldoPendiente || 0), 0
       );
       setDeudaTotalCalculada(total);
     };
     calcularDeuda();
-  }, [ventasCliente]);
+  }, [ventasActualizadas]);
 
   // Manejar cambio en los inputs de abono
   const handleMontoChange = (ventaId, monto) => {
@@ -88,26 +88,34 @@ const RegistroClienteDialog = ({
 
   // Abonar a una venta específica
   const handleAbonar = async (venta) => {
-    const monto = montosAbono[venta._id] || 0;
-    if (monto > 0 && monto <= venta.saldoPendiente) {
-      const ventaActualizada = {
-        ...venta,
+    const monto = parseFloat(montosAbono[venta._id]) || 0;
+    
+    // Validaciones mejoradas
+    if (monto <= 0) {
+      alert('Ingrese un monto válido');
+      return;
+    }
+    
+    if (monto > venta.saldoPendiente) {
+      alert('El monto excede el saldo pendiente');
+      return;
+    }
+  
+    try {
+      const response = await axios.put(`${API_URL}/ventas/${venta._id}`, {
         montoAbonado: venta.montoAbonado + monto,
         saldoPendiente: venta.saldoPendiente - monto
-      };
+      });
       
-      try {
-        await axios.put(`${API_URL}/ventas/${venta._id}`, ventaActualizada);
-        handleAbonarSaldo(ventaActualizada); // Notificar al componente padre
-        setMontosAbono(prev => ({ ...prev, [venta._id]: 0 })); // Reiniciar el monto de abono
-        setVentasActualizadas(prevVentas => 
-          prevVentas.map(v => 
-            v._id === venta._id ? ventaActualizada : v
-          )
-        );
-      } catch (error) {
-        console.error('Error al abonar:', error);
-      }
+      // Actualizar estado local y padre
+      const ventaActualizada = response.data;
+      setVentasActualizadas(prev => 
+        prev.map(v => v._id === venta._id ? ventaActualizada : v)
+      );
+      handleAbonarSaldo(ventaActualizada);
+      
+    } catch (error) {
+      console.error('Error en abono:', error.response?.data);
     }
   };
 
@@ -244,13 +252,43 @@ const RegistroClienteDialog = ({
                           type="number"
                           size="small"
                           value={montosAbono[venta._id] || ''}
-                          onChange={(e) => handleMontoChange(venta._id, e.target.value)}
-                          sx={{ width: 100 }}
-                          inputProps={{ 
-                            min: 0, 
-                            max: venta.saldoPendiente,
-                            style: { textAlign: 'right' }
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            // Validar que el valor esté dentro del rango permitido
+                            if (!isNaN(value) && value >= 0 && value <= venta.saldoPendiente) {
+                              handleMontoChange(venta._id, value);
+                            }
                           }}
+                          sx={{ 
+                            width: 120,
+                            '& .MuiOutlinedInput-root': {
+                              '& fieldset': { borderColor: '#e0e0e0' },
+                              '&:hover fieldset': { borderColor: '#1976d2' },
+                              '&.Mui-focused fieldset': { borderColor: '#1976d2' }
+                            }
+                          }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <AttachMoney fontSize="small" color="action" />
+                              </InputAdornment>
+                            ),
+                            inputProps: { 
+                              min: 0,
+                              max: venta.saldoPendiente,
+                              step: 0.01,
+                              style: { 
+                                textAlign: 'right',
+                                paddingRight: '8px'
+                              }
+                            }
+                          }}
+                          error={montosAbono[venta._id] > venta.saldoPendiente}
+                          helperText={
+                            montosAbono[venta._id] > venta.saldoPendiente 
+                              ? `Monto excede el saldo (${venta.saldoPendiente.toFixed(2)})`
+                              : ''
+                          }
                         />
                         <Button 
                           variant="contained" 
