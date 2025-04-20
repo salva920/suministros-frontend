@@ -33,46 +33,42 @@ const Dashboard = () => {
   );
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
       try {
         setCargando(true);
         const response = await fetch(`${API_URL}/api/dashboard`);
         
         if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}`);
         }
         
         const result = await response.json();
         
         if (!result?.success || !result.data) {
-          throw new Error('Estructura de respuesta inválida');
+          throw new Error('Respuesta inválida del servidor');
         }
-
-        const validData = {
-          ventas: Number(result.data.ventasTotales?.toFixed(2)) || 0,
+        
+        setDashboardData({
+          ventas: result.data.ventasTotales || 0,
           productos: Array.isArray(result.data.productosBajoStock) 
             ? result.data.productosBajoStock 
             : [],
           clientes: result.data.totalClientes || 0
-        };
+        });
 
-        setDashboardData(validData);
-        setError(null);
-
-      } catch (err) {
-        console.error('Error en carga de datos:', {
-          error: err.message,
-          stack: err.stack,
+      } catch (error) {
+        console.error('Error en fetch:', {
+          error: error.message,
+          stack: error.stack,
           timestamp: new Date().toISOString()
         });
-        setError(err.message);
-        toast.error(`Error al cargar datos: ${err.message}`);
+        toast.error(`Error: ${error.message}`);
       } finally {
         setCargando(false);
       }
     };
 
-    fetchDashboardData();
+    fetchData();
   }, []);
 
   useEffect(() => {
