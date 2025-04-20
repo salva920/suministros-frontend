@@ -1,23 +1,22 @@
 {
-  "version": 2,
-  "builds": [
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://suministros-backend.vercel.app/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build",
-        "cleanUrls": true
-      }
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=1, stale-while-revalidate" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "https://suministros-backend.vercel.app/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/build/index.html"
+  "build": {
+    "env": {
+      "REACT_APP_API_URL": "https://suministros-backend.vercel.app/api"
     }
-  ]
+  }
 }
