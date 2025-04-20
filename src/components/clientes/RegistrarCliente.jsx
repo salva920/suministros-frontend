@@ -4,7 +4,7 @@ import {
   Paper, IconButton, Chip, Box,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Collapse, MenuItem, FormGroup, FormControlLabel, Checkbox,
-  InputLabel, Select, FormControl, Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress
+  InputLabel, Select, FormControl, Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress, CircularProgress
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { 
@@ -59,6 +59,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [colorMunicipio, setColorMunicipio] = useState('#ffffff');
   const [mostrarDialogoVentas, setMostrarDialogoVentas] = useState(false);
   const [deudaTotal, setDeudaTotal] = useState(0);
+  const [cargandoVentas, setCargandoVentas] = useState(false);
   const navigate = useNavigate();
 
   const cargarClientes = useCallback(async (page = pagina, limit = porPagina) => {
@@ -184,7 +185,7 @@ useEffect(() => {
     if (!validarCampos()) return;
   
     try {
-      // Crear el objeto clienteData sin el campo _id si es un nuevo cliente
+      setCargandoVentas(true);
       const clienteData = {
         nombre: cliente.nombre,
         telefono: prefijoTelefono + cliente.telefono,
@@ -196,16 +197,13 @@ useEffect(() => {
         municipioColor: cliente.municipioColor
       };
   
-      // Determinar el método HTTP y la URL según si estamos editando o creando
       const method = clienteEditando ? 'put' : 'post';
       const url = clienteEditando 
         ? `${API_URL}/clientes/${clienteEditando._id}`
         : `${API_URL}/clientes`;
   
-      // Realizar la solicitud HTTP
       const response = await axios[method](url, clienteData);
   
-      // Manejar la respuesta
       if (response.data) {
         toast.success(clienteEditando ? 'Cliente actualizado correctamente' : 'Cliente registrado correctamente');
         setCliente({
@@ -228,6 +226,8 @@ useEffect(() => {
       }
     } catch (error) {
       toast.error(`Error al ${clienteEditando ? 'actualizar' : 'registrar'} el cliente: ${error.message}`);
+    } finally {
+      setCargandoVentas(false);
     }
   };
 
@@ -282,25 +282,37 @@ useEffect(() => {
     setShowForm(false);
   };
 
-  const handleVerVentas = async (cliente) => {
-    try {
-      const response = await axios.get(`${API_URL}/ventas`, {
-        params: {
-          cliente: cliente._id.toString(), // Convertir a string
-          limit: 1000
-        }
-      });
-      
-      setClienteSeleccionado(cliente);
-      setVentasCliente(response.data.ventas);
-      setMostrarDialogoVentas(true);
-    } catch (error) {
-      toast.error('Error al cargar el historial de ventas');
-      console.error('Error:', error);
-    } finally{
-      setCargandoVentas(false); // Desactivar carga siempre
+  // Modificar la función handleVerVentas para validar el ID
+const handleVerVentas = async (cliente) => {
+  try {
+    setCargandoVentas(true);
+    
+    if (!cliente?._id) { // Validación crítica
+      throw new Error('Cliente no tiene ID válido');
     }
-  };
+
+    const response = await axios.get(`${API_URL}/ventas`, {
+      params: {
+        cliente: cliente._id.toString(), // Convertir a string
+        limit: 1000
+      }
+    });
+
+    // Validar estructura de respuesta
+    if (!response.data?.ventas) {
+      throw new Error('Formato de respuesta inválido');
+    }
+
+    setVentasCliente(response.data.ventas);
+    setMostrarDialogoVentas(true);
+
+  } catch (error) {
+    toast.error(`Error al cargar ventas: ${error.message}`);
+    console.error('Detalle:', error.response?.data || error);
+  } finally {
+    setCargandoVentas(false);
+  }
+};
 
   useEffect(() => {
     clientesFiltrados.forEach(cliente => {
@@ -619,8 +631,9 @@ useEffect(() => {
                     color="success" 
                     size="large"
                     fullWidth
+                    disabled={cargandoVentas}
                   >
-                    {clienteEditando ? 'Actualizar Cliente' : 'Registrar Cliente'}
+                    {cargandoVentas ? <CircularProgress size={24} /> : (clienteEditando ? 'Actualizar Cliente' : 'Registrar Cliente')}
                   </Button>
                   {clienteEditando && (
                     <Button 
@@ -759,8 +772,7 @@ useEffect(() => {
           ventasCliente={ventasCliente}
           deudaTotal={deudaTotal}
           handleAbonarSaldo={handleAbonarSaldo}
-          cargando={cargandoVentas} // Pasar estado de carga
-
+          cargando={cargandoVentas}
         />
       )}
 
