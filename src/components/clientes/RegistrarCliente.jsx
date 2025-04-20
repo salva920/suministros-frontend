@@ -286,7 +286,7 @@ useEffect(() => {
     try {
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: cliente._id,
+          cliente: cliente._id.toString(), // Convertir a string
           limit: 1000
         }
       });
@@ -297,6 +297,8 @@ useEffect(() => {
     } catch (error) {
       toast.error('Error al cargar el historial de ventas');
       console.error('Error:', error);
+    } finally{
+      setCargandoVentas(false); // Desactivar carga siempre
     }
   };
 
@@ -757,6 +759,8 @@ useEffect(() => {
           ventasCliente={ventasCliente}
           deudaTotal={deudaTotal}
           handleAbonarSaldo={handleAbonarSaldo}
+          cargando={cargandoVentas} // Pasar estado de carga
+
         />
       )}
 
