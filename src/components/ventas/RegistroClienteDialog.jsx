@@ -3,7 +3,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, 
   Grid, Typography, TableContainer, Table, TableHead, 
   TableRow, TableCell, TableBody, Chip, TextField, 
-  Button, IconButton, Box, Divider, InputAdornment, Paper, CircularProgress, useMediaQuery, useTheme
+  Button, IconButton, Box, Divider, InputAdornment, Paper, CircularProgress
 } from '@mui/material';
 import { Print, AttachMoney, CheckCircle, Payment } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -11,8 +11,6 @@ import GenerarFactura from './GenerarFactura.jsx'; // Importar el componente Gen
 import axios from 'axios';
 import moment from 'moment';
 import { toast } from 'react-hot-toast';
-import CloseIcon from '@mui/icons-material/Close';
-import Slide from '@mui/material/Slide';
 
 // Definir la URL de la API
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
@@ -66,10 +64,6 @@ const RegistroClienteDialog = ({
   const [montosAbono, setMontosAbono] = useState({});
   const [deudaTotalCalculada, setDeudaTotalCalculada] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [nombre, setNombre] = useState(clienteSeleccionado?.nombre || '');
-  const [telefono, setTelefono] = useState(clienteSeleccionado?.telefono || '');
-  const [direccion, setDireccion] = useState(clienteSeleccionado?.direccion || '');
-  const theme = useTheme();
 
   // Actualizar ventasActualizadas cuando cambien las ventasCliente
   useEffect(() => {
@@ -209,187 +203,210 @@ const RegistroClienteDialog = ({
     setVentaSeleccionada(null);
   };
 
-  // Transición para diálogo móvil
-  const Transition = React.forwardRef(function Transition(props, ref) {
-    return <Slide direction="up" ref={ref} {...props} />;
-  });
-
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
-      fullWidth
-      // Pantalla completa en móviles
-      fullScreen={useMediaQuery(theme.breakpoints.down('sm'))}
-      // Transición suave en móviles
-      TransitionComponent={useMediaQuery(theme.breakpoints.down('sm')) ? Transition : undefined}
-    >
-      <DialogTitle>
-        {clienteSeleccionado ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
-        {/* Botón de cerrar para móviles */}
-        {useMediaQuery(theme.breakpoints.down('sm')) && (
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={{ position: 'absolute', right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        )}
-      </DialogTitle>
+    <StyledDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <HeaderTitle>
+        <AttachMoney fontSize="inherit" />
+        Registro Completo - {clienteSeleccionado?.nombre}
+      </HeaderTitle>
       
-      <DialogContent dividers>
-        {/* Información del Cliente - Layout Responsivo */}
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Nombre"
-              fullWidth
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              margin="dense"
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Teléfono"
-              fullWidth
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              margin="dense"
-              variant="outlined"
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              label="Dirección"
-              fullWidth
-              multiline
-              rows={2}
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
-              margin="dense"
-              variant="outlined"
-            />
-          </Grid>
+      <DialogContent sx={{ py: 3 }}>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <InfoItem 
+            label="RIF" 
+            value={clienteSeleccionado?.rif} 
+            icon={<Payment />}
+          />
+          <InfoItem 
+            label="Teléfono" 
+            value={clienteSeleccionado?.telefono} 
+            icon={<Payment />}
+          />
+          <InfoItem 
+            label="Email" 
+            value={clienteSeleccionado?.email} 
+            icon={<Payment />}
+          />
+          <InfoItem 
+            label="Dirección" 
+            value={clienteSeleccionado?.direccion} 
+            icon={<Payment />}
+          />
+          <InfoItem 
+            label="Municipio" 
+            value={clienteSeleccionado?.municipio} 
+            icon={<Payment />}
+          />
         </Grid>
-        
-        {/* Sección de ventas pendientes - Responsiva */}
-        {clienteSeleccionado && ventasActualizadas.length > 0 && (
-          <Box mt={3}>
-            <Typography 
-              variant="h6" 
-              gutterBottom
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'flex-start', sm: 'center' },
-                gap: 1
-              }}
-            >
-              Ventas Pendientes
-              <Chip 
-                label={`Total: $${deudaTotalCalculada.toFixed(2)}`}
-                color="error"
-                size="small"
-                sx={{ 
-                  fontWeight: 'bold',
-                  ml: { sm: 2 }
-                }}
-              />
-            </Typography>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Typography variant="h6" sx={{ 
+          mb: 2,
+          fontWeight: 600,
+          color: 'text.secondary',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <CheckCircle fontSize="small" />
+          Historial de Ventas
+        </Typography>
+
+        <TableContainer sx={{ 
+          border: 1, 
+          borderColor: 'divider', 
+          borderRadius: 2,
+          overflow: 'hidden'
+        }}>
+          <Table>
+            <TableHead sx={{ bgcolor: 'background.default' }}>
+              <TableRow>
+                {['Fecha', 'Total', 'Abonado', 'Saldo', 'Estado', 'Factura', 'Acciones'].map((header) => (
+                  <TableCell key={header} sx={{ 
+                    fontWeight: 600,
+                    py: 2,
+                    borderBottom: 'none'
+                  }}>
+                    {header}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
             
-            {/* Tabla Scrolleable Horizontal para Móviles */}
-            <TableContainer 
-              component={Paper} 
-              variant="outlined"
-              sx={{ 
-                maxHeight: { xs: '40vh', md: '50vh' },
-                overflowX: 'auto' 
-              }}
-            >
-              <Table 
-                size={useMediaQuery(theme.breakpoints.down('sm')) ? "small" : "medium"}
-                stickyHeader
-              >
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Folio</TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Total</TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Pendiente</TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Abono</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {ventasActualizadas.map((venta) => (
-                    <TableRow key={venta._id}>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {new Date(venta.fecha).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{venta.folio}</TableCell>
-                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                        ${venta.total.toFixed(2)}
-                      </TableCell>
-                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                        ${venta.saldoPendiente.toFixed(2)}
-                      </TableCell>
-                      <TableCell align="right" sx={{ whiteSpace: 'nowrap', minWidth: '120px' }}>
-                        {/* Campo de abono - mantener funcionalidad */}
+            <TableBody>
+              {ventasActualizadas.map(venta => (
+                <TableRow 
+                  key={venta._id}
+                  hover
+                  sx={{ '&:last-child td': { borderBottom: 0 } }}
+                >
+                  <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
+                  <TableCell>${(venta.total || 0).toFixed(2)}</TableCell>
+                  <TableCell>${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
+                  <TableCell sx={{ 
+                    color: venta.saldoPendiente > 0 ? 'error.main' : 'success.main',
+                    fontWeight: 500
+                  }}>
+                    ${(venta.saldoPendiente || 0).toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={venta.saldoPendiente > 0 ? 'Pendiente' : 'Pagado'} 
+                      color={venta.saldoPendiente > 0 ? 'error' : 'success'}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>{venta.nrFactura}</TableCell>
+                  <TableCell>
+                    {venta.saldoPendiente > 0 && (
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                         <TextField
                           type="number"
                           size="small"
                           value={montosAbono[venta._id] || ''}
                           onChange={(e) => {
                             const value = parseFloat(e.target.value);
+                            // Validar que el valor esté dentro del rango permitido
                             if (!isNaN(value) && value >= 0 && value <= venta.saldoPendiente) {
                               handleMontoChange(venta._id, value);
                             }
                           }}
                           sx={{ 
-                            width: { xs: '100%', sm: 120 }, 
-                            minWidth: '80px' 
-                          }}
-                          InputProps={{
-                            startAdornment: <AttachMoney fontSize="small" color="action" />,
-                            inputProps: { 
-                              min: 0, 
-                              max: venta.saldoPendiente,
-                              step: 0.01
+                            width: 120,
+                            '& .MuiOutlinedInput-root': {
+                              '& fieldset': { borderColor: '#e0e0e0' },
+                              '&:hover fieldset': { borderColor: '#1976d2' },
+                              '&.Mui-focused fieldset': { borderColor: '#1976d2' }
                             }
                           }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <AttachMoney fontSize="small" color="action" />
+                              </InputAdornment>
+                            ),
+                            inputProps: { 
+                              min: 0,
+                              max: venta.saldoPendiente,
+                              step: 0.01,
+                              style: { 
+                                textAlign: 'right',
+                                paddingRight: '8px'
+                              }
+                            }
+                          }}
+                          error={montosAbono[venta._id] > venta.saldoPendiente}
+                          helperText={
+                            montosAbono[venta._id] > venta.saldoPendiente 
+                              ? `Monto excede el saldo (${venta.saldoPendiente.toFixed(2)})`
+                              : ''
+                          }
                         />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-        )}
+                        <Button 
+                          variant="contained" 
+                          size="small"
+                          onClick={() => handleAbonar(venta)}
+                          sx={{ minWidth: 90 }}
+                        >
+                          Abonar
+                        </Button>
+                        <Button 
+                          variant="outlined" 
+                          color="success" 
+                          size="small"
+                          onClick={() => handleSolventarDeuda(venta)}  // Pasar la venta específica
+                          sx={{ minWidth: 100 }}
+                        >
+                          Solventar
+                        </Button>
+                      </Box>
+                    )}
+                    <IconButton 
+                      onClick={() => handleGenerarFactura(venta)}
+                      sx={{ ml: 1 }}
+                    >
+                      <Print fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Box sx={{
+          mt: 3,
+          p: 2,
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          border: 1,
+          borderColor: 'divider',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography variant="h6" component="div">
+            Deuda Total:
+          </Typography>
+          <Typography variant="h5" sx={{ 
+            fontWeight: 600,
+            color: deudaTotalCalculada > 0 ? 'error.main' : 'success.main'
+          }}>
+            ${deudaTotalCalculada.toFixed(2)}
+          </Typography>
+        </Box>
       </DialogContent>
-      
-      <DialogActions sx={{ 
-        flexDirection: { xs: 'column', sm: 'row' },
-        py: { xs: 2, sm: 1 }
-      }}>
+
+      <DialogActions sx={{ px: 3, py: 2 }}>
         <Button 
-          onClick={onClose}
-          fullWidth={useMediaQuery(theme.breakpoints.down('sm'))}
-          sx={{ mb: { xs: 1, sm: 0 } }}
+          onClick={onClose} 
+          variant="outlined" 
+          color="inherit"
+          sx={{ borderRadius: 2 }}
         >
-          Cancelar
-        </Button>
-        <Button 
-          onClick={handleSave} 
-          variant="contained" 
-          color="primary"
-          disabled={loading}
-          fullWidth={useMediaQuery(theme.breakpoints.down('sm'))}
-        >
-          {loading ? <CircularProgress size={24} /> : 'Guardar'}
+          Cerrar
         </Button>
       </DialogActions>
 
@@ -400,7 +417,7 @@ const RegistroClienteDialog = ({
           onClose={handleCerrarGenerarFactura} 
         />
       )}
-    </Dialog>
+    </StyledDialog>
   );
 };
 
