@@ -45,12 +45,6 @@ const Dashboard = () => {
         setProductos(result.productosBajoStock);
         setClientes(result.totalClientes);
 
-        if (lowStockProducts.length > 0) {
-          toast.warning(`${lowStockProducts.length} productos con bajo stock`, {
-            position: "top-right",
-            autoClose: 10000,
-          });
-        }
       } catch (error) {
         console.error('Error en carga de datos:', {
           error: error.message,
@@ -79,6 +73,15 @@ const Dashboard = () => {
       });
     }
   }, [location]);
+
+  useEffect(() => {
+    if (lowStockProducts.length > 0) {
+      toast.warning(`${lowStockProducts.length} productos con bajo stock`, {
+        position: "top-right",
+        autoClose: 10000,
+      });
+    }
+  }, [lowStockProducts.length]);
 
   const totalVentas = ventas;
   const totalProductosBajoStock = productos.length;
