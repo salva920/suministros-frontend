@@ -12,7 +12,9 @@ import axios from 'axios';
 import moment from 'moment';
 import { toast } from 'react-hot-toast';
 import CloseIcon from '@mui/icons-material/Close';
-import { API_URL } from '../../config';
+
+
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiPaper-root': {
