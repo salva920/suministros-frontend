@@ -13,7 +13,7 @@ import {
 import { logout } from '../services/authService';
 import WarningIcon from '@mui/icons-material/Warning';
 
-const API_URL = "https://suministros-backend.vercel.app/api";
+const API_URL = "https://suministros-backend.vercel.app"; // Quitar /api al final
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState({
