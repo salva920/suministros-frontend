@@ -479,9 +479,7 @@ const GestionInventario = () => {
                       />
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      {moment.utc(producto.fechaIngreso)
-                        .tz('America/Caracas', true)
-                        .format('DD/MM/YYYY')}
+                      {moment.utc(producto.fechaIngreso).format('DD/MM/YYYY')}
                     </StyledTableCell>
                     <StyledTableCell align="center">
                       <IconButton onClick={() => abrirEntradaStock(producto)}>
