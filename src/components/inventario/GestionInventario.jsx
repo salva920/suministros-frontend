@@ -202,26 +202,31 @@ const GestionInventario = () => {
       const productoActual = productos.find(p => p.id === entradaStock.productoId);
       const cantidadIngresada = Number(entradaStock.cantidad);
       
-      // Usar el endpoint específico para entradas de stock
+      // Convertir la fecha seleccionada a UTC considerando la zona horaria de Caracas
+      const fechaCaracas = moment.tz(entradaStock.fechaHora, 'YYYY-MM-DD', 'America/Caracas').startOf('day');
+      const fechaUTC = fechaCaracas.toISOString();
+
       const response = await axios.post(
         `${API_URL}/productos/${productoActual.id}/entradas`,
         {
           cantidad: cantidadIngresada,
-          fechaHora: entradaStock.fechaHora
+          fechaHora: fechaUTC // Enviar fecha en UTC
         }
       );
 
-      // Actualizar la lista de productos
-      const nuevosProductos = productos.map(p => 
-        p.id === productoActual.id ? response.data : p
-      );
-      setProductos(nuevosProductos);
-      
-      toast.success(`Stock actualizado: ${productoActual.nombre}`);
-      setModalEntradaAbierto(false);
+      // Actualizar el estado con la nueva entrada de stock
+      setProductos(prev => prev.map(p => 
+        p.id === productoActual.id 
+          ? { ...p, stock: p.stock + cantidadIngresada } 
+          : p
+      ));
+
+      // Limpiar el formulario y mostrar mensaje de éxito
+      setEntradaStock({ productoId: '', cantidad: '', fechaHora: '' });
+      toast.success('Stock agregado correctamente');
     } catch (error) {
-      console.error('Error al actualizar stock:', error);
-      toast.error('Error al actualizar stock');
+      console.error('Error al agregar stock:', error);
+      toast.error('Error al agregar stock');
     }
   };
 
@@ -474,7 +479,9 @@ const GestionInventario = () => {
                       />
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      {moment(producto.fechaIngreso).tz('America/Caracas').format('DD/MM/YYYY')}
+                      {moment.utc(producto.fechaIngreso)
+                        .tz('America/Caracas')
+                        .format('DD/MM/YYYY')}
                     </StyledTableCell>
                     <StyledTableCell align="center">
                       <IconButton onClick={() => abrirEntradaStock(producto)}>
