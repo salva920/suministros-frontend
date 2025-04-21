@@ -479,7 +479,7 @@ const GestionInventario = () => {
                       />
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      {moment(producto.fechaIngreso)
+                      {moment.utc(producto.fechaIngreso)
                         .tz('America/Caracas', true)
                         .format('DD/MM/YYYY')}
                     </StyledTableCell>
