@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, DialogTitle, DialogContent, DialogActions, 
-  Button, TextField, Grid, Typography, Paper, IconButton, Box
+  Button, TextField, Grid, Typography, Paper, IconButton, Box, InputAdornment, useMediaQuery, Divider, MenuItem, FormControl, FormHelperText, CircularProgress
 } from '@mui/material';
-import { Close, ArrowBack, Inventory } from '@mui/icons-material';
+import { Close, ArrowBack, Inventory, MonetizationOn, LocalShipping, Calculator } from '@mui/icons-material';
 import { toast } from 'react-toastify';
-import { styled } from '@mui/material/styles';
+import { styled, useTheme } from '@mui/material/styles';
 import axios from 'axios';
 import moment from 'moment';
 
@@ -28,15 +28,19 @@ const RoundedButton = styled(Button)(({ theme }) => ({
 
 const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, agregarProductoAlEstado }) => {
   
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  
   const [producto, setProducto] = useState({
     _id: '',
     nombre: '',
     codigo: '',
     proveedor: '',
-    costoInicial: 0,
-    acarreo: 0,
-    flete: 0,
-    cantidad: 0,
+    costoInicial: '',
+    acarreo: '',
+    flete: '',
+    cantidad: '',
     stock: 0,
     fechaIngreso: ''
   });
@@ -48,7 +52,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
     cantidad: false
   });
 
- 
+  const [costoFinal, setCostoFinal] = useState(0);
 
   useEffect(() => {
     if (productoEditando) {
@@ -57,10 +61,10 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         nombre: productoEditando.nombre || '',
         codigo: productoEditando.codigo || '',
         proveedor: productoEditando.proveedor || '',
-        costoInicial: productoEditando.costoInicial || 0,
-        acarreo: productoEditando.acarreo || 0,
-        flete: productoEditando.flete || 0,
-        cantidad: productoEditando.cantidad || 0,
+        costoInicial: productoEditando.costoInicial || '',
+        acarreo: productoEditando.acarreo || '',
+        flete: productoEditando.flete || '',
+        cantidad: productoEditando.cantidad || '',
         stock: productoEditando.stock || 0,
         fechaIngreso: productoEditando.fechaIngreso ? 
           moment(productoEditando.fechaIngreso).format('YYYY-MM-DD') : ''
@@ -69,6 +73,19 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
       resetForm();
     }
   }, [productoEditando]);
+
+  useEffect(() => {
+    const calcularCostoFinal = () => {
+      const costoInicialNum = producto.costoInicial === '' ? 0 : parseFloat(producto.costoInicial);
+      const acarreoNum = producto.acarreo === '' ? 0 : parseFloat(producto.acarreo);
+      const fleteNum = producto.flete === '' ? 0 : parseFloat(producto.flete);
+      
+      const total = costoInicialNum + acarreoNum + fleteNum;
+      setCostoFinal(total);
+    };
+    
+    calcularCostoFinal();
+  }, [producto.costoInicial, producto.acarreo, producto.flete]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -96,18 +113,16 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
     });
   };
 
- 
-
   const resetForm = () => {
     setProducto({
       _id: '',
       nombre: '',
       codigo: '',
       proveedor: '',
-      costoInicial: 0,
-      acarreo: 0,
-      flete: 0,
-      cantidad: 0,
+      costoInicial: '',
+      acarreo: '',
+      flete: '',
+      cantidad: '',
       stock: 0,
       fechaIngreso: ''
     });
@@ -129,8 +144,8 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
       const validationErrors = [];
       if (!producto.nombre.trim()) validationErrors.push('nombre');
       if (!codigoTrimmed) validationErrors.push('código');
-      if (producto.costoInicial <= 0) validationErrors.push('costo inicial');
-      if (producto.cantidad <= 0) validationErrors.push('cantidad');
+      if (producto.costoInicial === '') validationErrors.push('costo inicial');
+      if (producto.cantidad === '') validationErrors.push('cantidad');
       if (!producto.fechaIngreso) validationErrors.push('fecha de ingreso');
 
       if (validationErrors.length > 0) {
@@ -139,7 +154,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
       }
 
       // Cálculo final seguro
-      const costoFinal = Number(
+      const costoFinalCalculado = Number(
         ((producto.costoInicial * producto.cantidad + producto.acarreo + producto.flete) / producto.cantidad).toFixed(2)
       );
 
@@ -151,7 +166,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         acarreo: Number(producto.acarreo),
         flete: Number(producto.flete),
         cantidad: Number(producto.cantidad),
-        costoFinal,
+        costoFinal: costoFinalCalculado,
         stock: Number(producto.cantidad),
         fechaIngreso: producto.fechaIngreso
       };
@@ -198,7 +213,6 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
     }
   };
 
- 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <StyledPaper component="form" onSubmit={handleSubmit}>
