@@ -1,21 +1,17 @@
 {
-  "version": 2,
-  "routes": [
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://suministros-backend.vercel.app/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://suministros-backend.vercel.app/api/$1",
-      "methods": ["GET", "POST", "PUT", "DELETE"]
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html",
-      "headers": {
-        "Cache-Control": "s-maxage=1, stale-while-revalidate",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-        "X-XSS-Protection": "1; mode=block",
-        "Content-Security-Policy": "default-src 'self' https: 'unsafe-inline' 'unsafe-eval'"
-      }
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=1, stale-while-revalidate" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
     }
   ],
   "build": {
@@ -24,19 +20,5 @@
       "ESLINT_NO_DEV_ERRORS": "true",
       "DISABLE_ESLINT_PLUGIN": "true"
     }
-  },
-  "headers": [
-    {
-      "source": "/_next/static/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
-      ]
-    }
-  ]
+  }
 }
