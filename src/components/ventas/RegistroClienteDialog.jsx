@@ -64,7 +64,7 @@ const RegistroClienteDialog = ({
         try {
           setLoading(true);
           
-          const response = await axios.get(`${API_URL}/api/ventas/pendientes`, {
+          const response = await axios.get(`${API_URL}/api/ventas`, {
             params: {
               clienteId: clienteSeleccionado._id,
               limit: 0 // 0 = sin límite (traer todas)
