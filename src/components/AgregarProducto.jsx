@@ -191,25 +191,13 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         agregarProductoAlEstado(response.data);
       }
     } catch (error) {
-      console.error('Error detallado:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      });
-
-      // Manejo específico de errores del campo 'codigo'
-      if (error.response?.data?.field === 'codigo') {
-        setErrores(prev => ({ ...prev, codigo: true }));
-        toast.error(error.response.data.message);
-      } else if (error.response?.data?.errors) {
-        // Mostrar errores de validación del backend
-        const errorMessages = error.response.data.errors.map(e => e.message).join(', ');
-        toast.error(`Errores: ${errorMessages}`);
-      } else {
-        const errorMessage = error.response?.data?.message || 
-          'Error al guardar el producto';
-        toast.error(`Error: ${errorMessage}`);
-      }
+      // Manejo de errores específicos
+      const serverErrors = error.response?.data?.errors || [];
+      const errorMessages = serverErrors.length > 0 
+        ? serverErrors.map(e => e.message).join(', ')
+        : 'Error al guardar el producto';
+      
+      toast.error(errorMessages);
     }
   };
 
