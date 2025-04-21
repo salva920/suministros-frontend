@@ -16,7 +16,7 @@ import HistorialEntradas from './HistorialEntradas';
 import HistorialSalidas from './HistorialSalidas';
 import { debounce } from 'lodash';
 import { styled } from '@mui/material/styles';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import axios from 'axios';
 import TasaCambio from '../TasaCambio';
 import { VpnKey } from '@mui/icons-material';
@@ -474,7 +474,7 @@ const GestionInventario = () => {
                       />
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      {moment(producto.fechaIngreso).format('DD/MM/YYYY')}
+                      {moment(producto.fechaIngreso).tz('America/Caracas').format('DD/MM/YYYY')}
                     </StyledTableCell>
                     <StyledTableCell align="center">
                       <IconButton onClick={() => abrirEntradaStock(producto)}>
