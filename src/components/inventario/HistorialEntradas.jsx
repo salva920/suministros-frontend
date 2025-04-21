@@ -335,7 +335,7 @@ const HistorialEntradas = () => {
         <Table>
           <TableHead>
             <TableRow>
-              {['nombreProducto', 'codigoProducto', 'cantidad', 'stockAnterior', 'stockNuevo', 'costoFinal', 'fecha', 'operacion'].map((header) => (
+              {['nombreProducto', 'codigoProducto', 'cantidad', 'stockAnterior', 'stockNuevo', 'fecha', 'operacion'].map((header) => (
                 <HeaderTableCell 
                   key={header}
                   align={header === 'operacion' ? 'center' : 'right'}
@@ -352,7 +352,6 @@ const HistorialEntradas = () => {
                       cantidad: 'Cantidad',
                       stockAnterior: 'Stock Anterior',
                       stockNuevo: 'Stock Nuevo',
-                      costoFinal: 'Costo Final',
                       fecha: 'Fecha y Hora',
                       operacion: 'Operación'
                     }[header]}
@@ -384,10 +383,9 @@ const HistorialEntradas = () => {
                   {entrada.stockNuevo}
                 </StyledTableCell>
                 <StyledTableCell align="right">
-                  {moment.utc(entrada.fecha).format('DD/MM/YYYY')}
-                </StyledTableCell>
-                <StyledTableCell align="right">
-                  ${calcularCosto(entrada.producto, entrada.cantidad).toFixed(2)}
+                  {moment.utc(entrada.fecha)
+                    .tz('America/Caracas')
+                    .format('DD/MM/YYYY HH:mm')}
                 </StyledTableCell>
                 <StyledTableCell align="center">
                   <Chip
