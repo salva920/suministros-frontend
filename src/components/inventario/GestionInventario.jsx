@@ -123,6 +123,7 @@ const GestionInventario = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ key: 'nombre', direction: 'asc' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -198,15 +199,21 @@ const GestionInventario = () => {
   };
 
   const agregarStock = async () => {
+    if (isSubmitting || !entradaStock.fechaHora) {
+      toast.error('Complete todos los campos requeridos');
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
+      
       const productoActual = productos.find(p => p.id === entradaStock.productoId);
       const cantidadIngresada = Number(entradaStock.cantidad);
       
-      // Convertir la fecha seleccionada directamente a UTC sin ajustes de zona horaria
       const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
         .startOf('day')
         .toISOString();
-  
+
       await axios.post(
         `${API_URL}/productos/${productoActual.id}/entradas`,
         {
@@ -214,19 +221,30 @@ const GestionInventario = () => {
           fechaHora: fechaUTC
         }
       );
-  
-      // Actualizar estado y mostrar mensaje
-      setProductos(prev => prev.map(p => 
+
+      // Actualizar estado local
+      const nuevosProductos = productos.map(p => 
         p.id === productoActual.id 
           ? { ...p, stock: p.stock + cantidadIngresada } 
           : p
-      ));
+      );
+      
+      setProductos(nuevosProductos);
       toast.success('Stock agregado correctamente');
       
+      // Resetear formulario
+      setEntradaStock({
+        productoId: null,
+        cantidad: '',
+        proveedor: '',
+        fechaHora: ''
+      });
+
     } catch (error) {
-      console.error('Error al agregar stock:', error);
-      toast.error('Error al agregar stock');
+      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'Error al agregar stock');
     } finally {
+      setIsSubmitting(false);
       setModalEntradaAbierto(false);
     }
   };
