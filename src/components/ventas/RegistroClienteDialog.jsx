@@ -71,7 +71,7 @@ const RegistroClienteDialog = ({
             }
           });
 
-          if (response.data.success) {
+          if (response.data?.ventas) {
             setVentas(response.data.ventas);
             inicializarMontosAbono(response.data.ventas);
           }
