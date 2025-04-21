@@ -112,7 +112,7 @@ const GestionInventario = () => {
     productoId: null,
     cantidad: '',
     proveedor: '',
-    fechaHora: new Date().toLocaleString()
+    fechaHora: ''
   });
   const [modalEntradaAbierto, setModalEntradaAbierto] = useState(false);
   const [pinDialogAbierto, setPinDialogAbierto] = useState(false);
@@ -192,7 +192,7 @@ const GestionInventario = () => {
       productoId: producto.id,
       cantidad: '',
       proveedor: producto.proveedor,
-      fechaHora: moment().format('YYYY-MM-DD')
+      fechaHora: ''
     });
     setModalEntradaAbierto(true);
   };
@@ -540,7 +540,7 @@ const GestionInventario = () => {
           <TextField
             label="Fecha"
             type="date"
-            value={moment(entradaStock.fechaHora).format('YYYY-MM-DD')}
+            value={entradaStock.fechaHora || moment().format('YYYY-MM-DD')}
             onChange={(e) => setEntradaStock({ ...entradaStock, fechaHora: e.target.value })}
             fullWidth
             margin="normal"
