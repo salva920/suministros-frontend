@@ -384,9 +384,7 @@ const HistorialEntradas = () => {
                   {entrada.stockNuevo}
                 </StyledTableCell>
                 <StyledTableCell align="right">
-                  {moment.utc(entrada.fecha)
-                    .tz('America/Caracas')
-                    .format('DD/MM/YYYY HH:mm')}
+                  {moment.utc(entrada.fecha).format('DD/MM/YYYY')}
                 </StyledTableCell>
                 <StyledTableCell align="right">
                   ${calcularCosto(entrada.producto, entrada.cantidad).toFixed(2)}
