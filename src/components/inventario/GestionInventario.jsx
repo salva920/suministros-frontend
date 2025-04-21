@@ -161,16 +161,15 @@ const GestionInventario = () => {
     }
   };
 
-  const handleProductoGuardado = async (nuevoProducto) => {
-    try {
-      const response = await axios.post(`${API_URL}/productos`, nuevoProducto);
-      const productoTransformado = transformarProducto(response.data);
-      setProductos(prev => [...prev, productoTransformado]);
-      toast.success('Producto agregado correctamente');
-    } catch (error) {
-      console.error('Error al agregar el producto:', error);
-      toast.error('Error al agregar el producto');
-    }
+  const handleProductoGuardado = (nuevoProducto) => {
+    // Transformar el producto recibido
+    const productoTransformado = transformarProducto(nuevoProducto);
+    
+    // Actualizar el estado de productos sin hacer un segundo POST
+    setProductos(prev => [...prev, productoTransformado]);
+    
+    // Mostrar mensaje de éxito
+    toast.success('Producto agregado correctamente');
   };
 
   const actualizarProducto = async (productoActualizado) => {
