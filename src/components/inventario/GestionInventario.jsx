@@ -202,31 +202,32 @@ const GestionInventario = () => {
       const productoActual = productos.find(p => p.id === entradaStock.productoId);
       const cantidadIngresada = Number(entradaStock.cantidad);
       
-      // Convertir la fecha seleccionada a UTC considerando la zona horaria de Caracas
-      const fechaCaracas = moment.tz(entradaStock.fechaHora, 'YYYY-MM-DD', 'America/Caracas').startOf('day');
-      const fechaUTC = fechaCaracas.toISOString();
-
-      const response = await axios.post(
+      // Convertir la fecha seleccionada directamente a UTC sin ajustes de zona horaria
+      const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
+        .startOf('day')
+        .toISOString();
+  
+      await axios.post(
         `${API_URL}/productos/${productoActual.id}/entradas`,
         {
           cantidad: cantidadIngresada,
-          fechaHora: fechaUTC // Enviar fecha en UTC
+          fechaHora: fechaUTC
         }
       );
-
-      // Actualizar el estado con la nueva entrada de stock
+  
+      // Actualizar estado y mostrar mensaje
       setProductos(prev => prev.map(p => 
         p.id === productoActual.id 
           ? { ...p, stock: p.stock + cantidadIngresada } 
           : p
       ));
-
-      // Limpiar el formulario y mostrar mensaje de éxito
-      setEntradaStock({ productoId: '', cantidad: '', fechaHora: '' });
       toast.success('Stock agregado correctamente');
+      
     } catch (error) {
       console.error('Error al agregar stock:', error);
       toast.error('Error al agregar stock');
+    } finally {
+      setModalEntradaAbierto(false);
     }
   };
 
@@ -537,13 +538,15 @@ const GestionInventario = () => {
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>Agregar Stock</DialogTitle>
         <DialogContent>
           <TextField
-            fullWidth
-            label="Fecha de Ingreso"
+            label="Fecha"
             type="date"
-            value={entradaStock.fechaHora}
+            value={moment(entradaStock.fechaHora).format('YYYY-MM-DD')}
             onChange={(e) => setEntradaStock({ ...entradaStock, fechaHora: e.target.value })}
-            InputLabelProps={{ shrink: true }}
+            fullWidth
             margin="normal"
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
           <TextField
             fullWidth
