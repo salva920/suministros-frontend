@@ -60,13 +60,13 @@ const RegistroClienteDialog = ({
   // Cargar ventas al abrir el diálogo
   useEffect(() => {
     const cargarVentasPendientes = async () => {
-      if (open && clienteSeleccionado?._id) {
+      if (open && clienteSeleccionado?.id) {
         try {
           setLoading(true);
           
-          const response = await axios.get(`${API_URL}/api/ventas`, {
+          const response = await axios.get(`${API_URL}/ventas`, {
             params: {
-              clienteId: clienteSeleccionado._id,
+              clienteId: clienteSeleccionado.id,
               limit: 0 // 0 = sin límite (traer todas)
             }
           });
@@ -86,7 +86,7 @@ const RegistroClienteDialog = ({
     };
     
     if (open) cargarVentasPendientes();
-  }, [open, clienteSeleccionado?._id]);
+  }, [open, clienteSeleccionado?.id]);
 
   const inicializarMontosAbono = (ventas) => {
     const iniciales = ventas.reduce((acc, venta) => ({

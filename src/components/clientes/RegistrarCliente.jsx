@@ -286,7 +286,7 @@ useEffect(() => {
   const handleVerVentas = async (cliente) => {
     try {
       // Validación reforzada
-      if (!cliente || !cliente._id || !mongoose.Types.ObjectId.isValid(cliente._id.toString())) {
+      if (!cliente || !cliente.id || !mongoose.Types.ObjectId.isValid(cliente.id)) {
         throw new Error('Cliente no válido para consultar ventas');
       }
   
@@ -294,7 +294,7 @@ useEffect(() => {
       
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: cliente._id.toString(),
+          cliente: cliente._id,
           limit: 1000
         },
         timeout: 15000
