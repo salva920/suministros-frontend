@@ -15,7 +15,7 @@ import {
   ArrowDownward as ArrowDownIcon
 } from '@mui/icons-material';
 import { saveAs } from 'file-saver';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -384,7 +384,9 @@ const HistorialEntradas = () => {
                   {entrada.stockNuevo}
                 </StyledTableCell>
                 <StyledTableCell align="right">
-                  {moment(entrada.fecha).format('DD/MM/YYYY HH:mm')}
+                  {moment.utc(entrada.fecha)
+                    .tz('America/Caracas')
+                    .format('DD/MM/YYYY HH:mm')}
                 </StyledTableCell>
                 <StyledTableCell align="right">
                   ${calcularCosto(entrada.producto, entrada.cantidad).toFixed(2)}
