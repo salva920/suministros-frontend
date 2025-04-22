@@ -192,7 +192,7 @@ const ProcesarVenta = () => {
         : Number(formState.montoAbonar);
 
       const ventaData = {
-        fecha: moment(formState.fechaVenta).utc().format(), // Formato de fecha en UTC
+        fecha:  formState.fechaVenta,  // Formato de fecha en UTC
         cliente: clienteId, // Solo el ID válido
         productos: state.productosVenta.map(p => ({
           producto: p._id, // ID del producto

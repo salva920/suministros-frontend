@@ -244,7 +244,7 @@ useEffect(() => {
 
   const handleEditarCliente = (cliente) => {
     setCliente({
-      _id: cliente._id,
+      _id: cliente.id,
       nombre: cliente.nombre,
       telefono: cliente.telefono,
     });
@@ -670,7 +670,7 @@ useEffect(() => {
             <TableBody>
               {clientesFiltrados.map((cliente) => (
                 <TableRow 
-                  key={cliente._id}
+                  key={cliente.id}
                   hover
                   sx={{ 
                     '&:nth-of-type(odd)': { 
