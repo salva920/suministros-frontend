@@ -4,7 +4,7 @@ import {
   Paper, IconButton, Chip, Box,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Collapse, MenuItem, FormGroup, FormControlLabel, Checkbox,
-  InputLabel, Select, FormControl, Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress, CircularProgress
+  InputLabel, Select, FormControl, Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress, CircularProgress, useMediaQuery, useTheme
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { 
@@ -61,6 +61,14 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [deudaTotal, setDeudaTotal] = useState(0);
   const [cargandoVentas, setCargandoVentas] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const [filtros, setFiltros] = useState({
+    busqueda: '',
+    categoria: 'todos',
+    municipio: 'todos'
+  });
 
   const cargarClientes = useCallback(async (page = pagina, limit = porPagina) => {
     setCargando(true);
@@ -380,6 +388,10 @@ useEffect(() => {
     calcularDeudaTotal(ventasCliente);
   }, [ventasCliente]);
 
+  const handleFiltroChange = (e) => {
+    setFiltros({ ...filtros, [e.target.name]: e.target.value });
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {!modoModal && (
@@ -420,51 +432,84 @@ useEffect(() => {
         </Box>
 
         <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-          <TextField
-            label="Buscar cliente"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            fullWidth
-            InputProps={{
-              startAdornment: <PersonSearch sx={{ color: 'action.active', mr: 1 }} />
-            }}
-          />
-          
-          <TextField
-            select
-            label="Municipio"
-            value={filtroMunicipio}
-            onChange={(e) => setFiltroMunicipio(e.target.value)}
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="">Todos</MenuItem>
-            {[...new Set(clientes.map(c => c.municipio))].map(municipio => (
-              <MenuItem key={municipio} value={municipio}>
-                {municipio}
-              </MenuItem>
-            ))}
-          </TextField>
-          
-          <TextField
-            select
-            label="Categoría"
-            value={filtroCategoria}
-            onChange={(e) => setFiltroCategoria(e.target.value)}
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="">Todas</MenuItem>
-            {[...new Set(clientes.flatMap(c => c.categorias))].map(categoria => (
-              <MenuItem key={categoria} value={categoria}>
-                {categoria}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField
+                fullWidth
+                label="Buscar cliente"
+                variant="outlined"
+                size="small"
+                name="busqueda"
+                value={filtros.busqueda}
+                onChange={handleFiltroChange}
+                InputProps={{
+                  sx: { 
+                    borderRadius: 2,
+                    backgroundColor: 'background.paper'
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={6} sm={3} md={2}>
+              <TextField
+                select
+                fullWidth
+                label="Categoría"
+                variant="outlined"
+                size="small"
+                name="categoria"
+                value={filtros.categoria}
+                onChange={handleFiltroChange}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        maxHeight: 200
+                      }
+                    }
+                  }
+                }}
+              >
+                <MenuItem value="todos">Todas</MenuItem>
+                <MenuItem value="Alto Riesgo">Alto Riesgo</MenuItem>
+                <MenuItem value="Agente Retención">Agente Retención</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={6} sm={3} md={2}>
+              <TextField
+                select
+                fullWidth
+                label="Municipio"
+                variant="outlined"
+                size="small"
+                name="municipio"
+                value={filtros.municipio}
+                onChange={handleFiltroChange}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        maxHeight: 200
+                      }
+                    }
+                  }
+                }}
+              >
+                <MenuItem value="todos">Todos</MenuItem>
+                <MenuItem value="Municipio1">Municipio 1</MenuItem>
+                <MenuItem value="Municipio2">Municipio 2</MenuItem>
+              </TextField>
+            </Grid>
+          </Grid>
           
           <Button 
             variant="outlined" 
             onClick={() => {
-              setFiltroMunicipio('');
-              setFiltroCategoria('');
+              setFiltros({
+                busqueda: '',
+                categoria: 'todos',
+                municipio: 'todos'
+              });
             }}
           >
             Limpiar Filtros
