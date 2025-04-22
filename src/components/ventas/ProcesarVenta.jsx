@@ -181,7 +181,7 @@ const ProcesarVenta = () => {
   const finalizarVenta = async (formState) => {
     try {
       // Asegurar que solo se envíe el ID del cliente
-      const clienteId = state.cliente?._id;
+      const clienteId = state.cliente?.id;
 
       if (!clienteId) {
         throw new Error('ID de cliente inválido');
@@ -237,7 +237,7 @@ const ProcesarVenta = () => {
     try {
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: cliente._id,
+          cliente: cliente.id,
           saldoPendiente: true
         }
       });
@@ -332,14 +332,14 @@ const ProcesarVenta = () => {
                     <FormControl fullWidth>
                       <InputLabel>Seleccionar Cliente</InputLabel>
                       <Select
-                        value={state.cliente?._id || ''}
+                        value={state.cliente?.id || ''}
                         onChange={(e) => {
-                          const clienteSeleccionado = state.clientesFiltrados.find(c => c._id === e.target.value);
+                          const clienteSeleccionado = state.clientesFiltrados.find(c => c.id === e.target.value);
                           if (clienteSeleccionado) seleccionarCliente(clienteSeleccionado);
                         }}
                       >
                         {state.clientesFiltrados.map(cliente => (
-                          <MenuItem key={cliente._id} value={cliente._id}>
+                          <MenuItem key={cliente.id} value={cliente.id}>
                             {cliente.nombre} - {cliente.rif}
                           </MenuItem>
                         ))}
