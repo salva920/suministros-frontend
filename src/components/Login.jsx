@@ -76,7 +76,7 @@ const Login = () => {
                 Iniciar Sesión
               </Typography>
               <Typography variant="subtitle1" align="center" sx={{ marginTop: '0.5rem' }}>
-                Bienvenido a la Ferretería 
+                Bienvenido a DSR
               </Typography>
             </Grid>
             <Grid item sx={{ width: '100%' }}>
