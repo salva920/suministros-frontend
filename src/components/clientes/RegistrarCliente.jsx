@@ -684,16 +684,37 @@ useEffect(() => {
                     <Typography 
                       fontWeight="medium"
                       sx={{
-                        backgroundColor: (categorias || []).includes('Agente Retención') ? 
-                          '#ffff10' : (categorias || []).includes('Alto Riesgo') ? 
-                          '#ff0000' : 'inherit',
+                        backgroundColor: 
+                          cliente.categorias?.includes('Agente Retención') && cliente.categorias?.includes('Alto Riesgo')
+                            ? '#ff0000' // Rojo para ambas categorías
+                            : cliente.categorias?.includes('Agente Retención')
+                            ? '#ffff00' // Amarillo para agente retención
+                            : cliente.categorias?.includes('Alto Riesgo')
+                            ? '#ff0000' // Rojo para alto riesgo
+                            : 'transparent',
+                        color: 
+                          cliente.categorias?.includes('Agente Retención') && cliente.categorias?.includes('Alto Riesgo')
+                            ? '#ffffff' // Texto blanco para mejor contraste
+                            : cliente.categorias?.length > 0
+                            ? '#000000' // Texto negro para categorías individuales
+                            : 'inherit',
                         padding: '4px 8px',
-                        borderRadius: '4px'
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        transition: 'all 0.3s ease',
+                        boxShadow: cliente.categorias?.length > 0 
+                          ? '0 2px 4px rgba(0,0,0,0.1)' 
+                          : 'none'
                       }}
                     >
                       {cliente.nombre}
                     </Typography>
-                    <Chip label={`CI: ${cliente.rif}`} size="small" color="info" />
+                    <Chip 
+                      label={`RIF: ${cliente.rif}`} 
+                      size="small" 
+                      color="info" 
+                      sx={{ mt: 0.5 }}
+                    />
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
