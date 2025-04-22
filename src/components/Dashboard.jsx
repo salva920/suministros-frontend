@@ -152,21 +152,43 @@ const Dashboard = () => {
   }
 
   return (
-    <>
+    <Box sx={{ display: 'flex' }}>
       <AppBar position="static" sx={{ bgcolor: 'primary.dark' }}>
         <Toolbar>
-          <Typography 
-            variant="h6" 
+          {/* Contenedor del logo y texto */}
+          <Box 
             sx={{ 
-              flexGrow: 1, 
-              fontWeight: 'bold',
-              color: 'common.white',
-              textTransform: 'uppercase',
-              letterSpacing: 1
+              display: 'flex', 
+              alignItems: 'center', 
+              flexGrow: 1,
+              gap: 2
             }}
           >
-            Distribuciones y suministros Romero C.A.
-          </Typography>
+            {/* Logo con ruta específica */}
+            <img 
+              src={require('C:/Users/salva/ferreexpress - copia/ferreteria-frontend/src/logoRomero.png')} 
+              alt="Logo Distribuciones Romero" 
+              style={{ 
+                height: '40px', 
+                width: 'auto',
+                filter: 'brightness(0) invert(1)' // Opcional: para logo blanco
+              }} 
+            />
+
+            {/* Texto */}
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 'bold',
+                color: 'common.white',
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              Distribuciones y suministros Romero C.A.
+            </Typography>
+          </Box>
           
           <TextField
             variant="outlined"
@@ -321,7 +343,7 @@ const Dashboard = () => {
           </Grid>
         )}
       </Container>
-    </>
+    </Box>
   );
 };
 
