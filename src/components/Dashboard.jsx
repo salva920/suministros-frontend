@@ -164,9 +164,9 @@ const Dashboard = () => {
               gap: 2
             }}
           >
-            {/* Logo con ruta específica */}
+            {/* Logo con ruta relativa */}
             <img 
-              src={require('C:/Users/salva/ferreexpress - copia/ferreteria-frontend/src/logoRomero.png')} 
+              src="/logoRomero.png" 
               alt="Logo Distribuciones Romero" 
               style={{ 
                 height: '40px', 
