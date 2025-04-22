@@ -281,7 +281,7 @@ useEffect(() => {
   const handleVerVentas = async (cliente) => {
     try {
       // Validación reforzada
-      if (!cliente?._id) { // ✅ Validación simplificada
+      if (!cliente?.id) { // ✅ Validación simplificada
         throw new Error('Cliente no válido para consultar ventas');
       }
   
@@ -289,7 +289,7 @@ useEffect(() => {
       
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: cliente._id,
+          cliente: cliente.id,
           limit: 1000
         },
         timeout: 15000
@@ -720,7 +720,7 @@ useEffect(() => {
                     </IconButton>
                     <IconButton 
                       color="error"
-                      onClick={() => handleEliminarCliente(cliente._id)}
+                      onClick={() => handleEliminarCliente(cliente.id)}
                     >
                       <Delete />
                     </IconButton>
