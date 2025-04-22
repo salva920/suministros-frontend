@@ -9,7 +9,7 @@ import {
 import { toast } from 'react-toastify';
 import { 
   ExpandMore, ExpandLess, 
-  Edit, Delete, AssignmentInd, Dashboard, PersonSearch, Receipt, Warning
+  Edit, Delete, AssignmentInd, Dashboard, PersonSearch, Receipt
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -681,67 +681,19 @@ useEffect(() => {
                   }}
                 >
                   <TableCell>
-                    <Box 
+                    <Typography 
+                      fontWeight="medium"
                       sx={{
-                        display: 'flex',
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        alignItems: { xs: 'flex-start', sm: 'center' },
-                        gap: 1
+                        backgroundColor: (categorias || []).includes('Agente Retención') ? 
+                          '#ffff10' : (categorias || []).includes('Alto Riesgo') ? 
+                          '#ff0000' : 'inherit',
+                        padding: '4px 8px',
+                        borderRadius: '4px'
                       }}
                     >
-                      <Typography
-                        component="div"
-                        sx={{
-                          fontWeight: 600,
-                          backgroundColor: 
-                            cliente.categorias?.includes('Agente Retención') && cliente.categorias?.includes('Alto Riesgo')
-                              ? 'error.main' // Usar tema para colores
-                              : cliente.categorias?.includes('Agente Retención')
-                              ? 'warning.light'
-                              : cliente.categorias?.includes('Alto Riesgo')
-                              ? 'error.light'
-                              : 'transparent',
-                          color: theme => 
-                            cliente.categorias?.includes('Agente Retención') && cliente.categorias?.includes('Alto Riesgo')
-                              ? 'error.contrastText'
-                              : cliente.categorias?.length > 0
-                              ? 'text.primary'
-                              : 'inherit',
-                          px: 1.5,
-                          py: 0.5,
-                          borderRadius: 1,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          transition: 'all 0.2s ease',
-                          fontSize: { xs: '0.875rem', sm: '1rem' },
-                          width: 'fit-content',
-                          '&:hover': {
-                            transform: 'translateY(-1px)',
-                            boxShadow: 1
-                          }
-                        }}
-                      >
-                        {/* Íconos indicadores */}
-                        {cliente.categorias?.includes('Alto Riesgo') && (
-                          <Warning fontSize="small" sx={{ mr: 0.5 }} />
-                        )}
-                        {cliente.categorias?.includes('Agente Retención') && (
-                          <AssignmentInd fontSize="small" sx={{ mr: 0.5 }} />
-                        )}
-                        {cliente.nombre}
-                      </Typography>
-                      
-                      <Chip
-                        label={`RIF: ${cliente.rif}`}
-                        size="small"
-                        color="info"
-                        sx={{ 
-                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          height: 'auto',
-                          py: 0.5
-                        }}
-                      />
-                    </Box>
+                      {cliente.nombre}
+                    </Typography>
+                    <Chip label={`CI: ${cliente.rif}`} size="small" color="info" />
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
