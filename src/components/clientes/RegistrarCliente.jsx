@@ -281,7 +281,7 @@ useEffect(() => {
   const handleVerVentas = async (cliente) => {
     try {
       // Validación reforzada
-      if (!cliente || !cliente.id || !mongoose.Types.ObjectId.isValid(cliente.id)) {
+      if (!cliente?._id) { // ✅ Validación simplificada
         throw new Error('Cliente no válido para consultar ventas');
       }
   
