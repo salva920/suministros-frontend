@@ -232,17 +232,12 @@ useEffect(() => {
   };
 
   const handleEliminarCliente = async (id) => {
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      toast.error('ID de cliente inválido');
-      return;
-    }
-
     try {
       await axios.delete(`${API_URL}/clientes/${id}`);
       toast.success('Cliente eliminado correctamente');
-      cargarClientes(pagina, porPagina); // Recargar con paginación actual
+      cargarClientes(pagina, porPagina);
     } catch (error) {
-      console.error('Error al eliminar  el cliente:', error);
+      console.error('Error al eliminar el cliente:', error);
       toast.error(error.response?.data?.message || 'Error al eliminar el cliente');
     }
   };
