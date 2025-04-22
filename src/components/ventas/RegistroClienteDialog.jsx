@@ -66,7 +66,7 @@ const RegistroClienteDialog = ({
           
           const response = await axios.get(`${API_URL}/ventas`, {
             params: {
-              clienteId: clienteSeleccionado._id, // ✅ Enviar _id
+              cliente: clienteSeleccionado.id, // ✅ Enviar _id
               limit: 0 // 0 = sin límite (traer todas)
             }
           });
@@ -91,7 +91,7 @@ const RegistroClienteDialog = ({
   const inicializarMontosAbono = (ventas) => {
     const iniciales = ventas.reduce((acc, venta) => ({
       ...acc,
-      [venta._id]: 0
+      [venta.id]: 0
     }), {});
     setMontosAbono(iniciales);
   };
@@ -103,22 +103,23 @@ const RegistroClienteDialog = ({
   const handleMontoChange = (ventaId, valor) => {
     setMontosAbono(prev => ({
       ...prev,
-      [ventaId]: Math.max(0, Math.min(valor, ventas.find(v => v._id === ventaId).saldoPendiente))
+      [ventaId]: Math.max(0, Math.min(valor, ventas.find(v => v.id === ventaId).saldoPendiente)) // ✅ Cambiar _id por id
     }));
   };
 
   const handleAbonar = async (venta) => {
-    const monto = montosAbono[venta._id];
+    const monto = montosAbono[venta.id];
     if (!monto || monto <= 0) return;
 
     try {
-      const { data: ventaActualizada } = await axios.put(`${API_URL}/ventas/${venta._id}`, {
+      const { data: ventaActualizada } = await axios.put(`${API_URL}/ventas/${venta.id}`, { // ✅ Cambiar _id por id
+
         montoAbonado: venta.montoAbonado + monto,
         saldoPendiente: venta.saldoPendiente - monto
       });
 
       setVentas(prev => prev.map(v => 
-        v._id === venta._id ? ventaActualizada : v
+        v.id === venta.id ? ventaActualizada : v // ✅ Cambiar _id por id
       ));
       
       onDataUpdated?.();
@@ -130,13 +131,14 @@ const RegistroClienteDialog = ({
 
   const handleSolventarDeuda = async (venta) => {
     try {
-      const { data: ventaActualizada } = await axios.put(`${API_URL}/ventas/${venta._id}`, {
+      const { data: ventaActualizada } = await axios.put(`${API_URL}/ventas/${venta.id}`, { // ✅ Cambiar _id por id
+
         montoAbonado: venta.total,
         saldoPendiente: 0
       });
 
       setVentas(prev => prev.map(v => 
-        v._id === venta._id ? ventaActualizada : v
+        v.id === venta.id ? ventaActualizada : v // ✅ Cambiar _id por id
       ));
       
       onDataUpdated?.();
@@ -190,7 +192,7 @@ const RegistroClienteDialog = ({
                 
                 <TableBody>
                   {ventas.map(venta => (
-                    <TableRow key={venta._id} hover>
+                    <TableRow key={venta.id} hover>
                       <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
                       <TableCell>${venta.total.toFixed(2)}</TableCell>
                       <TableCell>${venta.montoAbonado.toFixed(2)}</TableCell>
@@ -205,8 +207,8 @@ const RegistroClienteDialog = ({
                           <TextField
                             type="number"
                             size="small"
-                            value={montosAbono[venta._id] || 0}
-                            onChange={(e) => handleMontoChange(venta._id, parseFloat(e.target.value))}
+                            value={montosAbono[venta.id] || 0}
+                            onChange={(e) => handleMontoChange(venta.id, parseFloat(e.target.value))}
                             InputProps={{
                               startAdornment: <InputAdornment position="start">$</InputAdornment>,
                               inputProps: { 
