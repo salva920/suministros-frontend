@@ -60,13 +60,13 @@ const RegistroClienteDialog = ({
   // Cargar ventas al abrir el diálogo
   useEffect(() => {
     const cargarVentasPendientes = async () => {
-      if (open && clienteSeleccionado?.id) {
+      if (open && clienteSeleccionado?._id) { // 
         try {
           setLoading(true);
           
           const response = await axios.get(`${API_URL}/ventas`, {
             params: {
-              clienteId: clienteSeleccionado.id,
+              clienteId: clienteSeleccionado._id, // ✅ Enviar _id
               limit: 0 // 0 = sin límite (traer todas)
             }
           });
