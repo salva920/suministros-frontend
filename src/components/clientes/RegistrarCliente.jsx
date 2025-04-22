@@ -343,10 +343,12 @@ useEffect(() => {
   };
 
   const handleChangeCategoria = (e) => {
-    const { value } = e.target;
+    const { name, checked } = e.target;
     setCliente(prev => ({
       ...prev,
-      categorias: value
+      categorias: checked
+        ? [...prev.categorias, name]
+        : prev.categorias.filter(c => c !== name)
     }));
   };
 
