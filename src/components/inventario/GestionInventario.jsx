@@ -3,7 +3,7 @@ import {
   Container, Typography, Button, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, IconButton, Box, Paper, 
   Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab, 
-  TablePagination, TextField, Chip, InputAdornment, Grid, Alert
+  TablePagination, TextField, Chip, InputAdornment
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { Delete, Edit, AddShoppingCart, Inventory, Clear, Search, ArrowUpward, ArrowDownward, Input as InputIcon, PointOfSale, Lock, LockOpen } from '@mui/icons-material';
@@ -98,9 +98,7 @@ const transformarProducto = (producto) => {
     costoFinal: parseNumber(producto.costoFinal),
     stock: parseNumber(producto.stock),
     fecha: parseDate(producto.fecha),
-    fechaIngreso: producto.fechaIngreso 
-      ? moment(producto.fechaIngreso, 'DD/MM/YYYY HH:mm:ss').toDate()
-      : new Date()
+    fechaIngreso: moment(producto.fechaIngreso).toDate()
   };
 };
 
@@ -114,7 +112,7 @@ const GestionInventario = () => {
     productoId: null,
     cantidad: '',
     proveedor: '',
-    fechaHora: moment().format('YYYY-MM-DD')
+    fechaHora: ''
   });
   const [modalEntradaAbierto, setModalEntradaAbierto] = useState(false);
   const [pinDialogAbierto, setPinDialogAbierto] = useState(false);
