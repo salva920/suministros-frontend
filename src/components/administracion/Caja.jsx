@@ -53,11 +53,13 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
 const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rowsPerPage, handleChangePage, handleChangeRowsPerPage, tasaActual }) => {
   const filteredTransactions = transactions
     .filter(t => {
-      const transactionDate = new Date(t.fecha);
-      const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
-      const matchesDate = (!dateFilter.start || transactionDate >= dateFilter.start) && 
-                          (!dateFilter.end || transactionDate <= dateFilter.end);
-      return matchesCurrency && matchesDate;
+      const transactionDate = moment.utc(t.fecha).tz('America/Caracas');
+      const start = dateFilter.start && moment.tz(dateFilter.start, 'America/Caracas');
+      const end = dateFilter.end && moment.tz(dateFilter.end, 'America/Caracas');
+      
+      return (!currencyFilter || t.moneda === currencyFilter) &&
+             (!start || transactionDate.isSameOrAfter(start, 'day')) &&
+             (!end || transactionDate.isSameOrBefore(end, 'day'));
     });
 
   return (
@@ -76,7 +78,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
               <TableCell>
                 {moment.utc(t.fecha)
                   .tz('America/Caracas')
-                  .format('DD/MM/YYYY HH:mm')}
+                  .format('DD/MM/YYYY')}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
               <TableCell>
@@ -168,22 +170,14 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      const { nuevaTransaccion } = state;
-      const monto = parseFloat(nuevaTransaccion.monto);
-      
-      if (!nuevaTransaccion.concepto || !nuevaTransaccion.fecha) {
-        throw new Error('Concepto y fecha son requeridos');
-      }
-      
-      if (isNaN(monto) || monto <= 0) {
-        throw new Error('Monto debe ser un número positivo');
-      }
-
       const movimiento = {
-        ...nuevaTransaccion,
-        monto,
-        entrada: nuevaTransaccion.tipo === 'entrada' ? monto : 0,
-        salida: nuevaTransaccion.tipo === 'salida' ? monto : 0,
+        ...state.nuevaTransaccion,
+        fecha: moment(state.nuevaTransaccion.fecha)
+          .tz('America/Caracas')
+          .format('YYYY-MM-DD'),
+        monto: parseFloat(state.nuevaTransaccion.monto),
+        entrada: state.nuevaTransaccion.tipo === 'entrada' ? parseFloat(state.nuevaTransaccion.monto) : 0,
+        salida: state.nuevaTransaccion.tipo === 'salida' ? parseFloat(state.nuevaTransaccion.monto) : 0,
         tasaCambio: state.tasaCambio
       };
 
