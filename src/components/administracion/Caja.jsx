@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -72,7 +72,11 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
         <TableBody>
           {filteredTransactions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((t) => (
             <TableRow key={t._id} hover>
-              <TableCell>{moment.utc(t.fecha).local().format('DD/MM/YYYY HH:mm')}</TableCell>
+              <TableCell>
+                {moment.utc(t.fecha)
+                  .tz('America/Caracas')
+                  .format('DD/MM/YYYY')}
+              </TableCell>
               <TableCell>{t.concepto}</TableCell>
               <TableCell>
                 <Chip label={t.moneda} color={t.moneda === 'USD' ? 'primary' : 'secondary'} variant="outlined" />
