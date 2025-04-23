@@ -203,7 +203,7 @@ useEffect(() => {
   
       const method = clienteEditando ? 'put' : 'post';
       const url = clienteEditando 
-        ? `${API_URL}/clientes/${clienteEditando._id}`
+        ? `${API_URL}/clientes/${clienteEditando.id}`
         : `${API_URL}/clientes`;
   
       const response = await axios[method](url, clienteData);
