@@ -135,12 +135,16 @@ useEffect(() => {
     const rifCompleto = prefijoRif + cliente.rif;
     let rifValido = true;
 
-    if (prefijoRif === 'V' && cliente.rif.length !== 9) {
-      nuevosErrores.rif = 'Cédula venezolana debe tener 8 dígitos';
-      rifValido = false;
-    } else if (['E', 'J', 'G'].includes(prefijoRif) && cliente.rif.length !== 9) {
-      nuevosErrores.rif = 'RIF debe tener 9 dígitos para este tipo';
-      rifValido = false;
+    if (prefijoRif === 'V') {
+      if (cliente.rif.length < 8 || cliente.rif.length > 9) {
+        nuevosErrores.rif = 'Cédula venezolana debe tener 8 o 9 dígitos';
+        rifValido = false;
+      }
+    } else if (['E', 'J', 'G'].includes(prefijoRif)) {
+      if (cliente.rif.length !== 9) {
+        nuevosErrores.rif = 'RIF debe tener 9 dígitos para este tipo';
+        rifValido = false;
+      }
     } else if (!/^[VEJG][0-9]+$/.test(rifCompleto)) {
       nuevosErrores.rif = 'Formato inválido';
       rifValido = false;
