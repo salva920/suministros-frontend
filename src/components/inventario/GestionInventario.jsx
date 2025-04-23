@@ -176,13 +176,30 @@ const GestionInventario = () => {
 
   const actualizarProducto = async (productoActualizado) => {
     try {
-      const response = await axios.put(`${API_URL}/productos/${productoActualizado.id}`, productoActualizado);
-      const productoTransformado = transformarProducto(response.data);
-      const nuevosProductos = productos.map(p => 
-        p.id === productoTransformado.id ? productoTransformado : p
+      // Verificar que la fechaIngreso esté presente y sea válida
+      if (!productoActualizado.fechaIngreso || !moment(productoActualizado.fechaIngreso, 'YYYY-MM-DD', true).isValid()) {
+        toast.error('Fecha de ingreso inválida');
+        return;
+      }
+
+      // Convertir fecha a formato ISO antes de enviar
+      const datosActualizados = {
+        ...productoActualizado,
+        fechaIngreso: moment(productoActualizado.fechaIngreso).toISOString() // Asegurarse de que la fecha esté en formato ISO
+      };
+
+      const response = await axios.put(
+        `${API_URL}/productos/${productoActualizado.id}`, 
+        datosActualizados
       );
-      setProductos(nuevosProductos);
-      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
+
+      // Manejo de la respuesta
+      if (response.status === 200) {
+        toast.success('Producto actualizado correctamente');
+        // Aquí puedes actualizar el estado o realizar otras acciones necesarias
+      } else {
+        toast.error('Error al actualizar el producto');
+      }
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
       toast.error('Error al actualizar el producto');
