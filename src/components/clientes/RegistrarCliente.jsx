@@ -135,7 +135,7 @@ useEffect(() => {
     const rifCompleto = prefijoRif + cliente.rif;
     let rifValido = true;
 
-    if (prefijoRif === 'V' && cliente.rif.length !== 8) {
+    if (prefijoRif === 'V' && cliente.rif.length !== 9) {
       nuevosErrores.rif = 'Cédula venezolana debe tener 8 dígitos';
       rifValido = false;
     } else if (['E', 'J', 'G'].includes(prefijoRif) && cliente.rif.length !== 9) {
