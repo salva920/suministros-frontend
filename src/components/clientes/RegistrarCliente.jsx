@@ -699,8 +699,8 @@ useEffect(() => {
                     <Typography 
                       fontWeight="medium"
                       sx={{
-                        backgroundColor: (categorias || []).includes('Agente Retención') ? 
-                          '#ffff10' : (categorias || []).includes('Alto Riesgo') ? 
+                        backgroundColor: cliente.categorias?.includes('Agente Retención') ? 
+                          '#ffff10' : cliente.categorias?.includes('Alto Riesgo') ? 
                           '#ff0000' : 'inherit',
                         padding: '4px 8px',
                         borderRadius: '4px'
