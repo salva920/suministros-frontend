@@ -76,9 +76,10 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
               <TableCell>
                 {moment.utc(t.fecha)
                   .tz('America/Caracas')
-                  .format('DD/MM/YYYY')}
+                  .format('DD/MM/YYYY HH:mm')}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
+              
               <TableCell>
                 <Chip label={t.moneda} color={t.moneda === 'USD' ? 'primary' : 'secondary'} variant="outlined" />
               </TableCell>
@@ -440,13 +441,18 @@ const CajaInteractiva = () => {
               <Grid item xs={12} md={6}>
                 <TextField
                   label="Fecha"
-                  type="date"
+                  type="datetime-local"
                   fullWidth
-                  value={state.nuevaTransaccion.fecha}
-                  onChange={(e) => setState(prev => ({ 
-                    ...prev, 
-                    nuevaTransaccion: { ...prev.nuevaTransaccion, fecha: e.target.value } 
-                  }))}
+                  value={moment(state.nuevaTransaccion.fecha)
+                    .tz('America/Caracas')
+                    .format('YYYY-MM-DDTHH:mm')}
+                  onChange={(e) => {
+                    const fechaCaracas = moment.tz(e.target.value, 'America/Caracas').toISOString();
+                    setState(prev => ({ 
+                      ...prev, 
+                      nuevaTransaccion: { ...prev.nuevaTransaccion, fecha: fechaCaracas } 
+                    }));
+                  }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
