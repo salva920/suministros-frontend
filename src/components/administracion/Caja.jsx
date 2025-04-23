@@ -72,10 +72,9 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
         <TableBody>
           {filteredTransactions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((t) => (
             <TableRow key={t._id} hover>
-              <TableCell>
-                {moment.utc(t.fecha)
-                  .tz('America/Caracas')
-                  .format('DD/MM/YYYY')}
+              <TableCell>{moment.utc(movimiento.fecha)
+                  .tz('America/Caracas') // Usar la zona horaria de Caracas
+                  .format('DD/MM/YYYY HH:mm')} {/* Formato de fecha y hora */}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
               <TableCell>
