@@ -80,10 +80,19 @@ const transformarProducto = (producto) => {
   };
 
   const parseDate = (value) => {
+    if (!value) return new Date(); // Valor por defecto si no hay fecha
+    
+    // Si viene de MongoDB (formato ISO)
+    if (typeof value === "string" && moment(value, moment.ISO_8601).isValid()) {
+      return moment.utc(value).toDate();
+    }
+    
+    // Si es un objeto de fecha de MongoDB
     if (typeof value === "object" && value?.$date?.$numberLong) {
       return new Date(parseInt(value.$date.$numberLong, 10));
     }
-    return new Date(value);
+    
+    return new Date(); // Valor por defecto si el formato es desconocido
   };
 
   return {
@@ -98,7 +107,7 @@ const transformarProducto = (producto) => {
     costoFinal: parseNumber(producto.costoFinal),
     stock: parseNumber(producto.stock),
     fecha: parseDate(producto.fecha),
-    fechaIngreso: moment(producto.fechaIngreso).toDate()
+    fechaIngreso: parseDate(producto.fechaIngreso)
   };
 };
 

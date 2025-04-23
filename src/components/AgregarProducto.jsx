@@ -56,6 +56,9 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
 
   useEffect(() => {
     if (productoEditando) {
+      const fechaFormateada = moment.utc(productoEditando.fechaIngreso)
+                                 .format('YYYY-MM-DD');
+      
       setProducto({
         _id: productoEditando._id,
         nombre: productoEditando.nombre || '',
@@ -66,8 +69,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         flete: productoEditando.flete || '',
         cantidad: productoEditando.cantidad || '',
         stock: productoEditando.stock || 0,
-        fechaIngreso: productoEditando.fechaIngreso ? 
-          moment(productoEditando.fechaIngreso).format('YYYY-MM-DD') : ''
+        fechaIngreso: fechaFormateada
       });
     } else {
       resetForm();
@@ -152,7 +154,10 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         toast.error(`Errores en: ${validationErrors.join(', ')}`);
         return;
       }
-
+      // Convertir a fecha UTC antes de enviar
+      const fechaUTC = moment.utc(producto.fechaIngreso, 'YYYY-MM-DD')
+      .startOf('day')
+      .toISOString();
       // Cálculo final seguro
       const costoFinalCalculado = Number(
         ((producto.costoInicial * producto.cantidad + producto.acarreo + producto.flete) / producto.cantidad).toFixed(2)
@@ -168,7 +173,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         cantidad: Number(producto.cantidad),
         costoFinal: costoFinalCalculado,
         stock: Number(producto.cantidad),
-        fechaIngreso: producto.fechaIngreso
+        fechaIngreso: fechaUTC
       };
 
       let response;
@@ -314,15 +319,15 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
                 label="Fecha de Ingreso"
                 name="fechaIngreso"
                 type="date"
-                value={producto.fechaIngreso}
+                value={producto.fechaIngreso || moment().utc().format('YYYY-MM-DD')}
                 onChange={handleChange}
                 fullWidth
-                required
+                required  
                 InputLabelProps={{
                   shrink: true,
                 }}
                 inputProps={{
-                  max: moment().format('YYYY-MM-DD')
+                  max: moment().utc().format('YYYY-MM-DD')
                 }}
               />
             </Grid>
