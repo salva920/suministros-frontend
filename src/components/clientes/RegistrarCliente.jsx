@@ -243,21 +243,37 @@ useEffect(() => {
   };
 
   const handleEditarCliente = (cliente) => {
+    // Extraer prefijo y número del RIF
+    const rifCompleto = cliente.rif;
+    const prefijoRif = rifCompleto[0]; // Asumiendo que el primer carácter es el prefijo
+    const numeroRif = rifCompleto.substring(2); // Extraer el número después del prefijo y el guion
+
+    // Extraer prefijo y número del teléfono
+    const telefonoCompleto = cliente.telefono;
+    const prefijoTelefono = telefonoCompleto.substring(0, 4); // Asumiendo que los primeros 4 caracteres son el prefijo
+    const numeroTelefono = telefonoCompleto.substring(4); // Extraer el número después del prefijo
+
+    // Actualizar todos los campos del estado
     setCliente({
       _id: cliente.id,
       nombre: cliente.nombre,
-      telefono: cliente.telefono,
+      telefono: numeroTelefono,
+      email: cliente.email,
+      direccion: cliente.direccion,
+      municipio: cliente.municipio,
+      rif: `${prefijoRif}-${numeroRif}`, // Combinar prefijo y número para el RIF
+      categorias: cliente.categorias,
+      municipioColor: cliente.municipioColor
     });
 
-    const prefijo = cliente.telefono.match(/^0412|0426|0424|0416|0414/)?.[0] || '0412';
-    setPrefijoTelefono(prefijo);
-
-    setCliente(prev => ({
-      ...prev,
-      telefono: cliente.telefono.replace(prefijo, '')
-    }));
-
+    // Establecer los prefijos en el estado
+    setPrefijoRif(prefijoRif);
+    setPrefijoTelefono(prefijoTelefono);
+    
+    // Establecer el cliente que se está editando
     setClienteEditando(cliente);
+    
+    // Mostrar el formulario de edición
     setShowForm(true);
   };
 
@@ -508,14 +524,19 @@ useEffect(() => {
                       <TextField
                         label="Número de Cédula o RIF"
                         value={cliente.rif || ''}
-                        onChange={(e) => setCliente(prev => ({ ...prev, rif: e.target.value }))}
+                        onChange={(e) => {
+                          const valor = e.target.value.toUpperCase();
+                          if (/^[VEJG]?[-]?\d{0,9}$/.test(valor)) {
+                            setCliente(prev => ({ ...prev, rif: valor }));
+                          }
+                        }}
                         fullWidth
                         required
                         error={!!errores.rif}
-                        helperText={errores.rif}
+                        helperText={errores.rif || "Formato: V-12345678 o J-123456789"}
                         inputProps={{
-                          maxLength: 9,
-                          pattern: '^[0-9]{8,9}$'
+                          maxLength: 11,
+                          pattern: '^[VEJG][-]?\\d{7,9}$'
                         }}
                       />
                     </Grid>
