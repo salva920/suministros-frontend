@@ -83,29 +83,29 @@ useEffect(() => {
 
   const filtrarClientes = useCallback(() => {
     return clientes.filter(cliente => {
+      // Comparación de búsqueda en nombre y RIF
       const busquedaMatch = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-                           cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
+                            cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
       
+      // Filtrado por categoría
       const categoriaMatch = filtroCategoria ? 
-                            cliente.categorias?.includes(filtroCategoria) : 
-                            true;
+                             cliente.categorias?.includes(filtroCategoria) : 
+                             true;
 
+      // Comparación case-insensitive para municipio
       const municipioMatch = filtroMunicipio ? 
-                            cliente.municipio === filtroMunicipio : 
-                            true;
+                             cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase() : 
+                             true;
 
+      // Retornar true si coincide con todos los filtros
       return busquedaMatch && categoriaMatch && municipioMatch;
     });
   }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
 
   useEffect(() => {
-    const filteredClientes = clientes.filter(cliente => {
-      const coincideBusqueda = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase());
-      const coincideCategoria = filtroCategoria ? cliente.categorias.includes(filtroCategoria) : true;
-      return coincideBusqueda && coincideCategoria;
-    });
-    setClientesFiltrados(filteredClientes);
-  }, [busqueda, filtroCategoria, clientes]);
+    const filtered = filtrarClientes(); // Llamar a la función de filtrado
+    setClientesFiltrados(filtered); // Actualizar el estado con los clientes filtrados
+  }, [filtrarClientes]); // Dependencias: se ejecuta cuando cambian los filtros o los datos
 
   const handleChange = (e) => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
@@ -453,9 +453,9 @@ useEffect(() => {
             sx={{ minWidth: 150 }}
           >
             <MenuItem value="">Todos</MenuItem>
-            {[...new Set(clientes.map(c => c.municipio))].map(municipio => (
+            {[...new Set(clientes.map(c => c.municipio.toLowerCase()))].map(municipio => (
               <MenuItem key={municipio} value={municipio}>
-                {municipio}
+                {municipio.charAt(0).toUpperCase() + municipio.slice(1)}
               </MenuItem>
             ))}
           </TextField>
@@ -468,11 +468,13 @@ useEffect(() => {
             sx={{ minWidth: 150 }}
           >
             <MenuItem value="">Todas</MenuItem>
-            {[...new Set(clientes.flatMap(c => c.categorias))].map(categoria => (
-              <MenuItem key={categoria} value={categoria}>
-                {categoria}
-              </MenuItem>
-            ))}
+            {[...new Set(clientes.flatMap(c => c.categorias))]
+              .filter(c => c)
+              .map(categoria => (
+                <MenuItem key={categoria} value={categoria}>
+                  {categoria}
+                </MenuItem>
+              ))}
           </TextField>
           
           <Button 
