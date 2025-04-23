@@ -134,6 +134,7 @@ const GestionInventario = () => {
         const response = await axios.get(`${API_URL}/productos`);
         const productosTransformados = response.data.productos.map(transformarProducto);
         setProductos(productosTransformados);
+        setFilteredData(productosTransformados);
       } catch (error) {
         console.error("Error al cargar productos:", error);
         toast.error("Error cargando productos");
@@ -471,7 +472,7 @@ const GestionInventario = () => {
               </TableHead>
               
               <TableBody>
-                {productos.map((producto) => (
+                {currentItems.map((producto) => (
                   <StyledTableRow key={producto.id}>
                     <StyledTableCell>{producto.nombre}</StyledTableCell>
                     <StyledTableCell align="right">{producto.codigo}</StyledTableCell>
