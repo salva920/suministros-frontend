@@ -148,6 +148,12 @@ const RegistroClienteDialog = ({
     }
   };
 
+  // Agregar console.log para depuración
+  useEffect(() => {
+    console.log('Cliente:', clienteSeleccionado);
+    console.log('Ventas:', ventas);
+  }, [clienteSeleccionado, ventas]); // Se ejecuta cada vez que cambian
+
   return (
     <StyledDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <HeaderTitle>
