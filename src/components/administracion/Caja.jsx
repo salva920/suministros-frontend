@@ -184,7 +184,10 @@ const CajaInteractiva = () => {
         monto,
         entrada: nuevaTransaccion.tipo === 'entrada' ? monto : 0,
         salida: nuevaTransaccion.tipo === 'salida' ? monto : 0,
-        tasaCambio: state.tasaCambio
+        tasaCambio: state.tasaCambio,
+        fecha: moment.utc(nuevaTransaccion.fecha)
+          .tz('America/Caracas')
+          .toISOString()
       };
 
       const res = await axios.post(`${API_URL}/caja/transacciones`, movimiento);
