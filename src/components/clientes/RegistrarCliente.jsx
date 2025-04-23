@@ -135,8 +135,8 @@ useEffect(() => {
     const rifCompleto = prefijoRif + cliente.rif;
     let rifValido = true;
 
-    if (prefijoRif === 'V' && cliente.rif.length !== 10) {
-      nuevosErrores.rif = 'Cédula venezolana debe tener max 9 dígitos';
+    if (prefijoRif === 'V' && cliente.rif.length !== 8) {
+      nuevosErrores.rif = 'Cédula venezolana debe tener 8 dígitos';
       rifValido = false;
     } else if (['E', 'J', 'G'].includes(prefijoRif) && cliente.rif.length !== 9) {
       nuevosErrores.rif = 'RIF debe tener 9 dígitos para este tipo';
