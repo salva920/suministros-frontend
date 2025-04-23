@@ -120,28 +120,64 @@ useEffect(() => {
   };
 
   const validarCampos = () => {
-    const nuevosErrores = {};
-    let rifValido = true;
-    const prefijoRif = cliente.rif[0]?.toUpperCase() || ''; // Obtener el prefijo y convertir a mayúsculas
+    const nuevosErrores = {
+      nombre: '',
+      telefono: '',
+      email: '',
+      direccion: '',
+      municipio: '',
+      rif: '',
+      categorias: ''
+    };
 
-    // Validación del RIF según el prefijo
-    if (prefijoRif === 'V') {
-      if (cliente.rif.length < 9 || cliente.rif.length > 10) { // V + 8-9 dígitos
-        nuevosErrores.rif = 'La cédula debe tener entre 8 y 9 dígitos';
-        rifValido = false;
-      }
-    } else if (['E', 'J', 'G'].includes(prefijoRif)) {
-      if (cliente.rif.length !== 10) { // Prefijo + 9 dígitos
-        nuevosErrores.rif = 'El RIF debe tener 9 dígitos';
-        rifValido = false;
-      }
-    } else {
-      nuevosErrores.rif = 'El prefijo del RIF debe ser V, E, J o G';
+    let valido = true;
+
+    const rifCompleto = prefijoRif + cliente.rif;
+    let rifValido = true;
+
+    if (prefijoRif === 'V' && cliente.rif.length !== 10) {
+      nuevosErrores.rif = 'Cédula venezolana debe tener max 9 dígitos';
+      rifValido = false;
+    } else if (['E', 'J', 'G'].includes(prefijoRif) && cliente.rif.length !== 9) {
+      nuevosErrores.rif = 'RIF debe tener 9 dígitos para este tipo';
+      rifValido = false;
+    } else if (!/^[VEJG][0-9]+$/.test(rifCompleto)) {
+      nuevosErrores.rif = 'Formato inválido';
       rifValido = false;
     }
 
-    setErrores(nuevosErrores); // Actualizar el estado de errores
-    return rifValido; // Retornar el estado de validez
+    if (!rifValido) valido = false;
+
+    if (!cliente.nombre.trim()) {
+      nuevosErrores.nombre = 'El nombre es obligatorio';
+      valido = false;
+    } else if (cliente.nombre.trim().length < 3) {
+      nuevosErrores.nombre = 'El nombre debe tener al menos 3 caracteres';
+      valido = false;
+    }
+
+    if (!cliente.municipio.trim()) {
+      nuevosErrores.municipio = 'El municipio es obligatorio';
+      valido = false;
+    }
+
+    if (!/^\d{7}$/.test(cliente.telefono)) {
+      nuevosErrores.telefono = 'El teléfono debe tener 7 dígitos';
+      valido = false;
+    }
+
+    if (cliente.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cliente.email.trim())) {
+      nuevosErrores.email = 'Ingrese un correo electrónico válido';
+      valido = false;
+    }
+
+    if (cliente.direccion.trim() && cliente.direccion.trim().length < 5) {
+      nuevosErrores.direccion = 'La dirección debe tener al menos 5 caracteres';
+      valido = false;
+    }
+
+    setErrores(nuevosErrores);
+    return valido;
   };
 
   const handleSubmit = async (e) => {
@@ -489,18 +525,16 @@ useEffect(() => {
                         label="Número de Cédula o RIF"
                         value={cliente.rif || ''}
                         onChange={(e) => {
-                          const valor = e.target.value.toUpperCase();
-                          if (/^[VEJG][-]?\d{7,9}$/.test(valor)) {
-                            setCliente(prev => ({ ...prev, rif: valor }));
+                          if (e.target.value.length <= 10) {
+                            setCliente(prev => ({ ...prev, rif: e.target.value }));
                           }
                         }}
                         fullWidth
                         required
                         error={!!errores.rif}
-                        helperText={errores.rif || "Formato: V-12345678 o J-123456789"}
+                        helperText={errores.rif || "Máximo 10 caracteres"}
                         inputProps={{
-                          maxLength: 11,
-                          pattern: '^[VEJG][-]?\\d{7,9}$'
+                          maxLength: 10
                         }}
                       />
                     </Grid>
