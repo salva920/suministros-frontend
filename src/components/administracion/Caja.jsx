@@ -74,8 +74,8 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
           {filteredTransactions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((t) => (
             <TableRow key={t._id} hover>
               <TableCell>
-                {moment.utc(t.fecha)
-                  .tz('America/Caracas')
+                {moment.parseZone(t.fecha)
+                  .tz('America/Caracas', true)
                   .format('DD/MM/YYYY HH:mm')}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
@@ -447,10 +447,11 @@ const CajaInteractiva = () => {
                     .tz('America/Caracas')
                     .format('YYYY-MM-DDTHH:mm')}
                   onChange={(e) => {
-                    const fechaCaracas = moment.tz(e.target.value, 'America/Caracas').toISOString();
+                    const fechaCaracas = moment.tz(e.target.value, 'America/Caracas');
+                    const fechaISO = fechaCaracas.format();
                     setState(prev => ({ 
                       ...prev, 
-                      nuevaTransaccion: { ...prev.nuevaTransaccion, fecha: fechaCaracas } 
+                      nuevaTransaccion: { ...prev.nuevaTransaccion, fecha: fechaISO } 
                     }));
                   }}
                   InputLabelProps={{ shrink: true }}
