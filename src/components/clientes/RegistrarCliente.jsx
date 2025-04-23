@@ -243,37 +243,38 @@ useEffect(() => {
   };
 
   const handleEditarCliente = (cliente) => {
-    // Extraer prefijo y número del RIF
-    const rifCompleto = cliente.rif;
-    const prefijoRif = rifCompleto[0]; // Asumiendo que el primer carácter es el prefijo
-    const numeroRif = rifCompleto.substring(2); // Extraer el número después del prefijo y el guion
 
-    // Extraer prefijo y número del teléfono
-    const telefonoCompleto = cliente.telefono;
-    const prefijoTelefono = telefonoCompleto.substring(0, 4); // Asumiendo que los primeros 4 caracteres son el prefijo
-    const numeroTelefono = telefonoCompleto.substring(4); // Extraer el número después del prefijo
+     // Extraer prefijo y número del RIF
+  const rifCompleto = cliente.rif;
+  const prefijoRif = rifCompleto[0];
+  const numeroRif = rifCompleto.substring(1);
 
-    // Actualizar todos los campos del estado
+  // Extraer prefijo y número del teléfono
+  const telefonoCompleto = cliente.telefono;
+  const prefijoTelefono = telefonoCompleto.substring(0, 4);
+  const numeroTelefono = telefonoCompleto.substring(4);
+
     setCliente({
       _id: cliente.id,
       nombre: cliente.nombre,
-      telefono: numeroTelefono,
+      telefono: cliente.telefono,
       email: cliente.email,
       direccion: cliente.direccion,
       municipio: cliente.municipio,
-      rif: `${prefijoRif}-${numeroRif}`, // Combinar prefijo y número para el RIF
+      rif: numeroRif,
       categorias: cliente.categorias,
       municipioColor: cliente.municipioColor
     });
 
-    // Establecer los prefijos en el estado
-    setPrefijoRif(prefijoRif);
-    setPrefijoTelefono(prefijoTelefono);
-    
-    // Establecer el cliente que se está editando
+    const prefijo = cliente.telefono.match(/^0412|0426|0424|0416|0414/)?.[0] || '0412';
+    setPrefijoTelefono(prefijo);
+
+    setCliente(prev => ({
+      ...prev,
+      telefono: cliente.telefono.replace(prefijo, '')
+    }));
+
     setClienteEditando(cliente);
-    
-    // Mostrar el formulario de edición
     setShowForm(true);
   };
 
@@ -524,17 +525,14 @@ useEffect(() => {
                       <TextField
                         label="Número de Cédula o RIF"
                         value={cliente.rif || ''}
-                        onChange={(e) => {
-                          if (e.target.value.length <= 10) {
-                            setCliente(prev => ({ ...prev, rif: e.target.value }));
-                          }
-                        }}
+                        onChange={(e) => setCliente(prev => ({ ...prev, rif: e.target.value }))}
                         fullWidth
                         required
                         error={!!errores.rif}
-                        helperText={errores.rif || "Máximo 10 caracteres"}
+                        helperText={errores.rif}
                         inputProps={{
-                          maxLength: 10
+                          maxLength: 9,
+                          pattern: '^[0-9]{8,9}$'
                         }}
                       />
                     </Grid>
