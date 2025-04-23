@@ -74,9 +74,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
           {filteredTransactions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((t) => (
             <TableRow key={t._id} hover>
               <TableCell>
-                {moment.utc(t.fecha)
-                  .local()
-                  .format('DD/MM/YYYY HH:mm')}
+                {moment(t.fecha).format('DD/MM/YYYY')}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
               <TableCell>
