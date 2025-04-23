@@ -67,7 +67,7 @@ const RegistroClienteDialog = ({
           const response = await axios.get(`${API_URL}/ventas`, {
             params: {
               cliente: clienteSeleccionado.id, // ✅ Enviar id
-              limit: 0 // 0 = sin límite (traer todas)
+              limit: 1000
             }
           });
 
@@ -228,7 +228,7 @@ const RegistroClienteDialog = ({
                           <Button 
                             variant="contained" 
                             onClick={() => handleAbonar(venta)}
-                            disabled={!montosAbono[venta._id]}
+                            disabled={!montosAbono[venta.id]}
                           >
                             Abonar
                           </Button>
