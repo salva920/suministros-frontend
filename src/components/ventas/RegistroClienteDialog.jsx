@@ -97,13 +97,18 @@ const RegistroClienteDialog = ({
   };
 
   const calcularDeudaTotal = () => {
-    return ventas.reduce((total, venta) => total + (venta.saldoPendiente || 0), 0);
+    return ventas.reduce((total, venta) => {
+      if (venta.saldoPendiente > 0) {
+        return total + venta.saldoPendiente;
+      }
+      return total;
+    }, 0);
   };
 
-  const handleMontoChange = (ventaId, valor) => {
+  const handleMontoChange = (ventaId, monto) => {
     setMontosAbono(prev => ({
       ...prev,
-      [ventaId]: Math.max(0, Math.min(valor, ventas.find(v => v.id === ventaId).saldoPendiente)) // ✅ Cambiar _id por id
+      [ventaId]: monto
     }));
   };
 
@@ -181,7 +186,7 @@ const RegistroClienteDialog = ({
 
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
               <CheckCircle fontSize="small" sx={{ mr: 1 }} />
-              Historial de Ventas Pendientes
+              Historial Completo de Ventas
             </Typography>
 
             <TableContainer component={Paper}>
@@ -209,37 +214,47 @@ const RegistroClienteDialog = ({
                         ${venta.saldoPendiente.toFixed(2)}
                       </TableCell>
                       <TableCell>
-                        <Box display="flex" gap={1} alignItems="center">
-                          <TextField
-                            type="number"
-                            size="small"
-                            value={montosAbono[venta.id] || 0}
-                            onChange={(e) => handleMontoChange(venta.id, parseFloat(e.target.value))}
-                            InputProps={{
-                              startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                              inputProps: { 
-                                min: 0,
-                                max: venta.saldoPendiente,
-                                step: 0.01
-                              }
-                            }}
-                            sx={{ width: 120 }}
-                          />
-                          <Button 
-                            variant="contained" 
-                            onClick={() => handleAbonar(venta)}
-                            disabled={!montosAbono[venta.id]}
-                          >
-                            Abonar
-                          </Button>
-                          <Button 
-                            variant="outlined" 
+                        {venta.saldoPendiente > 0 && (
+                          <Box display="flex" gap={1} alignItems="center">
+                            <TextField
+                              type="number"
+                              size="small"
+                              value={montosAbono[venta.id] || 0}
+                              onChange={(e) => handleMontoChange(venta.id, parseFloat(e.target.value))}
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                                inputProps: { 
+                                  min: 0,
+                                  max: venta.saldoPendiente,
+                                  step: 0.01
+                                }
+                              }}
+                              sx={{ width: 120 }}
+                            />
+                            <Button 
+                              variant="contained" 
+                              onClick={() => handleAbonar(venta)}
+                              disabled={!montosAbono[venta.id]}
+                            >
+                              Abonar
+                            </Button>
+                            <Button 
+                              variant="outlined" 
+                              color="success" 
+                              onClick={() => handleSolventarDeuda(venta)}
+                            >
+                              Pagar Total
+                            </Button>
+                          </Box>
+                        )}
+                        {venta.saldoPendiente <= 0 && (
+                          <Chip 
+                            label="Pagado" 
                             color="success" 
-                            onClick={() => handleSolventarDeuda(venta)}
-                          >
-                            Pagar Total
-                          </Button>
-                        </Box>
+                            size="small" 
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
