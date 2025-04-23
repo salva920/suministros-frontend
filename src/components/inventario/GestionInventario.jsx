@@ -86,13 +86,6 @@ const transformarProducto = (producto) => {
     return new Date(value);
   };
 
-  // Verificar si la fechaIngreso existe y es válida
-  const fechaIngreso = producto.fechaIngreso 
-    ? moment(producto.fechaIngreso, 'DD/MM/YYYY HH:mm:ss', true).isValid() 
-      ? moment(producto.fechaIngreso, 'DD/MM/YYYY HH:mm:ss').toDate() 
-      : new Date() // Valor por defecto si la fecha no es válida
-    : new Date(); // Valor por defecto si no hay fecha
-
   return {
     id: producto._id?.$oid || producto._id.toString(),
     nombre: producto.nombre,
@@ -105,7 +98,7 @@ const transformarProducto = (producto) => {
     costoFinal: parseNumber(producto.costoFinal),
     stock: parseNumber(producto.stock),
     fecha: parseDate(producto.fecha),
-    fechaIngreso // Usar la fecha procesada
+    fechaIngreso: moment(producto.fechaIngreso).toDate()
   };
 };
 
@@ -150,15 +143,7 @@ const GestionInventario = () => {
   }, []);
 
   const abrirEditar = (producto) => {
-    // Verificar si la fechaIngreso existe y formatear a ISO
-    const fechaFormateada = producto.fechaIngreso 
-      ? moment(producto.fechaIngreso).format('YYYY-MM-DD') // Formato ISO
-      : ''; // Valor por defecto si no hay fecha
-
-    setProductoEditando({ 
-      ...producto,
-      fechaIngreso: fechaFormateada // Usar formato ISO
-    });
+    setProductoEditando({ ...producto, fechaIngreso: new Date().toLocaleString() });
     setMostrarFormulario(true);
   };
 
@@ -190,24 +175,13 @@ const GestionInventario = () => {
 
   const actualizarProducto = async (productoActualizado) => {
     try {
-      // Convertir fecha a formato ISO antes de enviar
-      const datosActualizados = {
-        ...productoActualizado,
-        fechaIngreso: moment(productoActualizado.fechaIngreso).toISOString() // Asegurarse de que la fecha esté en formato ISO
-      };
-
-      const response = await axios.put(
-        `${API_URL}/productos/${productoActualizado.id}`, 
-        datosActualizados
+      const response = await axios.put(`${API_URL}/productos/${productoActualizado.id}`, productoActualizado);
+      const productoTransformado = transformarProducto(response.data);
+      const nuevosProductos = productos.map(p => 
+        p.id === productoTransformado.id ? productoTransformado : p
       );
-
-      // Manejo de la respuesta
-      if (response.status === 200) {
-        toast.success('Producto actualizado correctamente');
-        // Aquí puedes actualizar el estado o realizar otras acciones necesarias
-      } else {
-        toast.error('Error al actualizar el producto');
-      }
+      setProductos(nuevosProductos);
+      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
       toast.error('Error al actualizar el producto');
