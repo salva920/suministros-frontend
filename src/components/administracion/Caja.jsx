@@ -76,7 +76,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
               <TableCell>
                 {moment.utc(t.fecha)
                   .tz('America/Caracas')
-                  .format('DD/MM/YYYY HH:mm')}
+                  .format('DD/MM/YYYY')}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
               <TableCell>
@@ -184,8 +184,7 @@ const CajaInteractiva = () => {
         monto,
         entrada: nuevaTransaccion.tipo === 'entrada' ? monto : 0,
         salida: nuevaTransaccion.tipo === 'salida' ? monto : 0,
-        tasaCambio: state.tasaCambio,
-        fecha: moment.tz(nuevaTransaccion.fecha, 'America/Caracas').toISOString(true)
+        tasaCambio: state.tasaCambio
       };
 
       const res = await axios.post(`${API_URL}/caja/transacciones`, movimiento);
@@ -441,24 +440,14 @@ const CajaInteractiva = () => {
               <Grid item xs={12} md={6}>
                 <TextField
                   label="Fecha"
-                  type="datetime-local"
+                  type="date"
                   fullWidth
-                  value={moment.utc(state.nuevaTransaccion.fecha)
-                    .tz('America/Caracas')
-                    .format('YYYY-MM-DDTHH:mm')}
-                  onChange={(e) => {
-                    const fechaCaracas = moment.tz(e.target.value, 'America/Caracas').toISOString();
-                    setState(prev => ({
-                      ...prev,
-                      nuevaTransaccion: {
-                        ...prev.nuevaTransaccion,
-                        fecha: fechaCaracas
-                      }
-                    }));
-                  }}
-                  InputLabelProps={{
-                    shrink: true
-                  }}
+                  value={state.nuevaTransaccion.fecha}
+                  onChange={(e) => setState(prev => ({ 
+                    ...prev, 
+                    nuevaTransaccion: { ...prev.nuevaTransaccion, fecha: e.target.value } 
+                  }))}
+                  InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
