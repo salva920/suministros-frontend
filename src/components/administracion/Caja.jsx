@@ -57,7 +57,9 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
       const start = dateFilter.start && moment.tz(dateFilter.start, 'America/Caracas');
       const end = dateFilter.end && moment.tz(dateFilter.end, 'America/Caracas');
       
-      return (!currencyFilter || t.moneda === currencyFilter) &&
+      const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
+      
+      return matchesCurrency &&
              (!start || transactionDate.isSameOrAfter(start, 'day')) &&
              (!end || transactionDate.isSameOrBefore(end, 'day'));
     });
@@ -152,8 +154,8 @@ const CajaInteractiva = () => {
         
         setState(prev => ({
           ...prev,
-          transacciones: cajaRes.data.transacciones,
-          saldos: cajaRes.data.saldos,
+          transacciones: Array.isArray(cajaRes.data.transacciones) ? cajaRes.data.transacciones : [],
+          saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
           tasaCambio: tasaRes.data.tasa,
           nuevaTransaccion: {
             ...prev.nuevaTransaccion,
