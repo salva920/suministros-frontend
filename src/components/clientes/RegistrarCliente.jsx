@@ -243,27 +243,10 @@ useEffect(() => {
   };
 
   const handleEditarCliente = (cliente) => {
-
-     // Extraer prefijo y número del RIF
-  const rifCompleto = cliente.rif;
-  const prefijoRif = rifCompleto[0];
-  const numeroRif = rifCompleto.substring(1);
-
-  // Extraer prefijo y número del teléfono
-  const telefonoCompleto = cliente.telefono;
-  const prefijoTelefono = telefonoCompleto.substring(0, 4);
-  const numeroTelefono = telefonoCompleto.substring(4);
-
     setCliente({
       _id: cliente.id,
       nombre: cliente.nombre,
       telefono: cliente.telefono,
-      email: cliente.email,
-      direccion: cliente.direccion,
-      municipio: cliente.municipio,
-      rif: numeroRif,
-      categorias: cliente.categorias,
-      municipioColor: cliente.municipioColor
     });
 
     const prefijo = cliente.telefono.match(/^0412|0426|0424|0416|0414/)?.[0] || '0412';
