@@ -243,20 +243,31 @@ useEffect(() => {
   };
 
   const handleEditarCliente = (cliente) => {
+    // Extraer prefijo del RIF (primera letra)
+    const prefijoRifCliente = cliente.rif.charAt(0);
+    
+    // Extraer número de teléfono sin prefijo
+    const prefijoTelefonoCliente = cliente.telefono.match(/^0412|0426|0424|0416|0414/)?.[0] || '0412';
+    const telefonoSinPrefijo = cliente.telefono.replace(prefijoTelefonoCliente, '');
+  
+    // Actualizar todo el estado del cliente
     setCliente({
       _id: cliente.id,
       nombre: cliente.nombre,
-      telefono: cliente.telefono,
+      telefono: telefonoSinPrefijo,
+      email: cliente.email || '',
+      direccion: cliente.direccion || '',
+      municipio: cliente.municipio || '',
+      rif: cliente.rif.slice(1), // Quitar el prefijo del RIF
+      categorias: cliente.categorias || [],
+      municipioColor: cliente.municipioColor || '#ffffff'
     });
-
-    const prefijo = cliente.telefono.match(/^0412|0426|0424|0416|0414/)?.[0] || '0412';
-    setPrefijoTelefono(prefijo);
-
-    setCliente(prev => ({
-      ...prev,
-      telefono: cliente.telefono.replace(prefijo, '')
-    }));
-
+  
+    // Establecer los prefijos
+    setPrefijoRif(prefijoRifCliente);
+    setPrefijoTelefono(prefijoTelefonoCliente);
+    
+    // Establecer cliente en modo edición
     setClienteEditando(cliente);
     setShowForm(true);
   };
