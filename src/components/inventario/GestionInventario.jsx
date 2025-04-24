@@ -85,37 +85,38 @@ const transformarProducto = (producto) => {
       return parseFloat(value) || 0;
     };
     
-    // Función para parsear fechas de forma segura
+    // Función para parsear fechas manteniendo UTC
     const parseDate = (value) => {
       try {
         if (!value) return new Date();
         
-        // Si ya es un objeto Date
-        if (value instanceof Date && !isNaN(value)) return value;
+        // Intentar parsear usando moment en UTC
+        const momentDate = moment.utc(value);
+        if (momentDate.isValid()) {
+          // Mantener en UTC para evitar problemas de zona horaria
+          return momentDate.toDate();
+        }
         
-        // Si es un string ISO o similar, intentar parsearlo directamente
+        // Si falló moment, intentar con Date directamente
         const fecha = new Date(value);
         if (!isNaN(fecha.getTime())) return fecha;
         
-        // Si es un string con formato específico, usar moment
-        const momentDate = moment(value);
-        if (momentDate.isValid()) return momentDate.toDate();
-        
-        // Fallback - fecha actual
+        // Fallback - fecha actual en UTC
         console.warn('No se pudo parsear la fecha, usando fecha actual:', value);
-        return new Date();
+        return moment.utc().toDate();
       } catch (e) {
         console.error('Error parseando fecha:', e, value);
-        return new Date();
+        return moment.utc().toDate();
       }
     };
     
     // Asegurar que el ID esté presente
     const id = producto._id?.toString() || producto.id?.toString() || '';
     
-    // Intentar parsear la fecha de ingreso
+    // Intentar parsear la fecha de ingreso en UTC
     let fechaIngreso = parseDate(producto.fechaIngreso);
-    console.log(`Fecha ingreso original: ${producto.fechaIngreso}, parseada: ${fechaIngreso}`);
+    
+    console.log(`Fecha ingreso original: ${producto.fechaIngreso}, parseada UTC: ${moment.utc(fechaIngreso).format('YYYY-MM-DD')}`);
     
     return {
       _id: id,
@@ -221,28 +222,30 @@ const GestionInventario = () => {
       }
       
       // Formatear fecha correctamente para el formulario
+      // Usar moment.utc para mantener la fecha en UTC y evitar conversiones a zona horaria local
       let fechaFormateada = '';
       if (producto.fechaIngreso) {
-        // Intentar parsear la fecha correctamente
-        const fecha = moment(producto.fechaIngreso);
-        if (fecha.isValid()) {
-          fechaFormateada = fecha.format('YYYY-MM-DD');
+        // Usar UTC para evitar problemas de zona horaria
+        const fechaUTC = moment.utc(producto.fechaIngreso);
+        if (fechaUTC.isValid()) {
+          // Formatear en YYYY-MM-DD manteniendo la fecha UTC
+          fechaFormateada = fechaUTC.format('YYYY-MM-DD');
         } else {
           console.warn("Fecha inválida:", producto.fechaIngreso);
-          // Usar fecha actual como fallback
-          fechaFormateada = moment().format('YYYY-MM-DD');
+          fechaFormateada = moment.utc().format('YYYY-MM-DD');
         }
       } else {
-        fechaFormateada = moment().format('YYYY-MM-DD');
+        fechaFormateada = moment.utc().format('YYYY-MM-DD');
       }
       
+      console.log("Fecha original:", producto.fechaIngreso);
       console.log("Fecha formateada para edición:", fechaFormateada);
       
       // Normalizar el producto para edición
       const productoNormalizado = {
         ...producto,
         _id: productoId,
-        fechaIngreso: fechaFormateada, // Usar fecha ya formateada
+        fechaIngreso: fechaFormateada, // Usar fecha ya formateada en UTC
         stockActual: producto.stock // Mantener referencia al stock actual
       };
       
@@ -610,7 +613,9 @@ const GestionInventario = () => {
                       />
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      {moment.utc(producto.fechaIngreso).format('DD/MM/YYYY')}
+                      {producto.fechaIngreso instanceof Date && !isNaN(producto.fechaIngreso) 
+                        ? moment.utc(producto.fechaIngreso).format('DD/MM/YYYY')
+                        : 'Fecha inválida'}
                     </StyledTableCell>
                     <StyledTableCell align="center">
                       <IconButton onClick={() => abrirEntradaStock(producto)}>
