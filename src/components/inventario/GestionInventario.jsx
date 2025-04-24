@@ -20,7 +20,6 @@ import moment from 'moment-timezone';
 import axios from 'axios';
 import TasaCambio from '../TasaCambio';
 import { VpnKey } from '@mui/icons-material';
-import EntradaStock from './EntradaStock';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -162,8 +161,6 @@ const GestionInventario = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'nombre', direction: 'asc' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mostrarEntradaStock, setMostrarEntradaStock] = useState(false);
-  const [productoEntrada, setProductoEntrada] = useState(null);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -317,8 +314,7 @@ const GestionInventario = () => {
       proveedor: producto.proveedor,
       fechaHora: ''
     });
-    setMostrarEntradaStock(true);
-    setProductoEntrada(producto);
+    setModalEntradaAbierto(true);
   };
 
   const agregarStock = async () => {
@@ -368,7 +364,7 @@ const GestionInventario = () => {
       toast.error(error.response?.data?.message || 'Error al agregar stock');
     } finally {
       setIsSubmitting(false);
-      setMostrarEntradaStock(false);
+      setModalEntradaAbierto(false);
     }
   };
 
@@ -499,16 +495,6 @@ const GestionInventario = () => {
       console.error("Error actualizando la lista de productos:", error);
       cargarProductos();
     }
-  };
-
-  const cerrarFormulario = () => {
-    setMostrarFormulario(false);
-    setProductoEditando(null);
-  };
-
-  const cerrarEntradaStock = () => {
-    setMostrarEntradaStock(false);
-    setProductoEntrada(null);
   };
 
   return (
@@ -732,23 +718,55 @@ const GestionInventario = () => {
         </TabPanel>
       </Paper>
 
-      {mostrarFormulario && (
-        <AgregarProducto
-          show={mostrarFormulario}
-          onClose={cerrarFormulario}
-          onProductoGuardado={actualizarListaProductos}
-          productoEditando={productoEditando}
-        />
-      )}
+      <AgregarProducto
+        open={mostrarFormulario}
+        onClose={() => {
+          setMostrarFormulario(false);
+          setProductoEditando(null);
+        }}
+        productoEditando={productoEditando}
+        onProductoGuardado={productoEditando ? actualizarProducto : handleProductoGuardado}
+      />
 
-      {mostrarEntradaStock && (
-        <EntradaStock
-          show={mostrarEntradaStock}
-          onClose={cerrarEntradaStock}
-          onStockActualizado={actualizarListaProductos}
-          producto={productoEntrada}
-        />
-      )}
+      <Dialog open={modalEntradaAbierto} onClose={() => setModalEntradaAbierto(false)}>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>Agregar Stock</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Fecha"
+            type="date"
+            value={entradaStock.fechaHora || moment().format('YYYY-MM-DD')}
+            onChange={(e) => setEntradaStock({ ...entradaStock, fechaHora: e.target.value })}
+            fullWidth
+            margin="normal"
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+          <TextField
+            fullWidth
+            label="Cantidad"
+            type="number"
+            value={entradaStock.cantidad}
+            onChange={(e) => setEntradaStock({ ...entradaStock, cantidad: e.target.value })}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Proveedor"
+            value={entradaStock.proveedor}
+            onChange={(e) => setEntradaStock({ ...entradaStock, proveedor: e.target.value })}
+            margin="normal"
+          />
+        </DialogContent>
+        <DialogActions sx={{ padding: 3 }}>
+          <Button variant="contained" color="secondary" onClick={() => setModalEntradaAbierto(false)}>
+            Cancelar
+          </Button>
+          <Button variant="contained" color="primary" onClick={agregarStock}>
+            Confirmar Entrada
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={pinDialogAbierto} onClose={() => setPinDialogAbierto(false)}>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>

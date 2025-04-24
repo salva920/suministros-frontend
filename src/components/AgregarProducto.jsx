@@ -26,7 +26,7 @@ const RoundedButton = styled(Button)(({ theme }) => ({
   fontSize: '1rem',
 }));
 
-const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, agregarProductoAlEstado, onStockActualizado }) => {
+const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, agregarProductoAlEstado }) => {
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -137,72 +137,67 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Trimear código antes de validar
-      const codigoTrimmed = producto.codigo?.trim() || '';
+      // Trimmeo de código antes de validar
+      const codigoTrimmed = producto.codigo.trim();
 
-      // Validaciones
+      // Validación final antes de enviar
       const validationErrors = [];
-      if (!producto.nombre?.trim()) validationErrors.push('nombre');
+      if (!producto.nombre.trim()) validationErrors.push('nombre');
       if (!codigoTrimmed) validationErrors.push('código');
       if (producto.costoInicial === '') validationErrors.push('costo inicial');
       if (producto.cantidad === '') validationErrors.push('cantidad');
       if (!producto.fechaIngreso) validationErrors.push('fecha de ingreso');
 
       if (validationErrors.length > 0) {
-        toast.error(`Errores en: ${validationErrors.join(', ')}`, { toastId: 'validacion-error' });
+        toast.error(`Errores en: ${validationErrors.join(', ')}`);
         return;
       }
-      
-      // Conversión a fecha UTC antes de enviar
-      const fechaUTC = moment.utc(producto.fechaIngreso).format('YYYY-MM-DD');
-      
-      // Verificar si estamos en modo edición
-      const esModoEdicion = !!(producto._id || producto.id);
-      const productoId = producto._id || producto.id;
-      
-      // Construir datos del producto con valores seguros
+
+      // Cálculo final seguro
+      const costoFinalCalculado = Number(
+        ((producto.costoInicial * producto.cantidad + producto.acarreo + producto.flete) / producto.cantidad).toFixed(2)
+      );
+
       const productData = {
-        nombre: producto.nombre?.trim() || '',
-        codigo: codigoTrimmed,
-        proveedor: producto.proveedor?.trim() || '',
-        costoInicial: parseFloat(producto.costoInicial) || 0,
-        acarreo: parseFloat(producto.acarreo) || 0,
-        flete: parseFloat(producto.flete) || 0,
-        cantidad: parseInt(producto.cantidad, 10) || 0,
-        costoFinal: parseFloat(producto.costoFinal) || 0,
-        fechaIngreso: fechaUTC
+        nombre: producto.nombre.trim(),
+        codigo: codigoTrimmed, // Usar el código trimmeado
+        proveedor: producto.proveedor?.trim() || undefined,
+        costoInicial: Number(producto.costoInicial),
+        acarreo: Number(producto.acarreo),
+        flete: Number(producto.flete),
+        cantidad: Number(producto.cantidad),
+        costoFinal: costoFinalCalculado,
+        stock: Number(producto.cantidad),
+        fechaIngreso: producto.fechaIngreso
       };
-      
-      // En modo edición, incluir el ID
-      if (esModoEdicion) {
-        productData._id = productoId;
-      }
-      
-      console.log("Enviando datos:", productData);
-      
+
       let response;
-      
-      // Sin mostrar notificaciones aquí
-      if (esModoEdicion) {
-        response = await axios.put(`${API_URL}/productos/${productoId}`, productData);
+      if (producto._id) {
+        // Si el producto tiene un _id, está en modo de edición
+        response = await axios.put(`${API_URL}/productos/${producto._id}`, productData);
       } else {
-        response = await axios.post(`${API_URL}/productos`, productData);
+        // Si no tiene un _id, está en modo de creación
+        response = await axios.post(`${API_URL}/productos`, {
+          ...productData,
+          stock: productData.cantidad // Asegurar que el stock inicial sea igual a la cantidad
+        });
       }
 
-      // Verificar que onProductoGuardado sea una función antes de llamarla
-      if (typeof onProductoGuardado === 'function') {
+      if (response.status === 200 || response.status === 201) {
+        toast.success(producto._id ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
         onProductoGuardado(response.data);
-      } else {
-        console.error("onProductoGuardado no es una función:", onProductoGuardado);
-        toast.success(esModoEdicion ? 'Producto actualizado' : 'Producto agregado', { toastId: 'exito-producto' });
+        resetForm();
+        onClose();
+        agregarProductoAlEstado(response.data);
       }
-      
-      resetForm();
-      onClose();
     } catch (error) {
-      console.error('Error al guardar el producto:', error);
-      const mensajeError = error.response?.data?.message || 'Error al guardar el producto';
-      toast.error(mensajeError, { toastId: 'error-producto' });
+      // Manejo de errores específicos
+      const serverErrors = error.response?.data?.errors || [];
+      const errorMessages = serverErrors.length > 0 
+        ? serverErrors.map(e => e.message).join(', ')
+        : 'Error al guardar el producto';
+      
+      toast.error(errorMessages);
     }
   };
 
