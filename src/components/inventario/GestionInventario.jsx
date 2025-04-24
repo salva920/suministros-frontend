@@ -20,6 +20,8 @@ import moment from 'moment-timezone';
 import axios from 'axios';
 import TasaCambio from '../TasaCambio';
 import { VpnKey } from '@mui/icons-material';
+import { Row, Col } from 'react-bootstrap';
+import { FaPlus } from 'react-icons/fa';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -494,6 +496,15 @@ const GestionInventario = () => {
     });
   };
 
+  // Función para abrir el formulario para agregar un nuevo producto
+  const abrirAgregar = () => {
+    console.log("Abriendo formulario para agregar nuevo producto");
+    // Asegurarse de que no hay producto en edición
+    setProductoEditando(null);
+    // Mostrar el formulario
+    setMostrarFormulario(true);
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Button
@@ -544,10 +555,7 @@ const GestionInventario = () => {
           <Button
             variant="contained"
             color="primary"
-            onClick={() => {
-              setMostrarFormulario(true);
-              setProductoEditando(null);
-            }}
+            onClick={abrirAgregar}
             startIcon={<AddShoppingCart />}
             sx={{ 
               borderRadius: '8px', 
