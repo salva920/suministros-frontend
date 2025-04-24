@@ -281,14 +281,52 @@ const GestionInventario = () => {
     }
   };
 
+  const actualizarListaProductos = (productoActualizado) => {
+    console.log("Actualizando lista con producto:", productoActualizado);
+    
+    if (!productoActualizado) {
+      console.warn("No se recibió un producto válido para actualizar");
+      cargarProductos();
+      return;
+    }
+    
+    try {
+      // Transformar el producto recibido para asegurar formato consistente
+      const productoTransformado = transformarProducto(productoActualizado);
+      
+      if (!productoTransformado) {
+        console.warn("No se pudo transformar el producto:", productoActualizado);
+        cargarProductos();
+        return;
+      }
+      
+      // Obtener ID del producto
+      const productoId = productoTransformado._id || productoTransformado.id;
+      
+      // Verificar si es un producto nuevo o uno existente actualizado
+      const existeProducto = productos.some(p => 
+        (p._id === productoId || p.id === productoId)
+      );
+      
+      if (existeProducto) {
+        console.log("Actualizando producto existente ID:", productoId);
+        const nuevosProductos = productos.map(p => 
+          (p._id === productoId || p.id === productoId) ? productoTransformado : p
+        );
+        setProductos([...nuevosProductos]);
+      } else {
+        console.log("Agregando nuevo producto ID:", productoId);
+        setProductos(prevProductos => [productoTransformado, ...prevProductos]);
+      }
+      
+    } catch (error) {
+      console.error("Error actualizando la lista de productos:", error);
+      cargarProductos();
+    }
+  };
+
   const handleProductoGuardado = (nuevoProducto) => {
-    // Transformar el producto recibido
-    const productoTransformado = transformarProducto(nuevoProducto);
-    
-    // Actualizar el estado de productos sin hacer un segundo POST
-    setProductos(prev => [...prev, productoTransformado]);
-    
-    // Mostrar mensaje de éxito
+    actualizarListaProductos(nuevoProducto);
     toast.success('Producto agregado correctamente');
   };
 
@@ -441,61 +479,6 @@ const GestionInventario = () => {
       {/* ... otras celdas ... */}
     </>
   );
-
-  // Función para actualizar la lista después de agregar/editar un producto o añadir stock
-  const actualizarListaProductos = (productoActualizado) => {
-    console.log("Actualizando lista con producto:", productoActualizado);
-    
-    if (!productoActualizado) {
-      console.warn("No se recibió un producto válido para actualizar");
-      cargarProductos();
-      return;
-    }
-    
-    try {
-      // Transformar el producto recibido para asegurar formato consistente
-      const productoTransformado = transformarProducto(productoActualizado);
-      
-      if (!productoTransformado) {
-        console.warn("No se pudo transformar el producto:", productoActualizado);
-        cargarProductos();
-        return;
-      }
-      
-      // Obtener ID del producto
-      const productoId = productoTransformado._id || productoTransformado.id;
-      
-      // Verificar si es un producto nuevo o uno existente actualizado
-      const existeProducto = productos.some(p => 
-        (p._id === productoId || p.id === productoId)
-      );
-      
-      if (existeProducto) {
-        console.log("Actualizando producto existente ID:", productoId);
-        const nuevosProductos = productos.map(p => 
-          (p._id === productoId || p.id === productoId) ? productoTransformado : p
-        );
-        setProductos([...nuevosProductos]);
-      } else {
-        console.log("Agregando nuevo producto ID:", productoId);
-        setProductos(prevProductos => [productoTransformado, ...prevProductos]);
-      }
-      
-      // Única notificación de éxito centralizada aquí
-      // Usar toastId para garantizar que no se duplique
-      const accion = existeProducto ? "actualizado" : "agregado";
-      const operacion = mostrarEntradaStock ? "añadido stock" : accion;
-      
-      // Mostrar solo UNA notificación con un ID único basado en la operación
-      toast.success(`Producto ${operacion} correctamente`, { 
-        toastId: `producto-${operacion}-${productoId}` 
-      });
-      
-    } catch (error) {
-      console.error("Error actualizando la lista de productos:", error);
-      cargarProductos();
-    }
-  };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
