@@ -124,6 +124,7 @@ const GestionInventario = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ key: 'nombre', direction: 'asc' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -131,13 +132,25 @@ const GestionInventario = () => {
   useEffect(() => {
     const cargarProductos = async () => {
       try {
+        setIsLoading(true);
         const response = await axios.get(`${API_URL}/productos`);
-        const productosTransformados = response.data.productos.map(transformarProducto);
+        
+        // Asegurar que siempre trabajamos con un array
+        const datos = Array.isArray(response.data) ? response.data : [];
+        
+        console.log('Datos recibidos:', datos);
+        
+        // Transformar los productos
+        const productosTransformados = datos.map(p => transformarProducto(p));
         setProductos(productosTransformados);
-        setFilteredData(productosTransformados);
+        
+        setIsLoading(false);
       } catch (error) {
-        console.error("Error al cargar productos:", error);
-        toast.error("Error cargando productos");
+        console.error('Error cargando datos:', error);
+        toast.error('Error al cargar los productos');
+        setIsLoading(false);
+        // Establecer un array vacío en caso de error
+        setProductos([]);
       }
     };
     cargarProductos();
