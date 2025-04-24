@@ -20,8 +20,6 @@ import moment from 'moment-timezone';
 import axios from 'axios';
 import TasaCambio from '../TasaCambio';
 import { VpnKey } from '@mui/icons-material';
-import { Row, Col } from 'react-bootstrap';
-import { FaPlus } from 'react-icons/fa';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -224,6 +222,7 @@ const GestionInventario = () => {
       }
       
       // Formatear fecha correctamente para el formulario
+      // Usar moment.utc para mantener la fecha en UTC y evitar conversiones a zona horaria local
       let fechaFormateada = '';
       if (producto.fechaIngreso) {
         // Usar UTC para evitar problemas de zona horaria
@@ -239,16 +238,23 @@ const GestionInventario = () => {
         fechaFormateada = moment.utc().format('YYYY-MM-DD');
       }
       
+      console.log("Fecha original:", producto.fechaIngreso);
+      console.log("Fecha formateada para edición:", fechaFormateada);
+      
       // Normalizar el producto para edición
       const productoNormalizado = {
         ...producto,
         _id: productoId,
-        fechaIngreso: fechaFormateada,
-        stockActual: producto.stock
+        fechaIngreso: fechaFormateada, // Usar fecha ya formateada en UTC
+        stockActual: producto.stock // Mantener referencia al stock actual
       };
       
-      // Establecer el producto en edición y mostrar el formulario
+      console.log("Producto normalizado para edición:", productoNormalizado);
+      
+      // Establecer el producto en edición
       setProductoEditando(productoNormalizado);
+      
+      // Mostrar el formulario de edición
       setMostrarFormulario(true);
     } catch (error) {
       console.error("Error al preparar producto para edición:", error);
@@ -298,7 +304,6 @@ const GestionInventario = () => {
   };
 
   const abrirEntradaStock = (producto) => {
-    console.log("Abriendo entrada de stock para:", producto.nombre);
     setEntradaStock({
       productoId: producto.id,
       cantidad: '',
@@ -433,78 +438,6 @@ const GestionInventario = () => {
     </>
   );
 
-  // Función para actualizar la lista después de agregar/editar un producto
-  const actualizarListaProductos = (productoActualizado) => {
-    console.log("Actualizando lista con producto:", productoActualizado);
-    
-    if (!productoActualizado) {
-      console.warn("No se recibió un producto válido para actualizar");
-      return;
-    }
-    
-    try {
-      // Transformar el producto recibido para asegurar formato consistente
-      const productoTransformado = transformarProducto(productoActualizado);
-      
-      if (!productoTransformado) {
-        console.warn("No se pudo transformar el producto:", productoActualizado);
-        return;
-      }
-      
-      // Obtener ID del producto
-      const productoId = productoTransformado._id || productoTransformado.id;
-      
-      // Verificar si es un producto nuevo o uno existente actualizado
-      const existeProducto = productos.some(p => (p._id === productoId || p.id === productoId));
-      
-      // Crear una nueva referencia del array de productos (importante para que React detecte el cambio)
-      if (existeProducto) {
-        // Si el producto ya existe, actualizar ese elemento
-        console.log("Actualizando producto existente:", productoId);
-        const nuevosProductos = productos.map(p => 
-          (p._id === productoId || p.id === productoId) ? productoTransformado : p
-        );
-        setProductos(nuevosProductos);
-      } else {
-        // Si es un producto nuevo, añadirlo al inicio del array
-        console.log("Agregando nuevo producto:", productoId);
-        setProductos([productoTransformado, ...productos]);
-      }
-      
-      // Notificar sobre la actualización
-      console.log("Lista de productos actualizada, nuevos datos:", 
-        existeProducto ? "Producto actualizado" : "Nuevo producto agregado");
-    } catch (error) {
-      console.error("Error actualizando la lista de productos:", error);
-    }
-  };
-
-  const cerrarFormulario = () => {
-    console.log("Cerrando formulario de producto");
-    setMostrarFormulario(false);
-    setProductoEditando(null);
-  };
-
-  const cerrarEntradaStock = () => {
-    console.log("Cerrando modal de entrada de stock");
-    setModalEntradaAbierto(false);
-    setEntradaStock({
-      productoId: null,
-      cantidad: '',
-      proveedor: '',
-      fechaHora: ''
-    });
-  };
-
-  // Función para abrir el formulario para agregar un nuevo producto
-  const abrirAgregar = () => {
-    console.log("Abriendo formulario para agregar nuevo producto");
-    // Asegurarse de que no hay producto en edición
-    setProductoEditando(null);
-    // Mostrar el formulario
-    setMostrarFormulario(true);
-  };
-
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Button
@@ -555,7 +488,10 @@ const GestionInventario = () => {
           <Button
             variant="contained"
             color="primary"
-            onClick={abrirAgregar}
+            onClick={() => {
+              setMostrarFormulario(true);
+              setProductoEditando(null);
+            }}
             startIcon={<AddShoppingCart />}
             sx={{ 
               borderRadius: '8px', 
@@ -723,14 +659,15 @@ const GestionInventario = () => {
         </TabPanel>
       </Paper>
 
-      {mostrarFormulario && (
-        <AgregarProducto
-          show={mostrarFormulario}
-          onClose={cerrarFormulario}
-          onProductoGuardado={actualizarListaProductos}
-          productoEditando={productoEditando}
-        />
-      )}
+      <AgregarProducto
+        open={mostrarFormulario}
+        onClose={() => {
+          setMostrarFormulario(false);
+          setProductoEditando(null);
+        }}
+        productoEditando={productoEditando}
+        onProductoGuardado={productoEditando ? actualizarProducto : handleProductoGuardado}
+      />
 
       <Dialog open={modalEntradaAbierto} onClose={() => setModalEntradaAbierto(false)}>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>Agregar Stock</DialogTitle>
