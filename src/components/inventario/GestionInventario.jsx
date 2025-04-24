@@ -96,6 +96,7 @@ const transformarProducto = (producto) => {
   };
 
   return {
+    _id: producto._id?.$oid || producto._id.toString(),
     id: producto._id?.$oid || producto._id.toString(),
     nombre: producto.nombre,
     codigo: producto.codigo,
@@ -153,7 +154,10 @@ const GestionInventario = () => {
   }, []);
 
   const abrirEditar = (producto) => {
-    setProductoEditando({ ...producto, fechaIngreso: new Date().toLocaleString() });
+    setProductoEditando({ 
+      ...producto, 
+      _id: producto.id || producto._id // Convertir id a _id si es necesario
+    });
     setMostrarFormulario(true);
   };
 
@@ -188,24 +192,22 @@ const GestionInventario = () => {
       // 1. Enviar la solicitud PUT al backend
       const response = await axios.put(`${API_URL}/productos/${productoActualizado._id}`, productoActualizado);
       
-      // 2. Verificar que la respuesta contenga los datos actualizados
-      if (!response.data || !response.data._id) {
-        throw new Error('No se recibieron datos válidos del servidor');
-      }
-
+      // 2. Transformar el producto recibido del backend
+      const productoTransformado = transformarProducto(response.data);
+      
       // 3. Actualizar el estado de los productos
       setProductos(prevProductos => 
         prevProductos.map(p => 
-          p._id === response.data._id ? response.data : p
+          p._id === productoTransformado._id ? { ...p, ...productoTransformado } : p
         )
       );
-
+      
       // 4. Mostrar mensaje de éxito
-      toast.success('Producto actualizado correctamente');
+      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
     } catch (error) {
       // 5. Manejo de errores
-      console.error('Error al actualizar el producto:', error);
-      toast.error(error.response?.data?.message || 'Error al actualizar el producto');
+      console.error('Error al actualizar:', error);
+      toast.error(error.response?.data?.message || 'Error al actualizar');
     }
   };
 

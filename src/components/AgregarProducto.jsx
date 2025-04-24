@@ -60,7 +60,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
                                  .format('YYYY-MM-DD');
       
       setProducto({
-        _id: productoEditando._id,
+        _id: productoEditando.id,
         nombre: productoEditando.nombre || '',
         codigo: productoEditando.codigo || '',
         proveedor: productoEditando.proveedor || '',
@@ -154,10 +154,12 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         toast.error(`Errores en: ${validationErrors.join(', ')}`);
         return;
       }
+
       // Convertir a fecha UTC antes de enviar
       const fechaUTC = moment.utc(producto.fechaIngreso, 'YYYY-MM-DD')
-      .startOf('day')
-      .toISOString();
+                          .startOf('day')
+                          .toISOString();
+
       // Cálculo final seguro
       const costoFinalCalculado = Number(
         ((producto.costoInicial * producto.cantidad + producto.acarreo + producto.flete) / producto.cantidad).toFixed(2)
@@ -173,7 +175,8 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         cantidad: Number(producto.cantidad),
         costoFinal: costoFinalCalculado,
         stock: Number(producto.cantidad),
-        fechaIngreso: fechaUTC
+        fechaIngreso: fechaUTC,
+        _id: producto._id // Incluir el _id en los datos enviados
       };
 
       let response;
