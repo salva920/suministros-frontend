@@ -72,34 +72,69 @@ function TabPanel(props) {
 }
 
 const transformarProducto = (producto) => {
-  const parseNumber = (value) => {
-    if (typeof value === "object" && value?.$numberInt) {
-      return parseInt(value.$numberInt, 10);
-    }
-    return Number(value) || 0;
-  };
-
-  const parseDate = (value) => {
-    if (typeof value === "object" && value?.$date?.$numberLong) {
-      return new Date(parseInt(value.$date.$numberLong, 10));
-    }
-    return new Date(value);
-  };
-
-  return {
-    id: producto._id?.$oid || producto._id.toString(),
-    nombre: producto.nombre,
-    codigo: producto.codigo,
-    proveedor: producto.proveedor,
-    costoInicial: parseNumber(producto.costoInicial),
-    acarreo: parseNumber(producto.acarreo),
-    flete: parseNumber(producto.flete),
-    cantidad: parseNumber(producto.cantidad),
-    costoFinal: parseNumber(producto.costoFinal),
-    stock: parseNumber(producto.stock),
-    fecha: parseDate(producto.fecha),
-    fechaIngreso: moment(producto.fechaIngreso).toDate()
-  };
+  if (!producto || typeof producto !== 'object') {
+    console.warn('Producto inválido:', producto);
+    return null;
+  }
+  
+  try {
+    // Función para parsear valores numéricos
+    const parseNumber = (value) => {
+      if (value === undefined || value === null) return 0;
+      if (typeof value === 'number') return value;
+      return parseFloat(value) || 0;
+    };
+    
+    // Función para parsear fechas de forma segura
+    const parseDate = (value) => {
+      try {
+        if (!value) return new Date();
+        
+        // Si ya es un objeto Date
+        if (value instanceof Date && !isNaN(value)) return value;
+        
+        // Si es un string ISO o similar, intentar parsearlo directamente
+        const fecha = new Date(value);
+        if (!isNaN(fecha.getTime())) return fecha;
+        
+        // Si es un string con formato específico, usar moment
+        const momentDate = moment(value);
+        if (momentDate.isValid()) return momentDate.toDate();
+        
+        // Fallback - fecha actual
+        console.warn('No se pudo parsear la fecha, usando fecha actual:', value);
+        return new Date();
+      } catch (e) {
+        console.error('Error parseando fecha:', e, value);
+        return new Date();
+      }
+    };
+    
+    // Asegurar que el ID esté presente
+    const id = producto._id?.toString() || producto.id?.toString() || '';
+    
+    // Intentar parsear la fecha de ingreso
+    let fechaIngreso = parseDate(producto.fechaIngreso);
+    console.log(`Fecha ingreso original: ${producto.fechaIngreso}, parseada: ${fechaIngreso}`);
+    
+    return {
+      _id: id,
+      id: id,
+      nombre: producto.nombre || '',
+      codigo: producto.codigo || '',
+      proveedor: producto.proveedor || '',
+      costoInicial: parseNumber(producto.costoInicial),
+      acarreo: parseNumber(producto.acarreo),
+      flete: parseNumber(producto.flete),
+      cantidad: parseNumber(producto.cantidad),
+      costoFinal: parseNumber(producto.costoFinal),
+      stock: parseNumber(producto.stock),
+      fechaIngreso: fechaIngreso,
+    };
+  } catch (error) {
+    console.error('Error transformando producto:', error, producto);
+    return null;
+  }
 };
 
 const GestionInventario = () => {
@@ -124,6 +159,7 @@ const GestionInventario = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ key: 'nombre', direction: 'asc' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -131,21 +167,96 @@ const GestionInventario = () => {
   useEffect(() => {
     const cargarProductos = async () => {
       try {
+        setIsLoading(true);
         const response = await axios.get(`${API_URL}/productos`);
-        const productosTransformados = response.data.productos.map(transformarProducto);
+        
+        // Verificar la estructura de la respuesta
+        console.log('Datos recibidos:', response.data);
+        
+        // Manejar estructura paginada
+        let datosProductos = [];
+        if (response.data && Array.isArray(response.data.productos)) {
+          // La respuesta está paginada
+          datosProductos = response.data.productos;
+          console.log("Datos extraídos de estructura paginada:", datosProductos.length);
+        } else if (Array.isArray(response.data)) {
+          // La respuesta es un array directo
+          datosProductos = response.data;
+          console.log("Datos extraídos de array directo:", datosProductos.length);
+        } else if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+          // La respuesta es un objeto único (un solo producto)
+          datosProductos = [response.data];
+          console.log("Datos extraídos de objeto único");
+        }
+        
+        // Transformar los productos
+        const productosTransformados = datosProductos
+          .map(p => transformarProducto(p))
+          .filter(p => p !== null); // Filtrar valores nulos
+        
+        console.log('Productos finales disponibles:', productosTransformados.length);
         setProductos(productosTransformados);
-        setFilteredData(productosTransformados);
+        
+        setIsLoading(false);
       } catch (error) {
-        console.error("Error al cargar productos:", error);
-        toast.error("Error cargando productos");
+        console.error('Error cargando datos:', error);
+        toast.error('Error al cargar los productos');
+        setIsLoading(false);
+        setProductos([]);
       }
     };
     cargarProductos();
   }, []);
 
   const abrirEditar = (producto) => {
-    setProductoEditando({ ...producto, fechaIngreso: new Date().toLocaleString() });
-    setMostrarFormulario(true);
+    try {
+      console.log("Producto original a editar:", producto);
+      
+      // Asegurar que tengamos un ID válido
+      const productoId = producto._id || producto.id;
+      if (!productoId) {
+        console.error("Error: El producto no tiene ID");
+        toast.error("No se puede editar este producto");
+        return;
+      }
+      
+      // Formatear fecha correctamente para el formulario
+      let fechaFormateada = '';
+      if (producto.fechaIngreso) {
+        // Intentar parsear la fecha correctamente
+        const fecha = moment(producto.fechaIngreso);
+        if (fecha.isValid()) {
+          fechaFormateada = fecha.format('YYYY-MM-DD');
+        } else {
+          console.warn("Fecha inválida:", producto.fechaIngreso);
+          // Usar fecha actual como fallback
+          fechaFormateada = moment().format('YYYY-MM-DD');
+        }
+      } else {
+        fechaFormateada = moment().format('YYYY-MM-DD');
+      }
+      
+      console.log("Fecha formateada para edición:", fechaFormateada);
+      
+      // Normalizar el producto para edición
+      const productoNormalizado = {
+        ...producto,
+        _id: productoId,
+        fechaIngreso: fechaFormateada, // Usar fecha ya formateada
+        stockActual: producto.stock // Mantener referencia al stock actual
+      };
+      
+      console.log("Producto normalizado para edición:", productoNormalizado);
+      
+      // Establecer el producto en edición
+      setProductoEditando(productoNormalizado);
+      
+      // Mostrar el formulario de edición
+      setMostrarFormulario(true);
+    } catch (error) {
+      console.error("Error al preparar producto para edición:", error);
+      toast.error("Error al preparar el producto para edición");
+    }
   };
 
   const eliminarProducto = async (id) => {
