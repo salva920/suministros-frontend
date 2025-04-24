@@ -87,8 +87,8 @@ const transformarProducto = (producto) => {
   };
 
   return {
-    id: producto._id?.$oid || producto._id.toString(),
-    nombre: producto.nombre,
+    _id: producto._id?.$oid || producto._id.toString(), // Agregar campo _id
+    id: producto._id?.$oid || producto._id.toString(), // Mantener compatibilidad    
     codigo: producto.codigo,
     proveedor: producto.proveedor,
     costoInicial: parseNumber(producto.costoInicial),
@@ -174,20 +174,24 @@ const GestionInventario = () => {
     toast.success('Producto agregado correctamente');
   };
 
-  const actualizarProducto = async (productoActualizado) => {
-    try {
-      const response = await axios.put(`${API_URL}/productos/${productoActualizado.id}`, productoActualizado);
-      const productoTransformado = transformarProducto(response.data);
-      const nuevosProductos = productos.map(p => 
-        p.id === productoTransformado.id ? productoTransformado : p
-      );
-      setProductos(nuevosProductos);
-      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
-    } catch (error) {
-      console.error('Error al actualizar el producto:', error);
-      toast.error('Error al actualizar el producto');
-    }
-  };
+  // Modificar la función actualizarProducto:
+const actualizarProducto = async (productoActualizado) => {
+  try {
+    const response = await axios.put(`${API_URL}/productos/${productoActualizado._id}`, productoActualizado);
+    const productoTransformado = transformarProducto(response.data);
+    
+    setProductos(prev => 
+      prev.map(p => 
+        p._id === productoTransformado._id ? { ...p, ...productoTransformado } : p
+      )
+    );
+    
+    toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
+  } catch (error) {
+    console.error('Error al actualizar:', error);
+    toast.error(error.response?.data?.message || 'Error al actualizar');
+  }
+};
 
   const abrirEntradaStock = (producto) => {
     setEntradaStock({

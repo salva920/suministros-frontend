@@ -57,7 +57,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
   useEffect(() => {
     if (productoEditando) {
       setProducto({
-        _id: productoEditando._id,
+        _id: productoEditando.id,
         nombre: productoEditando.nombre || '',
         codigo: productoEditando.codigo || '',
         proveedor: productoEditando.proveedor || '',
@@ -168,7 +168,8 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         cantidad: Number(producto.cantidad),
         costoFinal: costoFinalCalculado,
         stock: Number(producto.cantidad),
-        fechaIngreso: producto.fechaIngreso
+        fechaIngreso: producto.fechaIngreso,
+        _id: producto._id // Incluir el _id en los datos enviados
       };
 
       let response;
