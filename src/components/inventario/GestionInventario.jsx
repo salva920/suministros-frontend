@@ -72,34 +72,68 @@ function TabPanel(props) {
 }
 
 const transformarProducto = (producto) => {
-  const parseNumber = (value) => {
-    if (typeof value === "object" && value?.$numberInt) {
-      return parseInt(value.$numberInt, 10);
-    }
-    return Number(value) || 0;
-  };
-
-  const parseDate = (value) => {
-    if (typeof value === "object" && value?.$date?.$numberLong) {
-      return new Date(parseInt(value.$date.$numberLong, 10));
-    }
-    return new Date(value);
-  };
-
-  return {
-    id: producto._id?.$oid || producto._id.toString(),
-    nombre: producto.nombre,
-    codigo: producto.codigo,
-    proveedor: producto.proveedor,
-    costoInicial: parseNumber(producto.costoInicial),
-    acarreo: parseNumber(producto.acarreo),
-    flete: parseNumber(producto.flete),
-    cantidad: parseNumber(producto.cantidad),
-    costoFinal: parseNumber(producto.costoFinal),
-    stock: parseNumber(producto.stock),
-    fecha: parseDate(producto.fecha),
-    fechaIngreso: moment(producto.fechaIngreso).toDate()
-  };
+  if (!producto) return null;
+  
+  try {
+    // Función para parsear valores numéricos
+    const parseNumber = (value) => {
+      if (value === undefined || value === null) return 0;
+      if (typeof value === 'number') return value;
+      return parseFloat(value) || 0;
+    };
+    
+    // Función para parsear fechas
+    const parseDate = (value) => {
+      if (!value) return new Date();
+      
+      try {
+        if (typeof value === 'string') {
+          const fecha = new Date(value);
+          if (!isNaN(fecha.getTime())) return fecha;
+        }
+        
+        // Si es un objeto con format de MongoDB
+        if (typeof value === 'object' && value.$date) {
+          return new Date(value.$date);
+        }
+        
+        return new Date();
+      } catch (e) {
+        console.error('Error parseando fecha:', e);
+        return new Date();
+      }
+    };
+    
+    // Asegurar que el ID esté presente
+    const id = producto._id?.toString() || producto.id?.toString() || '';
+    
+    return {
+      _id: id,
+      id: id,
+      nombre: producto.nombre || '',
+      codigo: producto.codigo || '',
+      proveedor: producto.proveedor || '',
+      costoInicial: parseNumber(producto.costoInicial),
+      acarreo: parseNumber(producto.acarreo),
+      flete: parseNumber(producto.flete),
+      cantidad: parseNumber(producto.cantidad),
+      costoFinal: parseNumber(producto.costoFinal),
+      stock: parseNumber(producto.stock),
+      fechaIngreso: parseDate(producto.fechaIngreso),
+      fecha: parseDate(producto.fecha) // Por compatibilidad
+    };
+  } catch (error) {
+    console.error('Error transformando producto:', error, producto);
+    return {
+      _id: producto._id || '',
+      id: producto._id || '',
+      nombre: producto.nombre || '',
+      codigo: producto.codigo || '',
+      stock: 0,
+      cantidad: 0,
+      fechaIngreso: new Date()
+    };
+  }
 };
 
 const GestionInventario = () => {
@@ -124,6 +158,7 @@ const GestionInventario = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState({ key: 'nombre', direction: 'asc' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -131,20 +166,50 @@ const GestionInventario = () => {
   useEffect(() => {
     const cargarProductos = async () => {
       try {
+        setIsLoading(true);
         const response = await axios.get(`${API_URL}/productos`);
-        const productosTransformados = response.data.productos.map(transformarProducto);
+        
+        // Asegurar que siempre trabajamos con un array
+        let datos = [];
+        if (Array.isArray(response.data)) {
+          datos = response.data;
+        } else if (response.data && typeof response.data === 'object') {
+          // Si es un objeto único, convertirlo en array
+          datos = [response.data];
+        }
+        
+        console.log('Datos recibidos:', datos);
+        
+        // Transformar los productos
+        const productosTransformados = datos.map(p => transformarProducto(p));
         setProductos(productosTransformados);
-        setFilteredData(productosTransformados);
+        
+        setIsLoading(false);
       } catch (error) {
-        console.error("Error al cargar productos:", error);
-        toast.error("Error cargando productos");
+        console.error('Error cargando datos:', error);
+        toast.error('Error al cargar los productos');
+        setIsLoading(false);
+        // Establecer un array vacío en caso de error
+        setProductos([]);
       }
     };
     cargarProductos();
   }, []);
 
   const abrirEditar = (producto) => {
-    setProductoEditando({ ...producto, fechaIngreso: new Date().toLocaleString() });
+    // Normalizar el ID para asegurar que tenga _id
+    const productoNormalizado = {
+      ...producto,
+      _id: producto._id || producto.id // Usar _id si existe, si no usar id
+    };
+    
+    // Formatear la fecha de ingreso a YYYY-MM-DD
+    const fechaIngreso = moment.utc(productoNormalizado.fechaIngreso).format('YYYY-MM-DD');
+    
+    // Establecer el producto en edición con ID normalizado y fecha formateada
+    setProductoEditando({ ...productoNormalizado, fechaIngreso });
+    
+    // Mostrar el formulario de edición
     setMostrarFormulario(true);
   };
 
