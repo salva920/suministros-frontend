@@ -144,7 +144,13 @@ const GestionInventario = () => {
   }, []);
 
   const abrirEditar = (producto) => {
-    setProductoEditando({ ...producto, fechaIngreso: new Date().toLocaleString() });
+    // Formatear la fecha de ingreso a YYYY-MM-DD
+    const fechaIngreso = moment.utc(producto.fechaIngreso).format('YYYY-MM-DD');
+    
+    // Establecer el producto en edición con la fecha formateada
+    setProductoEditando({ ...producto, fechaIngreso });
+    
+    // Mostrar el formulario de edición
     setMostrarFormulario(true);
   };
 
@@ -174,24 +180,21 @@ const GestionInventario = () => {
     toast.success('Producto agregado correctamente');
   };
 
-  // Modificar la función actualizarProducto:
-const actualizarProducto = async (productoActualizado) => {
-  try {
-    const response = await axios.put(`${API_URL}/productos/${productoActualizado._id}`, productoActualizado);
-    const productoTransformado = transformarProducto(response.data);
+  // Función actualizarProducto modificada (solo actualiza estado)
+  const actualizarProducto = (productoActualizado) => {
+    // Transformar el producto actualizado
+    const productoTransformado = transformarProducto(productoActualizado);
     
-    setProductos(prev => 
-      prev.map(p => 
-        p._id === productoTransformado._id ? { ...p, ...productoTransformado } : p
+    // Actualizar el estado de los productos
+    setProductos(prevProductos => 
+      prevProductos.map(p => 
+        p._id === productoTransformado._id ? productoTransformado : p
       )
     );
     
+    // Mostrar mensaje de éxito
     toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
-  } catch (error) {
-    console.error('Error al actualizar:', error);
-    toast.error(error.response?.data?.message || 'Error al actualizar');
-  }
-};
+  };
 
   const abrirEntradaStock = (producto) => {
     setEntradaStock({

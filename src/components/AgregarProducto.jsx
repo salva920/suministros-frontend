@@ -153,14 +153,20 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         return;
       }
 
+      // Convertir a fecha UTC antes de enviar
+      const fechaUTC = moment.utc(producto.fechaIngreso, 'YYYY-MM-DD')
+                            .startOf('day')
+                            .toISOString();
+
       // Cálculo final seguro
       const costoFinalCalculado = Number(
         ((producto.costoInicial * producto.cantidad + producto.acarreo + producto.flete) / producto.cantidad).toFixed(2)
       );
 
+      // Crear el objeto con los datos del producto
       const productData = {
         nombre: producto.nombre.trim(),
-        codigo: codigoTrimmed, // Usar el código trimmeado
+        codigo: codigoTrimmed,
         proveedor: producto.proveedor?.trim() || undefined,
         costoInicial: Number(producto.costoInicial),
         acarreo: Number(producto.acarreo),
@@ -168,8 +174,9 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         cantidad: Number(producto.cantidad),
         costoFinal: costoFinalCalculado,
         stock: Number(producto.cantidad),
-        fechaIngreso: producto.fechaIngreso,
-        _id: producto._id // Incluir el _id en los datos enviados
+        fechaIngreso: fechaUTC,
+        // Incluir _id solo si estamos editando
+        ...(producto._id && { _id: producto._id })
       };
 
       let response;
@@ -178,10 +185,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         response = await axios.put(`${API_URL}/productos/${producto._id}`, productData);
       } else {
         // Si no tiene un _id, está en modo de creación
-        response = await axios.post(`${API_URL}/productos`, {
-          ...productData,
-          stock: productData.cantidad // Asegurar que el stock inicial sea igual a la cantidad
-        });
+        response = await axios.post(`${API_URL}/productos`, productData);
       }
 
       if (response.status === 200 || response.status === 201) {
