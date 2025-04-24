@@ -87,8 +87,8 @@ const transformarProducto = (producto) => {
   };
 
   return {
-    _id: producto._id?.$oid || producto._id.toString(), // Agregar campo _id
-    id: producto._id?.$oid || producto._id.toString(), // Mantener compatibilidad    
+    id: producto._id?.$oid || producto._id.toString(),
+    nombre: producto.nombre,
     codigo: producto.codigo,
     proveedor: producto.proveedor,
     costoInicial: parseNumber(producto.costoInicial),
@@ -144,13 +144,7 @@ const GestionInventario = () => {
   }, []);
 
   const abrirEditar = (producto) => {
-    // Formatear la fecha de ingreso a YYYY-MM-DD
-    const fechaIngreso = moment.utc(producto.fechaIngreso).format('YYYY-MM-DD');
-    
-    // Establecer el producto en edición con la fecha formateada
-    setProductoEditando({ ...producto, fechaIngreso });
-    
-    // Mostrar el formulario de edición
+    setProductoEditando({ ...producto, fechaIngreso: new Date().toLocaleString() });
     setMostrarFormulario(true);
   };
 
@@ -180,20 +174,19 @@ const GestionInventario = () => {
     toast.success('Producto agregado correctamente');
   };
 
-  // Función actualizarProducto modificada (solo actualiza estado)
-  const actualizarProducto = (productoActualizado) => {
-    // Transformar el producto actualizado
-    const productoTransformado = transformarProducto(productoActualizado);
-    
-    // Actualizar el estado de los productos
-    setProductos(prevProductos => 
-      prevProductos.map(p => 
-        p._id === productoTransformado._id ? productoTransformado : p
-      )
-    );
-    
-    // Mostrar mensaje de éxito
-    toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
+  const actualizarProducto = async (productoActualizado) => {
+    try {
+      const response = await axios.put(`${API_URL}/productos/${productoActualizado.id}`, productoActualizado);
+      const productoTransformado = transformarProducto(response.data);
+      const nuevosProductos = productos.map(p => 
+        p.id === productoTransformado.id ? productoTransformado : p
+      );
+      setProductos(nuevosProductos);
+      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
+    } catch (error) {
+      console.error('Error al actualizar el producto:', error);
+      toast.error('Error al actualizar el producto');
+    }
   };
 
   const abrirEntradaStock = (producto) => {
