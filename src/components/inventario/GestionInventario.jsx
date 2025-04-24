@@ -438,6 +438,20 @@ const GestionInventario = () => {
     </>
   );
 
+  const actualizarListaProductos = (productoGuardado) => {
+    console.log("Producto guardado:", productoGuardado);
+    
+    // Recargar toda la lista para asegurar consistencia
+    cargarProductos();
+    
+    // No es necesario llamar a toast.success aquí, ya se llamó en AgregarProducto
+  };
+
+  const cerrarFormulario = () => {
+    setProductoEditando(null);
+    setMostrarFormulario(false);
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Button
@@ -661,12 +675,9 @@ const GestionInventario = () => {
 
       <AgregarProducto
         open={mostrarFormulario}
-        onClose={() => {
-          setMostrarFormulario(false);
-          setProductoEditando(null);
-        }}
+        onClose={cerrarFormulario}
         productoEditando={productoEditando}
-        onProductoGuardado={productoEditando ? actualizarProducto : handleProductoGuardado}
+        onProductoGuardado={actualizarListaProductos}
       />
 
       <Dialog open={modalEntradaAbierto} onClose={() => setModalEntradaAbierto(false)}>
