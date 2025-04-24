@@ -56,6 +56,11 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
 
   useEffect(() => {
     if (productoEditando) {
+      // Asegurarse de usar los valores actuales del producto
+      const fechaFormateada = moment.utc(productoEditando.fechaIngreso)
+                                 .format('YYYY-MM-DD');
+      
+      // Mantener separados cantidad inicial y stock actual
       setProducto({
         _id: productoEditando._id,
         nombre: productoEditando.nombre || '',
@@ -66,8 +71,13 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         flete: productoEditando.flete || '',
         cantidad: productoEditando.cantidad || '',
         stock: productoEditando.stock || 0,
-        fechaIngreso: productoEditando.fechaIngreso ? 
-          moment(productoEditando.fechaIngreso).format('YYYY-MM-DD') : ''
+        fechaIngreso: fechaFormateada,
+        stockActual: productoEditando.stock // Guardar stock actual como referencia
+      });
+      
+      console.log("Editando producto:", {
+        ...productoEditando,
+        fechaFormateada
       });
     } else {
       resetForm();
@@ -137,10 +147,6 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Verificar si estamos en modo edición comprobando tanto _id como id
-      const esModoEdicion = !!(producto._id || producto.id);
-      const productoId = producto._id || producto.id;
-      
       // Trimmeo de código antes de validar
       const codigoTrimmed = producto.codigo.trim();
 
@@ -156,13 +162,26 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         toast.error(`Errores en: ${validationErrors.join(', ')}`);
         return;
       }
-
+      
+      // Conversión a fecha UTC antes de enviar
+      const fechaUTC = moment.utc(producto.fechaIngreso, 'YYYY-MM-DD')
+        .startOf('day')
+        .toISOString();
+        
+      // Verificar si estamos en modo edición
+      const esModoEdicion = !!(producto._id || producto.id);
+      const productoId = producto._id || producto.id;
+      
+      // Determinar si hay cambio en la cantidad
+      const cantidadCambiada = esModoEdicion && 
+                             producto.cantidad !== producto.stockActual;
+      
       // Cálculo final seguro
       const costoFinalCalculado = Number(
         ((producto.costoInicial * producto.cantidad + producto.acarreo + producto.flete) / producto.cantidad).toFixed(2)
       );
 
-      // Crear los datos del producto
+      // Preparar datos del producto
       const productData = {
         nombre: producto.nombre.trim(),
         codigo: codigoTrimmed,
@@ -172,20 +191,17 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         flete: Number(producto.flete),
         cantidad: Number(producto.cantidad),
         costoFinal: costoFinalCalculado,
-        stock: Number(producto.cantidad),
-        fechaIngreso: producto.fechaIngreso,
-        // Incluir _id solo si estamos en modo edición
+        stock: esModoEdicion ? undefined : Number(producto.cantidad), // No enviar stock en edición
+        fechaIngreso: fechaUTC,
         ...(esModoEdicion && { _id: productoId })
       };
 
+      console.log("Enviando datos:", productData);
+      
       let response;
       if (esModoEdicion) {
-        // Modo edición - usamos PUT
-        console.log('Editando producto:', productoId, productData);
         response = await axios.put(`${API_URL}/productos/${productoId}`, productData);
       } else {
-        // Modo creación - usamos POST
-        console.log('Creando nuevo producto', productData);
         response = await axios.post(`${API_URL}/productos`, productData);
       }
 
