@@ -171,20 +171,17 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         fechaIngreso: producto.fechaIngreso
       };
 
+      console.log("Enviando datos:", productData);
+      
       let response;
+      
       if (producto._id) {
-        // Si el producto tiene un _id, está en modo de edición
         response = await axios.put(`${API_URL}/productos/${producto._id}`, productData);
       } else {
-        // Si no tiene un _id, está en modo de creación
-        response = await axios.post(`${API_URL}/productos`, {
-          ...productData,
-          stock: productData.cantidad // Asegurar que el stock inicial sea igual a la cantidad
-        });
+        response = await axios.post(`${API_URL}/productos`, productData);
       }
 
       if (response.status === 200 || response.status === 201) {
-        toast.success(producto._id ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
         onProductoGuardado(response.data);
         resetForm();
         onClose();
@@ -192,13 +189,9 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         onStockActualizado(response.data);
       }
     } catch (error) {
-      // Manejo de errores específicos
-      const serverErrors = error.response?.data?.errors || [];
-      const errorMessages = serverErrors.length > 0 
-        ? serverErrors.map(e => e.message).join(', ')
-        : 'Error al guardar el producto';
-      
-      toast.error(errorMessages);
+      console.error('Error al guardar el producto:', error.response?.data || error);
+      const mensajeError = error.response?.data?.message || 'Error al guardar el producto';
+      toast.error(mensajeError, { toastId: 'error-producto' });
     }
   };
 
