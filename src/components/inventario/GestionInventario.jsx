@@ -144,7 +144,19 @@ const GestionInventario = () => {
   }, []);
 
   const abrirEditar = (producto) => {
-    setProductoEditando({ ...producto, fechaIngreso: new Date().toLocaleString() });
+    // Normalizar el ID para asegurar que tenga _id
+    const productoNormalizado = {
+      ...producto,
+      _id: producto._id || producto.id // Usar _id si existe, si no usar id
+    };
+    
+    // Formatear la fecha de ingreso a YYYY-MM-DD
+    const fechaIngreso = moment.utc(productoNormalizado.fechaIngreso).format('YYYY-MM-DD');
+    
+    // Establecer el producto en edición con ID normalizado y fecha formateada
+    setProductoEditando({ ...productoNormalizado, fechaIngreso });
+    
+    // Mostrar el formulario de edición
     setMostrarFormulario(true);
   };
 

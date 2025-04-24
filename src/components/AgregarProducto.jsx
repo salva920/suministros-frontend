@@ -137,6 +137,10 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Verificar si estamos en modo edición comprobando tanto _id como id
+      const esModoEdicion = !!(producto._id || producto.id);
+      const productoId = producto._id || producto.id;
+      
       // Trimmeo de código antes de validar
       const codigoTrimmed = producto.codigo.trim();
 
@@ -158,9 +162,10 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         ((producto.costoInicial * producto.cantidad + producto.acarreo + producto.flete) / producto.cantidad).toFixed(2)
       );
 
+      // Crear los datos del producto
       const productData = {
         nombre: producto.nombre.trim(),
-        codigo: codigoTrimmed, // Usar el código trimmeado
+        codigo: codigoTrimmed,
         proveedor: producto.proveedor?.trim() || undefined,
         costoInicial: Number(producto.costoInicial),
         acarreo: Number(producto.acarreo),
@@ -168,23 +173,24 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         cantidad: Number(producto.cantidad),
         costoFinal: costoFinalCalculado,
         stock: Number(producto.cantidad),
-        fechaIngreso: producto.fechaIngreso
+        fechaIngreso: producto.fechaIngreso,
+        // Incluir _id solo si estamos en modo edición
+        ...(esModoEdicion && { _id: productoId })
       };
 
       let response;
-      if (producto._id) {
-        // Si el producto tiene un _id, está en modo de edición
-        response = await axios.put(`${API_URL}/productos/${producto._id}`, productData);
+      if (esModoEdicion) {
+        // Modo edición - usamos PUT
+        console.log('Editando producto:', productoId, productData);
+        response = await axios.put(`${API_URL}/productos/${productoId}`, productData);
       } else {
-        // Si no tiene un _id, está en modo de creación
-        response = await axios.post(`${API_URL}/productos`, {
-          ...productData,
-          stock: productData.cantidad // Asegurar que el stock inicial sea igual a la cantidad
-        });
+        // Modo creación - usamos POST
+        console.log('Creando nuevo producto', productData);
+        response = await axios.post(`${API_URL}/productos`, productData);
       }
 
       if (response.status === 200 || response.status === 201) {
-        toast.success(producto._id ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
+        toast.success(esModoEdicion ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
         onProductoGuardado(response.data);  // Usar datos reales del servidor
         resetForm();
         onClose();
