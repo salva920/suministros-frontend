@@ -185,16 +185,27 @@ const GestionInventario = () => {
 
   const actualizarProducto = async (productoActualizado) => {
     try {
-      const response = await axios.put(`${API_URL}/productos/${productoActualizado.id}`, productoActualizado);
-      const productoTransformado = transformarProducto(response.data);
-      const nuevosProductos = productos.map(p => 
-        p.id === productoTransformado.id ? productoTransformado : p
+      // 1. Enviar la solicitud PUT al backend
+      const response = await axios.put(`${API_URL}/productos/${productoActualizado._id}`, productoActualizado);
+      
+      // 2. Verificar que la respuesta contenga los datos actualizados
+      if (!response.data || !response.data._id) {
+        throw new Error('No se recibieron datos válidos del servidor');
+      }
+
+      // 3. Actualizar el estado de los productos
+      setProductos(prevProductos => 
+        prevProductos.map(p => 
+          p._id === response.data._id ? response.data : p
+        )
       );
-      setProductos(nuevosProductos);
-      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
+
+      // 4. Mostrar mensaje de éxito
+      toast.success('Producto actualizado correctamente');
     } catch (error) {
+      // 5. Manejo de errores
       console.error('Error al actualizar el producto:', error);
-      toast.error('Error al actualizar el producto');
+      toast.error(error.response?.data?.message || 'Error al actualizar el producto');
     }
   };
 
