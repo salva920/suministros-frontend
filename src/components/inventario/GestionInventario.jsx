@@ -209,6 +209,10 @@ const GestionInventario = () => {
     cargarProductos();
   }, []);
 
+  useEffect(() => {
+    console.log("Estado de productos actualizado, cantidad:", productos.length);
+  }, [productos]);
+
   const abrirEditar = (producto) => {
     try {
       console.log("Producto original a editar:", producto);
@@ -437,6 +441,61 @@ const GestionInventario = () => {
       {/* ... otras celdas ... */}
     </>
   );
+
+  // Función para actualizar la lista después de agregar/editar un producto o añadir stock
+  const actualizarListaProductos = (productoActualizado) => {
+    console.log("Actualizando lista con producto:", productoActualizado);
+    
+    if (!productoActualizado) {
+      console.warn("No se recibió un producto válido para actualizar");
+      cargarProductos(); // Si no hay datos válidos, recargar todos los productos
+      return;
+    }
+    
+    try {
+      // Transformar el producto recibido para asegurar formato consistente
+      const productoTransformado = transformarProducto(productoActualizado);
+      
+      if (!productoTransformado) {
+        console.warn("No se pudo transformar el producto:", productoActualizado);
+        cargarProductos(); // Si no se puede transformar, recargar todos los productos
+        return;
+      }
+      
+      // Obtener ID del producto
+      const productoId = productoTransformado._id || productoTransformado.id;
+      
+      // Verificar si es un producto nuevo o uno existente actualizado
+      const existeProducto = productos.some(p => 
+        (p._id === productoId || p.id === productoId)
+      );
+      
+      if (existeProducto) {
+        // Si el producto ya existe, actualizar ese elemento
+        console.log("Actualizando producto existente ID:", productoId);
+        const nuevosProductos = productos.map(p => 
+          (p._id === productoId || p.id === productoId) ? productoTransformado : p
+        );
+        console.log("Nuevos productos después de actualización:", nuevosProductos.length);
+        setProductos([...nuevosProductos]); // Asegurar nueva referencia para provocar re-render
+      } else {
+        // Si es un producto nuevo, añadirlo al inicio del array
+        console.log("Agregando nuevo producto ID:", productoId);
+        setProductos(prevProductos => [productoTransformado, ...prevProductos]);
+      }
+      
+      // Mostrar notificación de éxito si no se mostró en el componente hijo
+      toast.success(existeProducto 
+        ? "Producto actualizado correctamente" 
+        : "Producto agregado correctamente", 
+        { toastId: "producto-actualizado" }
+      );
+    } catch (error) {
+      console.error("Error actualizando la lista de productos:", error);
+      // Si hay un error, recargar todos los datos
+      cargarProductos();
+    }
+  };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>

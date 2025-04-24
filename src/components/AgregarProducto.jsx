@@ -26,7 +26,7 @@ const RoundedButton = styled(Button)(({ theme }) => ({
   fontSize: '1rem',
 }));
 
-const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, agregarProductoAlEstado }) => {
+const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, agregarProductoAlEstado, onStockActualizado }) => {
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -185,10 +185,11 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
 
       if (response.status === 200 || response.status === 201) {
         toast.success(producto._id ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
-        onProductoGuardado(response.data);  // Usar datos reales del servidor
+        onProductoGuardado(response.data);
         resetForm();
         onClose();
         agregarProductoAlEstado(response.data);
+        onStockActualizado(response.data);
       }
     } catch (error) {
       // Manejo de errores específicos
