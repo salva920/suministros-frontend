@@ -4,21 +4,129 @@ import {
   Paper, IconButton, Chip, Box,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Collapse, MenuItem, FormGroup, FormControlLabel, Checkbox,
-  InputLabel, Select, FormControl, Dialog, DialogTitle, DialogContent, DialogActions, LinearProgress, CircularProgress
+  InputLabel, Select, FormControl, Dialog, DialogTitle, DialogContent, 
+  DialogActions, LinearProgress, CircularProgress, useTheme, useMediaQuery,
+  Divider, InputAdornment, Tooltip, Alert, AlertTitle
 } from '@mui/material';
-import { toast } from 'react-toastify';
+import { styled } from '@mui/material/styles';
+import { toast, ToastContainer } from 'react-toastify';
 import { 
   ExpandMore, ExpandLess, 
-  Edit, Delete, AssignmentInd, Dashboard, PersonSearch, Receipt
+  Edit, Delete, AssignmentInd, Dashboard, PersonSearch, 
+  Receipt, Close, Add as AddIcon, Search as SearchIcon,
+  Phone as PhoneIcon, Email as EmailIcon, LocationOn as LocationIcon,
+  Badge as BadgeIcon, FilterAlt as FilterAltIcon,
+  Refresh as RefreshIcon, Save as SaveIcon, Money as MoneyIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Pagination from '@mui/material/Pagination';
-import RegistroClienteDialog from '../ventas/RegistroClienteDialog'; 
+import RegistroClienteDialog from '../ventas/RegistroClienteDialog';
+import { motion, AnimatePresence } from 'framer-motion';
+import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
+const API_URL = "https://suministros-backend.vercel.app/api"; // URL del backend en Vercel
+
+// Variantes de animación para Framer Motion
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      when: "beforeChildren",
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 24
+    }
+  }
+};
+
+// Componentes estilizados
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  fontWeight: 'bold',
+  '&.MuiTableCell-head': {
+    backgroundColor: theme.palette.primary.main,
+    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+    color: theme.palette.common.white,
+    fontSize: '0.95rem',
+    whiteSpace: 'nowrap',
+    padding: '16px'
+  }
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(even)': {
+    backgroundColor: theme.palette.action.hover,
+  },
+  '&:hover': {
+    backgroundColor: theme.palette.action.selected,
+    transition: 'background-color 0.3s ease',
+    boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
+    transform: 'translateY(-2px)',
+  },
+  transition: 'all 0.2s ease'
+}));
+
+const FormPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+  borderRadius: '16px',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+  background: 'linear-gradient(120deg, #fafafa 0%, #ffffff 100%)',
+  overflow: 'hidden'
+}));
+
+const FilterContainer = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(3),
+  borderRadius: '12px',
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(2)
+}));
+
+const CategoryChip = styled(Chip)(({ theme }) => ({
+  margin: theme.spacing(0.5),
+  borderRadius: '8px',
+  fontWeight: 'medium',
+  boxShadow: '0 2px 5px rgba(0,0,0,0.08)',
+  '&:hover': {
+    boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+  },
+  transition: 'all 0.2s ease'
+}));
+
+const ActionButton = styled(Button)(({ theme }) => ({
+  borderRadius: '10px',
+  textTransform: 'none',
+  padding: '8px 16px',
+  fontWeight: 'bold',
+  boxShadow: '0 3px 5px rgba(0,0,0,0.1)',
+  '&:hover': {
+    boxShadow: '0 5px 15px rgba(0,0,0,0.15)',
+    transform: 'translateY(-2px)'
+  },
+  transition: 'all 0.2s ease'
+}));
 
 const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClose }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [clientes, setClientes] = useState([]);
   const [clientesFiltrados, setClientesFiltrados] = useState([]);
   const [pagina, setPagina] = useState(1);
@@ -60,6 +168,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [mostrarDialogoVentas, setMostrarDialogoVentas] = useState(false);
   const [deudaTotal, setDeudaTotal] = useState(0);
   const [cargandoVentas, setCargandoVentas] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
 
   const cargarClientes = useCallback(async (page = pagina, limit = porPagina) => {
@@ -67,7 +176,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     try {
       const response = await axios.get(`${API_URL}/clientes?page=${page}&limit=${limit}`);
       setClientes(response.data.clientes);
-      setTotalClientes(response.data.total); // Asegurar total actualizado
+      setTotalClientes(response.data.total);
     } catch (error) {
       console.error(error);
       toast.error('Error al cargar clientes');
@@ -76,10 +185,9 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     }
   }, [pagina, porPagina]);
 
- // Actualizar useEffect para recargar al cambiar página
-useEffect(() => {
-  cargarClientes(pagina, porPagina);
-}, [pagina, porPagina, cargarClientes]);
+  useEffect(() => {
+    cargarClientes(pagina, porPagina);
+  }, [pagina, porPagina, cargarClientes]);
 
   const filtrarClientes = useCallback(() => {
     return clientes.filter(cliente => {
@@ -103,9 +211,9 @@ useEffect(() => {
   }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
 
   useEffect(() => {
-    const filtered = filtrarClientes(); // Llamar a la función de filtrado
-    setClientesFiltrados(filtered); // Actualizar el estado con los clientes filtrados
-  }, [filtrarClientes]); // Dependencias: se ejecuta cuando cambian los filtros o los datos
+    const filtered = filtrarClientes();
+    setClientesFiltrados(filtered);
+  }, [filtrarClientes]);
 
   const handleChange = (e) => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
@@ -146,37 +254,21 @@ useEffect(() => {
         rifValido = false;
       }
     } else if (!/^[VEJG][0-9]+$/.test(rifCompleto)) {
-      nuevosErrores.rif = 'Formato inválido';
+      nuevosErrores.rif = 'Formato de RIF inválido';
       rifValido = false;
     }
 
-    if (!rifValido) valido = false;
-
-    if (!cliente.nombre.trim()) {
-      nuevosErrores.nombre = 'El nombre es obligatorio';
-      valido = false;
-    } else if (cliente.nombre.trim().length < 3) {
-      nuevosErrores.nombre = 'El nombre debe tener al menos 3 caracteres';
+    if (!cliente.nombre || cliente.nombre.trim() === '') {
+      nuevosErrores.nombre = 'El nombre es requerido';
       valido = false;
     }
 
-    if (!cliente.municipio.trim()) {
-      nuevosErrores.municipio = 'El municipio es obligatorio';
+    if (!rifValido) {
       valido = false;
     }
 
-    if (!/^\d{7}$/.test(cliente.telefono)) {
-      nuevosErrores.telefono = 'El teléfono debe tener 7 dígitos';
-      valido = false;
-    }
-
-    if (cliente.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cliente.email.trim())) {
-      nuevosErrores.email = 'Ingrese un correo electrónico válido';
-      valido = false;
-    }
-
-    if (cliente.direccion.trim() && cliente.direccion.trim().length < 5) {
-      nuevosErrores.direccion = 'La dirección debe tener al menos 5 caracteres';
+    if (cliente.email && !/\S+@\S+\.\S+/.test(cliente.email)) {
+      nuevosErrores.email = 'Email inválido';
       valido = false;
     }
 
@@ -184,631 +276,1103 @@ useEffect(() => {
     return valido;
   };
 
-  const handleSubmit = async (e) => {
+  const crearActualizarCliente = async (e) => {
     e.preventDefault();
-    if (!validarCampos()) return;
-  
+    if (!validarCampos()) {
+      toast.error('Por favor corrige los errores en el formulario');
+      return;
+    }
+
+    const clienteData = {
+      ...cliente,
+      rif: prefijoRif + cliente.rif,
+      telefono: prefijoTelefono && cliente.telefono ? `${prefijoTelefono}-${cliente.telefono}` : cliente.telefono
+    };
+
+    setCargando(true);
     try {
-      setCargandoVentas(true);
-      const clienteData = {
-        nombre: cliente.nombre,
-        telefono: prefijoTelefono + cliente.telefono,
-        email: cliente.email,
-        direccion: cliente.direccion,
-        municipio: cliente.municipio,
-        rif: prefijoRif + cliente.rif,
-        categorias: cliente.categorias,
-        municipioColor: cliente.municipioColor
-      };
-  
-      const method = clienteEditando ? 'put' : 'post';
-      const url = clienteEditando 
-        ? `${API_URL}/clientes/${clienteEditando.id}`
-        : `${API_URL}/clientes`;
-  
-      const response = await axios[method](url, clienteData);
-  
-      if (response.data) {
-        toast.success(clienteEditando ? 'Cliente actualizado correctamente' : 'Cliente registrado correctamente');
-        setCliente({
-          _id: '',
-          nombre: '',
-          telefono: '',
-          email: '',
-          direccion: '',
-          municipio: '',
-          rif: '',
-          categorias: [],
-          municipioColor: '#ffffff'
-        });
-        setClienteEditando(null);
-        setShowForm(false);
-        cargarClientes();
-        if (onClienteRegistrado) {
-          onClienteRegistrado(response.data);
-        }
+      let response;
+      // Si estamos editando
+      if (cliente._id) {
+        response = await axios.put(`${API_URL}/clientes/${cliente._id}`, clienteData);
+        toast.success('Cliente actualizado correctamente');
+      } else {
+        // Si estamos creando uno nuevo
+        response = await axios.post(`${API_URL}/clientes`, clienteData);
+        toast.success('Cliente registrado correctamente');
+      }
+
+      setCliente({
+        nombre: '',
+        telefono: '',
+        email: '',
+        direccion: '',
+        municipio: '',
+        rif: '',
+        categorias: [],
+        municipioColor: '#ffffff'
+      });
+      
+      setShowForm(false);
+      setPrefijoRif('V');
+      setPrefijoTelefono('0412');
+      cargarClientes();
+      
+      if (onClienteRegistrado) {
+        onClienteRegistrado(response.data.cliente);
+      }
+      
+      if (modoModal && onClose) {
+        onClose();
       }
     } catch (error) {
-      toast.error(`Error al ${clienteEditando ? 'actualizar' : 'registrar'} el cliente: ${error.message}`);
+      console.error(error);
+      if (error.response && error.response.data && error.response.data.mensaje) {
+        toast.error(error.response.data.mensaje);
+      } else {
+        toast.error('Error al procesar el cliente');
+      }
     } finally {
-      setCargandoVentas(false);
-    }
-  };
-
-  const handleEliminarCliente = async (id) => {
-    try {
-      await axios.delete(`${API_URL}/clientes/${id}`);
-      toast.success('Cliente eliminado correctamente');
-      cargarClientes(pagina, porPagina);
-    } catch (error) {
-      console.error('Error al eliminar el cliente:', error);
-      toast.error(error.response?.data?.message || 'Error al eliminar el cliente');
+      setCargando(false);
     }
   };
 
   const handleEditarCliente = (cliente) => {
-    // Extraer prefijo del RIF (primera letra)
-    const prefijoRifCliente = cliente.rif.charAt(0);
+    // Dividir el RIF en prefijo y número
+    let prefijo = 'V';
+    let numero = cliente.rif;
     
-    // Extraer número de teléfono sin prefijo
-    const prefijoTelefonoCliente = cliente.telefono.match(/^0412|0426|0424|0416|0414/)?.[0] || '0412';
-    const telefonoSinPrefijo = cliente.telefono.replace(prefijoTelefonoCliente, '');
-  
-    // Actualizar todo el estado del cliente
+    if (cliente.rif && cliente.rif.length > 0) {
+      prefijo = cliente.rif.charAt(0);
+      numero = cliente.rif.substring(1);
+    }
+    setPrefijoRif(prefijo);
+    
+    // Dividir el teléfono en prefijo y número si existe
+    let prefTelefono = '0412';
+    let numTelefono = '';
+    
+    if (cliente.telefono && cliente.telefono.includes('-')) {
+      const telParts = cliente.telefono.split('-');
+      prefTelefono = telParts[0];
+      numTelefono = telParts[1];
+    } else {
+      numTelefono = cliente.telefono || '';
+    }
+    setPrefijoTelefono(prefTelefono);
+    
     setCliente({
-      _id: cliente.id,
-      nombre: cliente.nombre,
-      telefono: telefonoSinPrefijo,
-      email: cliente.email || '',
-      direccion: cliente.direccion || '',
-      municipio: cliente.municipio || '',
-      rif: cliente.rif.slice(1), // Quitar el prefijo del RIF
-      categorias: cliente.categorias || [],
+      ...cliente,
+      rif: numero,
+      telefono: numTelefono,
       municipioColor: cliente.municipioColor || '#ffffff'
     });
-  
-    // Establecer los prefijos
-    setPrefijoRif(prefijoRifCliente);
-    setPrefijoTelefono(prefijoTelefonoCliente);
     
-    // Establecer cliente en modo edición
+    setColorMunicipio(cliente.municipioColor || '#ffffff');
     setClienteEditando(cliente);
     setShowForm(true);
   };
 
-  const handleCancelarEdicion = () => {
-    setClienteEditando(null);
-    setCliente({
-      _id: '',
-      nombre: '',
-      telefono: '',
-      email: '',
-      direccion: '',
-      municipio: '',
-      rif: '',
-      categorias: [],
-      municipioColor: '#ffffff'
-    });
-    setShowForm(false);
+  const handleEliminarCliente = async (id) => {
+    if (window.confirm('¿Estás seguro de eliminar este cliente?')) {
+      setCargando(true);
+      try {
+        await axios.delete(`${API_URL}/clientes/${id}`);
+        toast.success('Cliente eliminado correctamente');
+        cargarClientes();
+      } catch (error) {
+        console.error(error);
+        toast.error('Error al eliminar el cliente');
+      } finally {
+        setCargando(false);
+      }
+    }
   };
 
-  // Modificar la función handleVerVentas para validar el ID
   const handleVerVentas = async (cliente) => {
+    setCargandoVentas(true);
+    setClienteSeleccionado(cliente);
     try {
-      // Validación reforzada
-      if (!cliente?.id) { // ✅ Validación simplificada
-        throw new Error('Cliente no válido para consultar ventas');
-      }
-  
-      setCargandoVentas(true);
+      // Lógica para cargar las ventas del cliente
+      const response = await axios.get(`${API_URL}/ventas/cliente/${cliente.id || cliente._id}`);
+      setVentasCliente(response.data.ventas || []);
       
-      const response = await axios.get(`${API_URL}/ventas`, {
-        params: {
-          cliente: cliente.id,
-          limit: 1000
-        },
-        timeout: 15000
-      });
-  
-      if (!response.data?.ventas) {
-        throw new Error('Estructura de respuesta incorrecta');
+      // Calcular deuda total
+      let deuda = 0;
+      if (response.data.ventas && response.data.ventas.length > 0) {
+        response.data.ventas.forEach(venta => {
+          if (venta.estado !== 'Pagada') {
+            deuda += venta.total - (venta.abono || 0);
+          }
+        });
       }
-  
-      setVentasCliente(response.data.ventas);
+      setDeudaTotal(deuda);
+      
       setMostrarDialogoVentas(true);
-  
     } catch (error) {
-      toast.error(`Error: ${error.message}`);
-      console.error('Detalle técnico:', {
-        clienteId: cliente?._id,
-        error: error.response?.data || error.message
-      });
+      console.error('Error al cargar ventas:', error);
+      toast.error('Error al cargar el historial de ventas');
     } finally {
       setCargandoVentas(false);
     }
   };
 
-  useEffect(() => {
-    clientesFiltrados.forEach(cliente => {
-      const ventasCliente = ventas.filter(v => v.clienteId === cliente.id);
-      const deudaTotal = ventasCliente.reduce((total, venta) => total + (venta.saldoPendiente || 0), 0);
-      
-      if (deudaTotal > 0) {
-        const ventaMasAntigua = ventasCliente.reduce((antigua, venta) => {
-          const fechaVenta = new Date(venta.fecha);
-          return fechaVenta < antigua.fecha ? venta : antigua;
-        });
-        
-        const diasDeuda = Math.floor((new Date() - new Date(ventaMasAntigua.fecha)) / (1000 * 60 * 60 * 24));
-        
-        if (diasDeuda > 15 && !cliente.categorias.includes('Alto Riesgo')) {
-          toast.error(`Cliente ${cliente.nombre} tiene más de 15 días con deuda pendiente`);
-          const clientesActualizados = clientes.map(c => 
-            c.id === cliente.id ? { ...c, categorias: [...c.categorias, 'Alto Riesgo'] } : c
-          );
-          setClientes(clientesActualizados);
-        }
-      }
-    });
-  }, [clientesFiltrados, ventas, clientes]);
-
-  const formatValue = (value) => {
-    const numericValue = parseFloat(value);
-    return isNaN(numericValue) ? '0.00' : numericValue.toFixed(2);
+  const handleAbonarSaldo = () => {
+    // Lógica para registrar abono
+    navigate('/ventas', { state: { clienteId: clienteSeleccionado.id || clienteSeleccionado._id } });
+    setMostrarDialogoVentas(false);
   };
 
-  const handleChangeCategoria = (e) => {
-    const { name, checked } = e.target;
-    setCliente(prev => ({
-      ...prev,
-      categorias: checked
-        ? [...prev.categorias, name]
-        : prev.categorias.filter(c => c !== name)
-    }));
+  const handleCheckboxChange = (e) => {
+    const { value, checked } = e.target;
+    if (checked) {
+      setCliente(prev => ({
+        ...prev,
+        categorias: [...(prev.categorias || []), value]
+      }));
+    } else {
+      setCliente(prev => ({
+        ...prev,
+        categorias: (prev.categorias || []).filter(cat => cat !== value)
+      }));
+    }
   };
 
-  const manejarCambioPagina = (evento, valor) => {
-    setPagina(valor);
+  const manejarCambioPagina = (event, value) => {
+    setPagina(value);
   };
 
-  const manejarCambioPorPagina = (evento) => {
-    setPorPagina(evento.target.value);
-    setPagina(1);
+  const manejarCambioPorPagina = (event) => {
+    setPorPagina(parseInt(event.target.value, 10));
+    setPagina(1); // Reiniciar a la primera página cuando cambia el tamaño
   };
 
-  console.log(cliente);
-
-  const categorias = cliente.categorias || [];
-
-  const handleAbonarSaldo = (ventaActualizada) => {
-    setVentasCliente(prev => 
-      prev.map(v => v._id === ventaActualizada._id ? ventaActualizada : v)
-    );
-  };
-
-  const calcularDeudaTotal = (ventas) => {
-    const total = ventas.reduce((acc, venta) => acc + (venta.saldoPendiente || 0), 0);
-    setDeudaTotal(total);
-  };
-
-  useEffect(() => {
-    calcularDeudaTotal(ventasCliente);
-  }, [ventasCliente]);
+  const municipiosDisponibles = [...new Set(clientes.map(c => c.municipio).filter(Boolean))];
+  const categoriasDisponibles = ['Agente Retención', 'Alto Riesgo', 'Cliente Frecuente', 'Cliente VIP', 'Desconocido'];
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {!modoModal && (
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => navigate('/dashboard')}
-          sx={{ mb: 2 }}
-          startIcon={<Dashboard />}
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      transition={{ duration: 0.5 }}
+    >
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 3, 
+            borderRadius: '16px',
+            background: 'linear-gradient(to right, #f5f7fa, #ffffff)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }}
         >
-          Ir al Dashboard
-        </Button>
-      )}
-
-      <Paper elevation={3} sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ 
-            color: 'primary.main',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 3,
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? 2 : 0
           }}>
-            <AssignmentInd fontSize="large" /> Gestión de Clientes
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setShowForm(!showForm)}
-              startIcon={showForm ? <ExpandLess /> : <ExpandMore />}
-              sx={{ borderRadius: 2 }}
+            <Typography 
+              variant="h4" 
+              component="h1" 
+              sx={{ 
+                fontWeight: 'bold',
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
             >
-              {showForm ? 'Ocultar Formulario' : 'Nuevo Cliente'}
-            </Button>
-          </Box>
-        </Box>
-
-        <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-          <TextField
-            label="Buscar cliente"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            fullWidth
-            InputProps={{
-              startAdornment: <PersonSearch sx={{ color: 'action.active', mr: 1 }} />
-            }}
-          />
-          
-          <TextField
-            select
-            label="Municipio"
-            value={filtroMunicipio}
-            onChange={(e) => setFiltroMunicipio(e.target.value)}
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="">Todos</MenuItem>
-            {[...new Set(clientes.map(c => c.municipio.toLowerCase()))].map(municipio => (
-              <MenuItem key={municipio} value={municipio}>
-                {municipio.charAt(0).toUpperCase() + municipio.slice(1)}
-              </MenuItem>
-            ))}
-          </TextField>
-          
-          <TextField
-            select
-            label="Categoría"
-            value={filtroCategoria}
-            onChange={(e) => setFiltroCategoria(e.target.value)}
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="">Todas</MenuItem>
-            {[...new Set(clientes.flatMap(c => c.categorias))]
-              .filter(c => c)
-              .map(categoria => (
-                <MenuItem key={categoria} value={categoria}>
-                  {categoria}
-                </MenuItem>
-              ))}
-          </TextField>
-          
-          <Button 
-            variant="outlined" 
-            onClick={() => {
-              setFiltroMunicipio('');
-              setFiltroCategoria('');
-            }}
-          >
-            Limpiar Filtros
-          </Button>
-        </Box>
-
-        <Collapse in={showForm || modoModal}>
-          <Paper elevation={1} sx={{ p: 3, mb: 4, backgroundColor: 'white' }}>
-            <form onSubmit={handleSubmit}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Nombre Completo"
-                    name="nombre"
-                    value={cliente.nombre}
-                    onChange={handleChange}
-                    fullWidth
-                    required
-                    error={!!errores.nombre}
-                    helperText={errores.nombre}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={3}>
-                      <FormControl fullWidth>
-                        <InputLabel>Prefijo</InputLabel>
-                        <Select
-                          value={prefijoRif}
-                          onChange={(e) => setPrefijoRif(e.target.value)}
-                          label="Prefijo"
-                        >
-                          <MenuItem value="V">Venezolano (V)</MenuItem>
-                          <MenuItem value="E">Extranjero (E)</MenuItem>
-                          <MenuItem value="J">Jurídico (J)</MenuItem>
-                          <MenuItem value="G">Gubernamental (G)</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={9}>
-                      <TextField
-                        label="Número de Cédula o RIF"
-                        value={cliente.rif || ''}
-                        onChange={(e) => setCliente(prev => ({ ...prev, rif: e.target.value }))}
-                        fullWidth
-                        required
-                        error={!!errores.rif}
-                        helperText={errores.rif}
-                        inputProps={{
-                          maxLength: 9,
-                          pattern: '^[0-9]{8,9}$'
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={4}>
-                      <FormControl fullWidth>
-                        <InputLabel>Prefijo</InputLabel>
-                        <Select
-                          value={prefijoTelefono}
-                          onChange={(e) => setPrefijoTelefono(e.target.value)}
-                          label="Prefijo"
-                        >
-                          <MenuItem value="0412">0412</MenuItem>
-                          <MenuItem value="0426">0426</MenuItem>
-                          <MenuItem value="0424">0424</MenuItem>
-                          <MenuItem value="0416">0416</MenuItem>
-                          <MenuItem value="0414">0414</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={8}>
-                      <TextField
-                        label="Número de Teléfono"
-                        value={cliente.telefono || ''}
-                        onChange={(e) => setCliente(prev => ({ ...prev, telefono: e.target.value }))}
-                        fullWidth
-                        required
-                        error={!!errores.telefono}
-                        helperText={errores.telefono}
-                        inputProps={{
-                          maxLength: 7,
-                          pattern: '^[0-9]{7}$'
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Email"
-                    name="email"
-                    value={cliente.email}
-                    onChange={handleChange}
-                    fullWidth
-                    error={!!errores.email}
-                    helperText={errores.email}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Dirección"
-                    name="direccion"
-                    value={cliente.direccion}
-                    onChange={handleChange}
-                    fullWidth
-                    multiline
-                    rows={2}
-                    error={!!errores.direccion}
-                    helperText={errores.direccion}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={8}>
-                      <TextField
-                        label="Municipio"
-                        name="municipio"
-                        value={cliente.municipio}
-                        onChange={handleChange}
-                        fullWidth
-                        required
-                        error={!!errores.municipio}
-                        helperText={errores.municipio}
-                      />
-                    </Grid>
-                    <Grid item xs={4}>
-                      <TextField
-                        label="Color"
-                        type="color"
-                        value={colorMunicipio}
-                        onChange={handleChangeColorMunicipio}
-                        fullWidth
-                        InputLabelProps={{
-                          shrink: true
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-                <Grid item xs={12} md={8}>
-                  <FormGroup row>
-                    {['Alto Riesgo', 'Agente Retención'].map(categoria => (
-                      <FormControlLabel
-                        key={categoria}
-                        control={
-                          <Checkbox
-                            checked={categorias.includes(categoria)}
-                            onChange={handleChangeCategoria}
-                            name={categoria}
-                          />
-                        }
-                        label={categoria}
-                      />
-                    ))}
-                  </FormGroup>
-                </Grid>
-                <Grid item xs={12}>
-                  <Button 
-                    type="submit" 
-                    variant="contained" 
-                    color="success" 
-                    size="large"
-                    fullWidth
-                    disabled={cargandoVentas}
-                  >
-                    {cargandoVentas ? <CircularProgress size={24} /> : (clienteEditando ? 'Actualizar Cliente' : 'Registrar Cliente')}
-                  </Button>
-                  {clienteEditando && (
-                    <Button 
-                      variant="outlined" 
-                      color="secondary" 
-                      size="large"
-                      fullWidth
-                      sx={{ mt: 2 }}
-                      onClick={handleCancelarEdicion}
-                    >
-                      Cancelar Edición
-                    </Button>
-                  )}
-                </Grid>
-              </Grid>
-            </form>
-          </Paper>
-        </Collapse>
-
-        <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AssignmentInd /> Listado de Clientes
-        </Typography>
-
-        <TableContainer component={Paper}>
-          <Table stickyHeader>
-            <TableHead sx={{ backgroundColor: 'primary.main' }}>
-              <TableRow>
-                <TableCell sx={{ color: 'common.black', fontWeight: 'bold' }}>Nombre</TableCell>
-                <TableCell sx={{ color: 'common.black', fontWeight: 'bold' }}>Contacto</TableCell>
-                <TableCell sx={{ color: 'common.black', fontWeight: 'bold' }}>Dirección</TableCell>
-                <TableCell sx={{ color: 'common.black', fontWeight: 'bold' }}>Municipio</TableCell>
-                <TableCell sx={{ color: 'common.black', fontWeight: 'bold' }} align="center">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {clientesFiltrados.map((cliente) => (
-                <TableRow 
-                  key={cliente.id}
-                  hover
+              <AssignmentInd fontSize="large" sx={{ color: '#1976d2' }} /> 
+              Gestión de Clientes
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <ActionButton
+                  variant="contained"
+                  startIcon={showForm ? <ExpandLess /> : <ExpandMore />}
+                  onClick={() => setShowForm(!showForm)}
                   sx={{ 
-                    '&:nth-of-type(odd)': { 
-                      backgroundColor: 'action.hover' 
-                    }
+                    background: showForm 
+                      ? 'linear-gradient(45deg, #e53935 30%, #f44336 90%)' 
+                      : 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                    color: 'white'
                   }}
                 >
-                  <TableCell>
-                    <Typography 
-                      fontWeight="medium"
-                      sx={{
-                        backgroundColor: cliente.categorias?.includes('Agente Retención') ? 
-                          '#ffff10' : cliente.categorias?.includes('Alto Riesgo') ? 
-                          '#ff0000' : 'inherit',
-                        padding: '4px 8px',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      {cliente.nombre}
-                    </Typography>
-                    <Chip label={`CI: ${cliente.rif}`} size="small" color="info" />
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                      {cliente.telefono && <span>📞 {cliente.telefono}</span>}
-                      {cliente.email && <span>✉️ {cliente.email}</span>}
-                    </Box>
-                  </TableCell>
-                  <TableCell>{cliente.direccion}</TableCell>
-                  <TableCell>
-                    <Box
-                      sx={{
-                        backgroundColor: cliente.municipioColor || 'inherit',
-                        padding: '4px 8px',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      {cliente.municipio}
-                    </Box>
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton 
-                      color="primary"
-                      onClick={() => handleEditarCliente(cliente)}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton 
-                      color="error"
-                      onClick={() => handleEliminarCliente(cliente.id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                    <IconButton
-                      color="info"
-                      onClick={() => {
-                        setClienteSeleccionado(cliente); // Asegurar cliente seleccionado
-                        handleVerVentas(cliente);
-                      }}
-                      title="Ver Historial de Ventas"
-                    >
-                      <Receipt />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-          <FormControl variant="outlined" size="small">
-            <InputLabel>Por página</InputLabel>
-            <Select
-              value={porPagina}
-              onChange={manejarCambioPorPagina}
-              label="Por página"
+                  {showForm ? 'Cerrar Formulario' : 'Registrar Cliente'}
+                </ActionButton>
+              </motion.div>
+              
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <ActionButton
+                  variant="outlined"
+                  startIcon={<FilterAltIcon />}
+                  onClick={() => setShowFilters(!showFilters)}
+                  color="primary"
+                >
+                  Filtros
+                </ActionButton>
+              </motion.div>
+            </Box>
+          </Box>
+          
+          {/* Contenedor de filtros */}
+          <Collapse in={showFilters}>
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
-              <MenuItem value={10}>10</MenuItem>
-              <MenuItem value={25}>25</MenuItem>
-              <MenuItem value={50}>50</MenuItem>
-            </Select>
-          </FormControl>
+              <FilterContainer>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  Filtros de Búsqueda
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Buscar por nombre o RIF"
+                      variant="outlined"
+                      value={busqueda}
+                      onChange={(e) => setBusqueda(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon color="primary" />
+                          </InputAdornment>
+                        ),
+                        sx: { borderRadius: '10px' }
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} md={4}>
+                    <FormControl fullWidth variant="outlined">
+                      <InputLabel>Filtrar por municipio</InputLabel>
+                      <Select
+                        value={filtroMunicipio}
+                        onChange={(e) => setFiltroMunicipio(e.target.value)}
+                        label="Filtrar por municipio"
+                        sx={{ borderRadius: '10px' }}
+                      >
+                        <MenuItem value="">Todos los municipios</MenuItem>
+                        {municipiosDisponibles.map((municipio, index) => (
+                          <MenuItem key={index} value={municipio}>{municipio}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={4}>
+                    <FormControl fullWidth variant="outlined">
+                      <InputLabel>Filtrar por categoría</InputLabel>
+                      <Select
+                        value={filtroCategoria}
+                        onChange={(e) => setFiltroCategoria(e.target.value)}
+                        label="Filtrar por categoría"
+                        sx={{ borderRadius: '10px' }}
+                      >
+                        <MenuItem value="">Todas las categorías</MenuItem>
+                        {categoriasDisponibles.map((categoria, index) => (
+                          <MenuItem key={index} value={categoria}>{categoria}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <ActionButton
+                      variant="outlined"
+                      startIcon={<RefreshIcon />}
+                      onClick={() => {
+                        setBusqueda('');
+                        setFiltroMunicipio('');
+                        setFiltroCategoria('');
+                      }}
+                    >
+                      Limpiar Filtros
+                    </ActionButton>
+                  </motion.div>
+                </Box>
+              </FilterContainer>
+            </motion.div>
+          </Collapse>
 
-          <Pagination
-            count={Math.ceil(totalClientes / porPagina)}
-            page={pagina}
-            onChange={manejarCambioPagina}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Box>
-      </Paper>
+          {/* Formulario de cliente */}
+          <Collapse in={showForm}>
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <FormPaper>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    mb: 3, 
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}
+                >
+                  {cliente._id ? <EditIcon color="primary" /> : <AddIcon color="primary" />}
+                  {cliente._id ? 'Editar Cliente' : 'Nuevo Cliente'}
+                </Typography>
+                
+                <form onSubmit={crearActualizarCliente}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Nombre del Cliente"
+                        name="nombre"
+                        value={cliente.nombre || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                        required
+                        error={!!errores.nombre}
+                        helperText={errores.nombre}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <BadgeIcon color="primary" />
+                            </InputAdornment>
+                          ),
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <FormControl sx={{ width: '30%' }}>
+                          <InputLabel>Tipo</InputLabel>
+                          <Select
+                            value={prefijoRif}
+                            onChange={(e) => setPrefijoRif(e.target.value)}
+                            label="Tipo"
+                            sx={{ borderRadius: '10px' }}
+                          >
+                            <MenuItem value="V">V</MenuItem>
+                            <MenuItem value="E">E</MenuItem>
+                            <MenuItem value="J">J</MenuItem>
+                            <MenuItem value="G">G</MenuItem>
+                          </Select>
+                        </FormControl>
+                        
+                        <TextField
+                          fullWidth
+                          label="Cédula/RIF"
+                          name="rif"
+                          value={cliente.rif || ''}
+                          onChange={handleChange}
+                          variant="outlined"
+                          required
+                          error={!!errores.rif}
+                          helperText={errores.rif}
+                          InputProps={{
+                            sx: { borderRadius: '10px' }
+                          }}
+                        />
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <FormControl sx={{ width: '30%' }}>
+                          <InputLabel>Prefijo</InputLabel>
+                          <Select
+                            value={prefijoTelefono}
+                            onChange={(e) => setPrefijoTelefono(e.target.value)}
+                            label="Prefijo"
+                            sx={{ borderRadius: '10px' }}
+                          >
+                            <MenuItem value="0412">0412</MenuItem>
+                            <MenuItem value="0414">0414</MenuItem>
+                            <MenuItem value="0416">0416</MenuItem>
+                            <MenuItem value="0424">0424</MenuItem>
+                            <MenuItem value="0426">0426</MenuItem>
+                            <MenuItem value="0212">0212</MenuItem>
+                          </Select>
+                        </FormControl>
+                        
+                        <TextField
+                          fullWidth
+                          label="Teléfono"
+                          name="telefono"
+                          value={cliente.telefono || ''}
+                          onChange={handleChange}
+                          variant="outlined"
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <PhoneIcon color="primary" />
+                              </InputAdornment>
+                            ),
+                            sx: { borderRadius: '10px' }
+                          }}
+                        />
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Email"
+                        name="email"
+                        value={cliente.email || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                        error={!!errores.email}
+                        helperText={errores.email}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <EmailIcon color="primary" />
+                            </InputAdornment>
+                          ),
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Dirección"
+                        name="direccion"
+                        value={cliente.direccion || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                        multiline
+                        rows={2}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <LocationIcon color="primary" />
+                            </InputAdornment>
+                          ),
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                          fullWidth
+                          label="Municipio"
+                          name="municipio"
+                          value={cliente.municipio || ''}
+                          onChange={handleChange}
+                          variant="outlined"
+                          InputProps={{
+                            sx: { borderRadius: '10px' }
+                          }}
+                        />
+                        
+                        <TextField
+                          label="Color"
+                          type="color"
+                          value={colorMunicipio}
+                          onChange={handleChangeColorMunicipio}
+                          sx={{ width: '100px' }}
+                          InputProps={{
+                            sx: { borderRadius: '10px' }
+                          }}
+                        />
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        Categorías:
+                      </Typography>
+                      <FormGroup row>
+                        {categoriasDisponibles.map((categoria) => (
+                          <FormControlLabel
+                            key={categoria}
+                            control={
+                              <Checkbox
+                                checked={(cliente.categorias || []).includes(categoria)}
+                                onChange={handleCheckboxChange}
+                                value={categoria}
+                              />
+                            }
+                            label={categoria}
+                          />
+                        ))}
+                      </FormGroup>
+                      {errores.categorias && (
+                        <Typography color="error" variant="caption">
+                          {errores.categorias}
+                        </Typography>
+                      )}
+                    </Grid>
+                    
+                    <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <ActionButton
+                          type="button"
+                          variant="outlined"
+                          color="error"
+                          onClick={() => {
+                            setCliente({
+                              nombre: '',
+                              telefono: '',
+                              email: '',
+                              direccion: '',
+                              municipio: '',
+                              rif: '',
+                              categorias: [],
+                              municipioColor: '#ffffff'
+                            });
+                            setPrefijoRif('V');
+                            setPrefijoTelefono('0412');
+                            setColorMunicipio('#ffffff');
+                            setClienteEditando(null);
+                          }}
+                          disabled={cargando}
+                          startIcon={<Close />}
+                        >
+                          Limpiar
+                        </ActionButton>
+                      </motion.div>
+                      
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <ActionButton
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          disabled={cargando}
+                          startIcon={cargando ? <CircularProgress size={24} /> : <SaveIcon />}
+                          sx={{ 
+                            background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                            boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                          }}
+                        >
+                          {cargando ? 'Guardando...' : (cliente._id ? 'Actualizar' : 'Guardar')}
+                        </ActionButton>
+                      </motion.div>
+                    </Grid>
+                  </Grid>
+                </form>
+              </FormPaper>
+            </motion.div>
+          </Collapse>
 
-      {mostrarDialogoVentas && (
-        <RegistroClienteDialog
-          open={mostrarDialogoVentas}
-          onClose={() => setMostrarDialogoVentas(false)}
-          clienteSeleccionado={clienteSeleccionado}
-          ventasCliente={ventasCliente}
-          deudaTotal={deudaTotal}
-          handleAbonarSaldo={handleAbonarSaldo}
-          cargando={cargandoVentas}
+          <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <AssignmentInd /> Listado de Clientes
+            </Typography>
+            
+            {clientesFiltrados.length > 0 && (
+              <Chip 
+                label={`${clientesFiltrados.length} ${clientesFiltrados.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}`}
+                color="primary"
+                size="small"
+                sx={{ ml: 2 }}
+              />
+            )}
+          </Box>
+
+          {clientesFiltrados.length === 0 ? (
+            <Alert 
+              severity="info"
+              sx={{ 
+                borderRadius: '10px', 
+                mb: 3,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              }}
+            >
+              <AlertTitle>Sin resultados</AlertTitle>
+              No se encontraron clientes con los criterios de búsqueda. Intenta ajustar los filtros o registra un nuevo cliente.
+            </Alert>
+          ) : (
+            <TableContainer 
+              component={Paper} 
+              sx={{ 
+                borderRadius: '12px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                overflow: 'hidden',
+                mb: 3
+              }}
+            >
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <StyledTableCell>Nombre</StyledTableCell>
+                    <StyledTableCell>Contacto</StyledTableCell>
+                    <StyledTableCell>Dirección</StyledTableCell>
+                    <StyledTableCell>Municipio</StyledTableCell>
+                    <StyledTableCell align="center">Acciones</StyledTableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <AnimatePresence>
+                    {clientesFiltrados.map((cliente) => (
+                      <motion.tr
+                        key={cliente.id || cliente._id}
+                        variants={itemVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit={{ opacity: 0, y: 20 }}
+                        component={StyledTableRow}
+                      >
+                        <TableCell>
+                          <Box>
+                            <Typography 
+                              fontWeight="bold"
+                              sx={{
+                                p: '4px 8px',
+                                borderRadius: '4px',
+                                display: 'inline-block',
+                                backgroundColor: cliente.categorias?.includes('Agente Retención') ? 
+                                  'rgba(255, 235, 59, 0.2)' : cliente.categorias?.includes('Alto Riesgo') ? 
+                                  'rgba(244, 67, 54, 0.1)' : 'transparent',
+                                color: cliente.categorias?.includes('Alto Riesgo') ? '#d32f2f' : 'inherit'
+                              }}
+                            >
+                              {cliente.nombre}
+                            </Typography>
+                            <Chip 
+                              label={`CI: ${cliente.rif}`} 
+                              size="small" 
+                              color="info" 
+                              variant="outlined"
+                              sx={{ mt: 1, borderRadius: '8px' }}
+                            />
+                          </Box>
+                          {cliente.categorias && cliente.categorias.length > 0 && (
+                            <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {cliente.categorias.map(cat => (
+                                <CategoryChip 
+                                  key={cat}
+                                  label={cat}
+                                  size="small"
+                                  color={
+                                    cat === "Alto Riesgo" ? "error" : 
+                                    cat === "Agente Retención" ? "warning" : 
+                                    cat === "Preferencial" ? "success" : "default"
+                                  }
+                                  variant="filled"
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            {cliente.telefono && (
+                              <Typography 
+                                variant="body2"
+                                sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: 1,
+                                  color: 'text.secondary'
+                                }}
+                              >
+                                <PhoneIcon fontSize="small" color="primary" />
+                                {cliente.telefono}
+                              </Typography>
+                            )}
+                            {cliente.email && (
+                              <Typography 
+                                variant="body2"
+                                sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: 1,
+                                  color: 'text.secondary'
+                                }}
+                              >
+                                <EmailIcon fontSize="small" color="primary" />
+                                {cliente.email}
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 1 
+                            }}
+                          >
+                            <LocationIcon fontSize="small" color="primary" />
+                            {cliente.direccion || "No registrada"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              backgroundColor: cliente.municipioColor || '#f0f0f0',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              display: 'inline-block',
+                              fontWeight: 'medium',
+                              color: theme.palette.getContrastText(cliente.municipioColor || '#f0f0f0'),
+                              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                              border: '1px solid rgba(0,0,0,0.05)'
+                            }}
+                          >
+                            {cliente.municipio || "No registrado"}
+                          </Box>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                            <Tooltip title="Editar Cliente">
+                              <IconButton 
+                                color="primary"
+                                onClick={() => handleEditarCliente(cliente)}
+                                sx={{ 
+                                  backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                  '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.2)' }
+                                }}
+                              >
+                                <Edit />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Eliminar Cliente">
+                              <IconButton 
+                                color="error"
+                                onClick={() => handleEliminarCliente(cliente.id || cliente._id)}
+                                sx={{ 
+                                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                  '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.2)' }
+                                }}
+                              >
+                                <Delete />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Ver Historial de Ventas">
+                              <IconButton
+                                color="info"
+                                onClick={() => {
+                                  setClienteSeleccionado(cliente);
+                                  handleVerVentas(cliente);
+                                }}
+                                sx={{ 
+                                  backgroundColor: 'rgba(3, 169, 244, 0.1)',
+                                  '&:hover': { backgroundColor: 'rgba(3, 169, 244, 0.2)' }
+                                }}
+                              >
+                                <Receipt />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mt: 2,
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? 2 : 0
+            }}
+          >
+            <FormControl variant="outlined" size="small">
+              <InputLabel>Por página</InputLabel>
+              <Select
+                value={porPagina}
+                onChange={manejarCambioPorPagina}
+                label="Por página"
+                sx={{ borderRadius: '10px', minWidth: '120px' }}
+              >
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={25}>25</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Pagination
+              count={Math.ceil(totalClientes / porPagina)}
+              page={pagina}
+              onChange={manejarCambioPagina}
+              color="primary"
+              shape="rounded"
+              showFirstButton
+              showLastButton
+              sx={{ 
+                '& .MuiPaginationItem-root': {
+                  borderRadius: '8px'
+                }
+              }}
+            />
+          </Box>
+        </Paper>
+
+        <AnimatePresence>
+          {mostrarDialogoVentas && (
+            <Dialog
+              open={mostrarDialogoVentas}
+              onClose={() => setMostrarDialogoVentas(false)}
+              PaperComponent={motion.div}
+              PaperProps={{
+                initial: { opacity: 0, y: 20 },
+                animate: { opacity: 1, y: 0 },
+                exit: { opacity: 0, y: 20 },
+                transition: { duration: 0.3 },
+                sx: { 
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                  maxWidth: '800px',
+                  width: '100%'
+                }
+              }}
+              maxWidth="md"
+              fullWidth
+            >
+              <DialogTitle sx={{ 
+                bgcolor: 'primary.main', 
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                py: 2,
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                fontWeight: 'bold'
+              }}>
+                Historial de Ventas del Cliente
+                <IconButton 
+                  size="small" 
+                  onClick={() => setMostrarDialogoVentas(false)}
+                  sx={{ color: 'white' }}
+                >
+                  <Close />
+                </IconButton>
+              </DialogTitle>
+              <DialogContent sx={{ bgcolor: '#ffffff', p: 3 }}>
+                {cargandoVentas ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  <Box>
+                    {clienteSeleccionado && (
+                      <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: 'rgba(33, 150, 243, 0.05)', borderRadius: '12px' }}>
+                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+                          {clienteSeleccionado.nombre}
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="text.secondary">CI/RIF:</Typography>
+                            <Typography variant="body1">{clienteSeleccionado.rif}</Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Teléfono:</Typography>
+                            <Typography variant="body1">{clienteSeleccionado.telefono || 'No registrado'}</Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Municipio:</Typography>
+                            <Box
+                              sx={{
+                                backgroundColor: clienteSeleccionado.municipioColor || '#f0f0f0',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                display: 'inline-block',
+                                color: theme.palette.getContrastText(clienteSeleccionado.municipioColor || '#f0f0f0')
+                              }}
+                            >
+                              {clienteSeleccionado.municipio || 'No registrado'}
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="text.secondary">Deuda Total:</Typography>
+                            <Typography 
+                              variant="body1" 
+                              color={deudaTotal > 0 ? 'error.main' : 'success.main'}
+                              fontWeight="bold"
+                            >
+                              Bs. {deudaTotal.toFixed(2)}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    )}
+
+                    {ventasCliente.length === 0 ? (
+                      <Alert severity="info" sx={{ borderRadius: '10px' }}>
+                        Este cliente no tiene ventas registradas.
+                      </Alert>
+                    ) : (
+                      <>
+                        <Typography variant="h6" gutterBottom fontWeight="bold">
+                          Ventas Realizadas
+                        </Typography>
+                        <TableContainer component={Paper} elevation={0} sx={{ borderRadius: '12px', mb: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <StyledTableCell>Fecha</StyledTableCell>
+                                <StyledTableCell>Productos</StyledTableCell>
+                                <StyledTableCell>Total</StyledTableCell>
+                                <StyledTableCell>Pagado</StyledTableCell>
+                                <StyledTableCell>Estado</StyledTableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              <AnimatePresence>
+                                {ventasCliente.map((venta) => (
+                                  <motion.tr
+                                    key={venta._id}
+                                    variants={itemVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                    exit={{ opacity: 0 }}
+                                    component={TableRow}
+                                    sx={{ 
+                                      '&:nth-of-type(even)': { backgroundColor: 'action.hover' },
+                                      transition: 'background-color 0.3s'
+                                    }}
+                                  >
+                                    <TableCell>{new Date(venta.fecha).toLocaleDateString()}</TableCell>
+                                    <TableCell>
+                                      {venta.productos && venta.productos.length > 0 ? 
+                                        venta.productos.map(p => p.nombre).join(', ') : 
+                                        'No disponible'}
+                                    </TableCell>
+                                    <TableCell>Bs. {venta.total.toFixed(2)}</TableCell>
+                                    <TableCell>Bs. {venta.pagado.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                      <Chip 
+                                        label={venta.pagado >= venta.total ? 'Pagada' : 'Pendiente'} 
+                                        color={venta.pagado >= venta.total ? 'success' : 'warning'}
+                                        size="small"
+                                        sx={{ borderRadius: '8px' }}
+                                      />
+                                    </TableCell>
+                                  </motion.tr>
+                                ))}
+                              </AnimatePresence>
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </>
+                    )}
+                  </Box>
+                )}
+              </DialogContent>
+              <DialogActions sx={{ justifyContent: 'space-between', p: 2, bgcolor: '#ffffff' }}>
+                <Button 
+                  onClick={() => setMostrarDialogoVentas(false)}
+                  variant="outlined"
+                  sx={{ borderRadius: '10px', textTransform: 'none' }}
+                >
+                  Cerrar
+                </Button>
+                
+                {clienteSeleccionado && deudaTotal > 0 && (
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="contained"
+                      color="primary"
+                      onClick={() => handleAbonarSaldo(clienteSeleccionado)}
+                      sx={{ 
+                        borderRadius: '10px',
+                        background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                        boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                        textTransform: 'none',
+                        fontWeight: 'bold'
+                      }}
+                      startIcon={<MoneyIcon />}
+                    >
+                      Registrar Abono
+                    </Button>
+                  </motion.div>
+                )}
+              </DialogActions>
+            </Dialog>
+          )}
+        </AnimatePresence>
+
+        <Dialog open={mostrarModalVentas} onClose={() => setMostrarModalVentas(false)}>
+          <DialogTitle 
+            sx={{ 
+              bgcolor: 'primary.main', 
+              color: 'white',
+              fontWeight: 'bold',
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)'
+            }}
+          >
+            Ventas
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3, p: 3, bgcolor: '#ffffff' }}>
+            {/* Contenido del diálogo */}
+          </DialogContent>
+          <DialogActions sx={{ p: 2, bgcolor: '#ffffff' }}>
+            <Button 
+              onClick={() => setMostrarModalVentas(false)}
+              variant="outlined" 
+              sx={{ borderRadius: '10px', textTransform: 'none' }}
+            >
+              Cerrar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {cargando && (
+          <Box sx={{ width: '100%', mt: 2 }}>
+            <LinearProgress 
+              color="secondary" 
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                '& .MuiLinearProgress-bar': {
+                  borderRadius: 3,
+                }
+              }}
+            />
+          </Box>
+        )}
+        
+        <ToastContainer 
+          position="bottom-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
         />
-      )}
-
-      <Dialog open={mostrarModalVentas} onClose={() => setMostrarModalVentas(false)}>
-        <DialogTitle>Ventas</DialogTitle>
-        <DialogContent>
-          {/* Contenido del diálogo */}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setMostrarModalVentas(false)}>Cerrar</Button>
-        </DialogActions>
-      </Dialog>
-
-      {cargando && <LinearProgress color="secondary" style={{margin: '1rem 0'}} />}
-    </Container>
+      </Container>
+    </motion.div>
   );
 };
 
