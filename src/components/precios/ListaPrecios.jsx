@@ -19,7 +19,7 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = "https://suministros-backend.vercel.app/api";
 
 // Componente con animación para la tarjeta de lista de precios
 const AnimatedCard = ({ children, delay }) => (
