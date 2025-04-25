@@ -3,28 +3,65 @@ import {
   Container, Typography, Box, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TablePagination, Button, TextField, Dialog, DialogTitle,
   DialogContent, DialogActions, IconButton, CircularProgress, Grid, FormControl,
-  InputLabel, Select, MenuItem, Paper
+  InputLabel, Select, MenuItem, Paper, Chip, useTheme, useMediaQuery, Divider
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
-  PriceChange as PriceChangeIcon
+  PriceChange as PriceChangeIcon,
+  FilterAlt as FilterAltIcon,
+  Search as SearchIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = "https://suministros-backend.vercel.app/api";
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 // Nombres de los meses en español
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+// Estilo personalizado para el contenedor principal
+const containerStyle = {
+  backgroundImage: 'linear-gradient(120deg, #f8f9fa 0%, #ffffff 100%)',
+  borderRadius: '16px',
+  boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+  padding: '24px',
+  marginTop: '16px',
+  marginBottom: '16px',
+  overflow: 'hidden',
+  position: 'relative'
+};
+
+// Variantes de animación para Framer Motion
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      when: "beforeChildren",
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
 const ListaPrecios = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [listasPrecios, setListasPrecios] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -39,6 +76,7 @@ const ListaPrecios = () => {
   const [busqueda, setBusqueda] = useState('');
   const [mesSeleccionado, setMesSeleccionado] = useState('');
   const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
+  const [showFilters, setShowFilters] = useState(false);
   
   // Paginación
   const [page, setPage] = useState(0);
@@ -51,7 +89,7 @@ const ListaPrecios = () => {
     setLoading(true);
     try {
       const params = {
-        page: page + 1, // +1 porque MUI usa 0-based indexing
+        page: page + 1,
         limit: rowsPerPage,
         busqueda,
         mes: mesSeleccionado,
@@ -112,8 +150,8 @@ const ListaPrecios = () => {
       cargarListasPrecios();
       setCurrentItem({ nombreProducto: '', precio1: '', precio2: '', precio3: '' });
     } catch (error) {
-      console.error('Error al guardar la lista de precios:', error);
-      toast.error('Error al guardar la lista de precios');
+      console.error('Error al guardar:', error);
+      toast.error(`Error al guardar: ${error.message}`);
     }
   };
 
@@ -131,147 +169,452 @@ const ListaPrecios = () => {
     }
   };
 
+  // Manejar cambio de página
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  // Manejar cambio de filas por página
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Limpiar filtros
+  const handleClearFilters = () => {
+    setBusqueda('');
+    setMesSeleccionado('');
+    setAnioSeleccionado(new Date().getFullYear());
+  };
+
   return (
-    <Container>
-      <Typography variant="h4" gutterBottom>
-        Listado de Precios
-      </Typography>
-      <Box display="flex" justifyContent="space-between" mb={2}>
-        <TextField
-          label="Buscar"
-          variant="outlined"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          sx={{ width: '300px' }}
-        />
-        <Box display="flex" alignItems="center">
-          <FormControl variant="outlined" sx={{ mr: 2 }}>
-            <InputLabel>Mes</InputLabel>
-            <Select
-              value={mesSeleccionado}
-              onChange={(e) => setMesSeleccionado(e.target.value)}
-              label="Mes"
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <Container style={containerStyle} maxWidth="xl">
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <motion.div variants={itemVariants}>
+            <Typography 
+              variant="h4" 
+              fontWeight="bold" 
+              sx={{ 
+                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}
             >
-              <MenuItem value="">
-                <em>Todos</em>
-              </MenuItem>
-              {MESES.map((mes, index) => (
-                <MenuItem key={index} value={index + 1}>{mes}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl variant="outlined">
-            <InputLabel>Año</InputLabel>
-            <Select
-              value={anioSeleccionado}
-              onChange={(e) => setAnioSeleccionado(e.target.value)}
-              label="Año"
+              Listado de Precios
+            </Typography>
+          </motion.div>
+          
+          <motion.div 
+            variants={itemVariants}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setOpenDialog(true);
+                setCurrentItem({ nombreProducto: '', precio1: '', precio2: '', precio3: '' });
+              }}
+              sx={{ 
+                borderRadius: '28px',
+                padding: '8px 24px',
+                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                fontWeight: 'bold',
+                textTransform: 'none'
+              }}
             >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(anio => (
-                <MenuItem key={anio} value={anio}>{anio}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              Agregar nuevo
+            </Button>
+          </motion.div>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setOpenDialog(true);
-            setCurrentItem({ nombreProducto: '', precio1: '', precio2: '', precio3: '' });
-          }}
-        >
-          Agregar
-        </Button>
-      </Box>
 
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Nombre del Producto</TableCell>
-                <TableCell>Precio 1</TableCell>
-                <TableCell>Precio 2</TableCell>
-                <TableCell>Precio 3</TableCell>
-                <TableCell>Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {listasPrecios.map((item) => (
-                <TableRow key={item._id}>
-                  <TableCell>{item.nombreProducto}</TableCell>
-                  <TableCell>{item.precio1}</TableCell>
-                  <TableCell>{item.precio2}</TableCell>
-                  <TableCell>{item.precio3}</TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => {
-                      setCurrentItem(item);
-                      setOpenDialog(true);
-                    }}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(item._id)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+        <motion.div variants={itemVariants}>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 2, 
+              mb: 3, 
+              borderRadius: '12px',
+              background: 'rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Buscar por nombre"
+                  variant="outlined"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  InputProps={{
+                    startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+                    sx: { borderRadius: '8px' }
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={8}>
+                <Box 
+                  display="flex" 
+                  justifyContent="space-between" 
+                  alignItems="center"
+                  flexWrap={isMobile ? "wrap" : "nowrap"}
+                  gap={2}
+                >
+                  <Box display="flex" alignItems="center" gap={2} flexGrow={1}>
+                    <FormControl variant="outlined" sx={{ minWidth: 120 }} fullWidth={isMobile}>
+                      <InputLabel>Mes</InputLabel>
+                      <Select
+                        value={mesSeleccionado}
+                        onChange={(e) => setMesSeleccionado(e.target.value)}
+                        label="Mes"
+                      >
+                        <MenuItem value="">
+                          <em>Todos</em>
+                        </MenuItem>
+                        {MESES.map((mes, index) => (
+                          <MenuItem key={index} value={index + 1}>{mes}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    
+                    <FormControl variant="outlined" sx={{ minWidth: 120 }} fullWidth={isMobile}>
+                      <InputLabel>Año</InputLabel>
+                      <Select
+                        value={anioSeleccionado}
+                        onChange={(e) => setAnioSeleccionado(e.target.value)}
+                        label="Año"
+                      >
+                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(anio => (
+                          <MenuItem key={anio} value={anio}>{anio}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="outlined" 
+                      onClick={handleClearFilters} 
+                      startIcon={<CloseIcon />}
+                      sx={{ borderRadius: '8px' }}
+                    >
+                      {isMobile ? '' : 'Limpiar filtros'}
+                    </Button>
+                  </motion.div>
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </motion.div>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>{currentItem._id ? 'Editar Lista de Precios' : 'Nueva Lista de Precios'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            margin="dense"
-            name="nombreProducto"
-            label="Nombre del Producto"
-            value={currentItem.nombreProducto}
-            onChange={handleChange}
-            required
-          />
-          <TextField
-            fullWidth
-            margin="dense"
-            name="precio1"
-            label="Precio 1"
-            type="number"
-            value={currentItem.precio1}
-            onChange={handleChange}
-          />
-          <TextField
-            fullWidth
-            margin="dense"
-            name="precio2"
-            label="Precio 2"
-            type="number"
-            value={currentItem.precio2}
-            onChange={handleChange}
-          />
-          <TextField
-            fullWidth
-            margin="dense"
-            name="precio3"
-            label="Precio 3"
-            type="number"
-            value={currentItem.precio3}
-            onChange={handleChange}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit}>{currentItem._id ? 'Actualizar' : 'Guardar'}</Button>
-        </DialogActions>
-      </Dialog>
+        {loading ? (
+          <Box display="flex" justifyContent="center" my={4}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <CircularProgress size={60} thickness={4} sx={{ color: '#2196F3' }} />
+            </motion.div>
+          </Box>
+        ) : (
+          <motion.div 
+            variants={itemVariants}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Paper 
+              elevation={3} 
+              sx={{ 
+                borderRadius: '12px', 
+                overflow: 'hidden',
+                backgroundColor: 'rgba(255, 255, 255, 0.95)'
+              }}
+            >
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{ backgroundColor: 'rgba(33, 150, 243, 0.1)' }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Nombre del Producto</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 1</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 2</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 3</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Acciones</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    <AnimatePresence>
+                      {listasPrecios.map((item, index) => (
+                        <motion.tr
+                          key={item._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          whileHover={{ backgroundColor: 'rgba(33, 150, 243, 0.05)' }}
+                          component={TableRow}
+                        >
+                          <TableCell>{item.nombreProducto}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={`$${item.precio1}`} 
+                              color="primary" 
+                              variant="outlined"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={`$${item.precio2}`} 
+                              color="secondary" 
+                              variant="outlined"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={`$${item.precio3}`} 
+                              color="info" 
+                              variant="outlined"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" gap={1}>
+                              <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}>
+                                <IconButton 
+                                  color="primary"
+                                  onClick={() => {
+                                    setCurrentItem(item);
+                                    setOpenDialog(true);
+                                  }}
+                                  size="small"
+                                  sx={{ 
+                                    background: 'rgba(33, 150, 243, 0.1)',
+                                    transition: 'all 0.3s'
+                                  }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </motion.div>
 
-      <ToastContainer position="bottom-right" />
-    </Container>
+                              <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}>
+                                <IconButton 
+                                  color="error"
+                                  onClick={() => handleDelete(item._id)}
+                                  size="small"
+                                  sx={{ 
+                                    background: 'rgba(211, 47, 47, 0.1)',
+                                    transition: 'all 0.3s'
+                                  }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </motion.div>
+                            </Box>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                    {listasPrecios.length === 0 && !loading && (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                          <Typography variant="body1" color="textSecondary">
+                            No hay datos disponibles
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                px={2}
+                py={1.5}
+                bgcolor="#f8f9fa"
+              >
+                <Typography variant="body2" color="textSecondary">
+                  Total: {totalItems} productos
+                </Typography>
+                <TablePagination
+                  component="div"
+                  count={totalItems}
+                  page={page}
+                  onPageChange={handleChangePage}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  rowsPerPageOptions={[5, 10, 25, 50]}
+                  labelRowsPerPage="Filas por página:"
+                  labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+                  sx={{ 
+                    m: 0, 
+                    borderTop: 'none',
+                    '.MuiTablePagination-select': {
+                      borderRadius: '4px'
+                    }
+                  }}
+                />
+              </Box>
+            </Paper>
+          </motion.div>
+        )}
+
+        <AnimatePresence>
+          {openDialog && (
+            <Dialog 
+              open={openDialog} 
+              onClose={() => setOpenDialog(false)}
+              PaperProps={{
+                style: {
+                  borderRadius: '16px',
+                  boxShadow: '0 24px 38px rgba(0,0,0,0.14), 0 9px 46px rgba(0,0,0,0.12), 0 11px 15px rgba(0,0,0,0.2)',
+                  overflow: 'hidden'
+                }
+              }}
+              TransitionComponent={motion.div}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <DialogTitle sx={{ 
+                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                  color: 'white',
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold'
+                }}>
+                  {currentItem._id ? 'Editar Precio' : 'Nuevo Precio'}
+                </DialogTitle>
+                <DialogContent sx={{ pt: 3, px: 3 }}>
+                  <Box component={motion.div} layout>
+                    <TextField
+                      fullWidth
+                      margin="dense"
+                      name="nombreProducto"
+                      label="Nombre del Producto"
+                      value={currentItem.nombreProducto || ''}
+                      onChange={handleChange}
+                      required
+                      variant="outlined"
+                      sx={{ mb: 3 }}
+                      InputProps={{
+                        sx: { borderRadius: '8px' }
+                      }}
+                    />
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          margin="dense"
+                          name="precio1"
+                          label="Precio 1"
+                          type="number"
+                          value={currentItem.precio1 || ''}
+                          onChange={handleChange}
+                          InputProps={{
+                            startAdornment: <PriceChangeIcon color="primary" sx={{ mr: 1 }} />,
+                            sx: { borderRadius: '8px' }
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          margin="dense"
+                          name="precio2"
+                          label="Precio 2"
+                          type="number"
+                          value={currentItem.precio2 || ''}
+                          onChange={handleChange}
+                          InputProps={{
+                            startAdornment: <PriceChangeIcon color="secondary" sx={{ mr: 1 }} />,
+                            sx: { borderRadius: '8px' }
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          margin="dense"
+                          name="precio3"
+                          label="Precio 3"
+                          type="number"
+                          value={currentItem.precio3 || ''}
+                          onChange={handleChange}
+                          InputProps={{
+                            startAdornment: <PriceChangeIcon color="info" sx={{ mr: 1 }} />,
+                            sx: { borderRadius: '8px' }
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, justifyContent: 'space-between' }}>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      onClick={() => setOpenDialog(false)}
+                      variant="outlined"
+                      sx={{ 
+                        borderRadius: '8px',
+                        px: 3,
+                        textTransform: 'none'
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      onClick={handleSubmit}
+                      variant="contained"
+                      sx={{ 
+                        borderRadius: '8px',
+                        px: 3,
+                        background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                        boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                        textTransform: 'none',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {currentItem._id ? 'Actualizar' : 'Guardar'}
+                    </Button>
+                  </motion.div>
+                </DialogActions>
+              </motion.div>
+            </Dialog>
+          )}
+        </AnimatePresence>
+        
+        <ToastContainer 
+          position="bottom-right" 
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
+      </Container>
+    </motion.div>
   );
 };
 
