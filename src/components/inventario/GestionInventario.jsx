@@ -251,65 +251,74 @@ const GestionInventario = () => {
       const productoTransformado = transformarProducto(productoPreparado);
       
       if (!productoTransformado) {
-        toast.error('Error procesando el producto actualizado');
+        console.error('Error procesando producto actualizado');
+        // NO mostrar toast aquí
         return;
       }
 
-      // Actualizar estado local sin solicitud redundante al backend
+      // Actualizar estado local
       const nuevosProductos = productos.map(p => 
         p.id === productoTransformado.id ? productoTransformado : p
       );
       
       setProductos(nuevosProductos);
       
-      // Reset estados para evitar problemas al agregar nuevos productos
+      // Resetear estados
       setProductoEditando(null);
       setMostrarFormulario(false);
       
-      // Una sola notificación
-      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
+      // NO mostrar toast.success aquí
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
-      toast.error('Error al actualizar el producto');
-      
-      // Resetear estados incluso si hay error
-      setProductoEditando(null);
-      setMostrarFormulario(false);
+      // NO mostrar toast.error aquí
     }
   };
 
   const handleProductoGuardado = (nuevoProducto) => {
-    // Verificar si es una actualización o un nuevo producto
-    const esActualizacion = nuevoProducto._id || nuevoProducto.id;
-    
-    if (esActualizacion) {
-      actualizarProducto(nuevoProducto);
-    } else {
-      // Es un nuevo producto
-      try {
-        const productoTransformado = transformarProducto(nuevoProducto);
-        if (!productoTransformado) {
-          toast.error('Error procesando el nuevo producto');
-          return;
-        }
+    try {
+      console.log("Producto guardado recibido:", nuevoProducto);
+      
+      // Verificar si es una actualización o un nuevo producto
+      const esActualizacion = nuevoProducto._id || nuevoProducto.id;
+      
+      // Transformar el producto recibido
+      const productoTransformado = transformarProducto(nuevoProducto);
+      
+      if (!productoTransformado) {
+        console.error("Error al transformar producto:", nuevoProducto);
+        toast.error('Error procesando el producto');
+        return;
+      }
+      
+      if (esActualizacion) {
+        // Actualizar en el estado local
+        setProductos(prevProductos => 
+          prevProductos.map(p => 
+            p.id === productoTransformado.id ? productoTransformado : p
+          )
+        );
         
-        // Agregar al estado
+        // UNA SOLA NOTIFICACIÓN para actualización
+        toast.success(`Producto ${productoTransformado.codigo || productoTransformado.nombre} actualizado`);
+      } else {
+        // Agregar al estado local
         setProductos(prevProductos => [productoTransformado, ...prevProductos]);
         
-        // Reset estados
-        setProductoEditando(null);
-        setMostrarFormulario(false);
-        
-        // Una sola notificación
+        // UNA SOLA NOTIFICACIÓN para creación
         toast.success('Producto agregado correctamente');
-      } catch (error) {
-        console.error('Error al procesar nuevo producto:', error);
-        toast.error('Error al agregar el producto');
-        
-        // Resetear estados incluso si hay error
-        setProductoEditando(null);
-        setMostrarFormulario(false);
       }
+      
+      // Resetear estados
+      setProductoEditando(null);
+      setMostrarFormulario(false);
+      
+    } catch (error) {
+      console.error('Error en handleProductoGuardado:', error);
+      toast.error('Error al procesar el producto');
+      
+      // Resetear estados incluso si hay error
+      setProductoEditando(null);
+      setMostrarFormulario(false);
     }
   };
 
@@ -744,13 +753,12 @@ const GestionInventario = () => {
       </Paper>
 
       <AgregarProducto
-        open={mostrarFormulario}
+        producto={productoEditando}
+        onProductoGuardado={handleProductoGuardado}
         onClose={() => {
           setMostrarFormulario(false);
           setProductoEditando(null);
         }}
-        productoEditando={productoEditando}
-        onProductoGuardado={handleProductoGuardado}
       />
 
       <Dialog open={modalEntradaAbierto} onClose={() => setModalEntradaAbierto(false)}>
