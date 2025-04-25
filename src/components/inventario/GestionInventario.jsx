@@ -380,14 +380,31 @@ const GestionInventario = () => {
       );
 
       // Actualizar estado local
-      const nuevosProductos = productos.map(p => 
-        p.id === productoActual.id 
-          ? { ...p, stock: p.stock + cantidadIngresada } 
-          : p
-      );
+      const nuevosProductos = productos.map(p => {
+        if (p.id === productoActual.id) {
+          return {
+            ...p,
+            stock: p.stock + cantidadIngresada,
+            cantidad: p.cantidad + cantidadIngresada
+          };
+        }
+        return p;
+      });
       
       setProductos(nuevosProductos);
       toast.success('Stock agregado correctamente');
+      
+      // Si el producto editando es el mismo, actualizar estado
+      if (productoEditando?.id === productoActual.id) {
+        setProductoEditando(prev => ({
+          ...prev,
+          stock: prev.stock + cantidadIngresada,
+          cantidad: prev.cantidad + cantidadIngresada
+        }));
+      }
+      
+      // Una sola notificación de éxito
+      toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
       
       // Resetear formulario
       setEntradaStock({
@@ -398,8 +415,8 @@ const GestionInventario = () => {
       });
 
     } catch (error) {
-      console.error('Error:', error);
-      toast.error(error.response?.data?.message || 'Error al agregar stock');
+      console.error('Error al agregar stock:', error);
+      toast.error('Error al agregar stock');
     } finally {
       setIsSubmitting(false);
       setModalEntradaAbierto(false);
