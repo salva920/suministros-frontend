@@ -16,8 +16,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
-import moment from 'moment-timezone';
-import 'moment-timezone';
+import moment from 'moment';
+import 'moment/locale/es';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -224,6 +224,32 @@ const CajaInteractiva = () => {
     acc[t.moneda].salidas += t.salida;
     return acc;
   }, {});
+
+  // Función para formatear fechas correctamente sin ajustes de días
+  const formatearFechaExacta = (fecha) => {
+    if (!fecha) return 'No disponible';
+    
+    try {
+      // Crear una copia de la fecha para no modificar la original
+      let fechaObj = fecha;
+      
+      // Convertir a objeto Date si es string
+      if (typeof fecha === 'string') {
+        fechaObj = new Date(fecha);
+      }
+      
+      // Verificar que sea una fecha válida
+      if (fechaObj instanceof Date && !isNaN(fechaObj)) {
+        // Usar format directamente sin UTC ni modificaciones de días
+        return moment(fechaObj).format('DD/MM/YYYY');
+      }
+      
+      return 'Fecha inválida';
+    } catch (error) {
+      console.error('Error formateando fecha:', error);
+      return 'Error en fecha';
+    }
+  };
 
   if (!state.accesoAutorizado) {
     return (
