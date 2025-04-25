@@ -72,70 +72,31 @@ function TabPanel(props) {
 }
 
 const transformarProducto = (producto) => {
-  if (!producto || typeof producto !== 'object') {
-    console.warn('Producto inválido:', producto);
-    return null;
-  }
+  if (!producto) return null;
   
-  try {
-    // Función para parsear valores numéricos
-    const parseNumber = (value) => {
-      if (value === undefined || value === null) return 0;
-      if (typeof value === 'number') return value;
-      return parseFloat(value) || 0;
-    };
-    
-    // Función para parsear fechas manteniendo UTC
-    const parseDate = (value) => {
-      try {
-        if (!value) return new Date();
-        
-        // Intentar parsear usando moment en UTC
-        const momentDate = moment.utc(value);
-        if (momentDate.isValid()) {
-          // Mantener en UTC para evitar problemas de zona horaria
-          return momentDate.toDate();
-        }
-        
-        // Si falló moment, intentar con Date directamente
-        const fecha = new Date(value);
-        if (!isNaN(fecha.getTime())) return fecha;
-        
-        // Fallback - fecha actual en UTC
-        console.warn('No se pudo parsear la fecha, usando fecha actual:', value);
-        return moment.utc().toDate();
-      } catch (e) {
-        console.error('Error parseando fecha:', e, value);
-        return moment.utc().toDate();
-      }
-    };
-    
-    // Asegurar que el ID esté presente
-    const id = producto._id?.toString() || producto.id?.toString() || '';
-    
-    // Intentar parsear la fecha de ingreso en UTC
-    let fechaIngreso = parseDate(producto.fechaIngreso);
-    
-    console.log(`Fecha ingreso original: ${producto.fechaIngreso}, parseada UTC: ${moment.utc(fechaIngreso).format('YYYY-MM-DD')}`);
-    
-    return {
-      _id: id,
-      id: id,
-      nombre: producto.nombre || '',
-      codigo: producto.codigo || '',
-      proveedor: producto.proveedor || '',
-      costoInicial: parseNumber(producto.costoInicial),
-      acarreo: parseNumber(producto.acarreo),
-      flete: parseNumber(producto.flete),
-      cantidad: parseNumber(producto.cantidad),
-      costoFinal: parseNumber(producto.costoFinal),
-      stock: parseNumber(producto.stock) || parseNumber(producto.cantidad),
-      fechaIngreso: fechaIngreso,
-    };
-  } catch (error) {
-    console.error('Error transformando producto:', error, producto);
-    return null;
-  }
+  const parseNumber = (value) => {
+    if (value === undefined || value === null) return 0;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+  
+  return {
+    id: producto._id || producto.id,
+    nombre: producto.nombre || '',
+    codigo: producto.codigo || '',
+    descripcion: producto.descripcion || '',
+    proveedor: producto.proveedor || '',
+    precio: parseNumber(producto.precio),
+    costo: parseNumber(producto.costo),
+    costoInicial: parseNumber(producto.costoInicial),
+    acarreo: parseNumber(producto.acarreo),
+    flete: parseNumber(producto.flete),
+    costoFinal: parseNumber(producto.costoFinal),
+    stock: parseNumber(producto.stock) || parseNumber(producto.cantidad),
+    cantidad: parseNumber(producto.cantidad) || parseNumber(producto.stock),
+    fechaIngreso: producto.fechaIngreso || null,
+    // Otros campos que necesites...
+  };
 };
 
 const GestionInventario = () => {
@@ -251,74 +212,65 @@ const GestionInventario = () => {
       const productoTransformado = transformarProducto(productoPreparado);
       
       if (!productoTransformado) {
-        console.error('Error procesando producto actualizado');
-        // NO mostrar toast aquí
+        toast.error('Error procesando el producto actualizado');
         return;
       }
 
-      // Actualizar estado local
+      // Actualizar estado local sin solicitud redundante al backend
       const nuevosProductos = productos.map(p => 
         p.id === productoTransformado.id ? productoTransformado : p
       );
       
       setProductos(nuevosProductos);
       
-      // Resetear estados
+      // Reset estados para evitar problemas al agregar nuevos productos
       setProductoEditando(null);
       setMostrarFormulario(false);
       
-      // NO mostrar toast.success aquí
+      // Una sola notificación
+      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
-      // NO mostrar toast.error aquí
-    }
-  };
-
-  const handleProductoGuardado = (nuevoProducto) => {
-    try {
-      console.log("Producto guardado recibido:", nuevoProducto);
-      
-      // Verificar si es una actualización o un nuevo producto
-      const esActualizacion = nuevoProducto._id || nuevoProducto.id;
-      
-      // Transformar el producto recibido
-      const productoTransformado = transformarProducto(nuevoProducto);
-      
-      if (!productoTransformado) {
-        console.error("Error al transformar producto:", nuevoProducto);
-        toast.error('Error procesando el producto');
-        return;
-      }
-      
-      if (esActualizacion) {
-        // Actualizar en el estado local
-        setProductos(prevProductos => 
-          prevProductos.map(p => 
-            p.id === productoTransformado.id ? productoTransformado : p
-          )
-        );
-        
-        // UNA SOLA NOTIFICACIÓN para actualización
-        toast.success(`Producto ${productoTransformado.codigo || productoTransformado.nombre} actualizado`);
-      } else {
-        // Agregar al estado local
-        setProductos(prevProductos => [productoTransformado, ...prevProductos]);
-        
-        // UNA SOLA NOTIFICACIÓN para creación
-        toast.success('Producto agregado correctamente');
-      }
-      
-      // Resetear estados
-      setProductoEditando(null);
-      setMostrarFormulario(false);
-      
-    } catch (error) {
-      console.error('Error en handleProductoGuardado:', error);
-      toast.error('Error al procesar el producto');
+      toast.error('Error al actualizar el producto');
       
       // Resetear estados incluso si hay error
       setProductoEditando(null);
       setMostrarFormulario(false);
+    }
+  };
+
+  const handleProductoGuardado = (nuevoProducto) => {
+    // Verificar si es una actualización o un nuevo producto
+    const esActualizacion = nuevoProducto._id || nuevoProducto.id;
+    
+    if (esActualizacion) {
+      actualizarProducto(nuevoProducto);
+    } else {
+      // Es un nuevo producto
+      try {
+        const productoTransformado = transformarProducto(nuevoProducto);
+        if (!productoTransformado) {
+          toast.error('Error procesando el nuevo producto');
+          return;
+        }
+        
+        // Agregar al estado
+        setProductos(prevProductos => [productoTransformado, ...prevProductos]);
+        
+        // Reset estados
+        setProductoEditando(null);
+        setMostrarFormulario(false);
+        
+        // Una sola notificación
+        toast.success('Producto agregado correctamente');
+      } catch (error) {
+        console.error('Error al procesar nuevo producto:', error);
+        toast.error('Error al agregar el producto');
+        
+        // Resetear estados incluso si hay error
+        setProductoEditando(null);
+        setMostrarFormulario(false);
+      }
     }
   };
 
@@ -753,12 +705,13 @@ const GestionInventario = () => {
       </Paper>
 
       <AgregarProducto
-        producto={productoEditando}
-        onProductoGuardado={handleProductoGuardado}
+        open={mostrarFormulario}
         onClose={() => {
           setMostrarFormulario(false);
           setProductoEditando(null);
         }}
+        productoEditando={productoEditando}
+        onProductoGuardado={handleProductoGuardado}
       />
 
       <Dialog open={modalEntradaAbierto} onClose={() => setModalEntradaAbierto(false)}>
