@@ -706,7 +706,7 @@ const FacturasPendientes = () => {
         
         {/* Modal de Abono */}
         <AnimatePresence>
-          {openAbonoModal && (
+          {openAbonoModal && facturaSeleccionada && (
             <Dialog 
               open={openAbonoModal} 
               onClose={() => setOpenAbonoModal(false)}
@@ -715,7 +715,12 @@ const FacturasPendientes = () => {
                 initial: { opacity: 0, y: 20 },
                 animate: { opacity: 1, y: 0 },
                 exit: { opacity: 0, y: 20 },
-                transition: { duration: 0.3 }
+                transition: { duration: 0.3 },
+                sx: { 
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                }
               }}
               maxWidth="sm"
               fullWidth
@@ -727,10 +732,11 @@ const FacturasPendientes = () => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                py: 2,
                 fontWeight: 'bold',
                 fontSize: '1.25rem'
               }}>
-                Registrar Abono
+                Registrar Abono a Factura
                 <IconButton 
                   size="small" 
                   onClick={() => setOpenAbonoModal(false)}
@@ -739,119 +745,145 @@ const FacturasPendientes = () => {
                   <CloseIcon />
                 </IconButton>
               </DialogTitle>
-              <DialogContent sx={{ pt: 3, minWidth: { xs: 300, sm: 400 }, p: 3 }}>
-                {facturaSeleccionada && (
-                  <Box component={motion.div} layout>
-                    <Paper sx={{ 
+              <DialogContent sx={{ 
+                pt: 3, 
+                px: 3, 
+                pb: 2,
+                bgcolor: '#ffffff', // Fondo blanco explícito
+                position: 'relative',
+                '&:before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: '#ffffff',
+                  zIndex: -1
+                }
+              }}>
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                    Detalles de la Factura
+                  </Typography>
+                  
+                  <Paper 
+                    elevation={0} 
+                    sx={{ 
                       p: 2, 
-                      mb: 3, 
-                      borderRadius: '12px',
-                      background: 'linear-gradient(120deg, #e0f7fa 0%, #f5f5f5 100%)',
-                      boxShadow: '0 3px 10px rgba(0,0,0,0.08)'
-                    }}>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12}>
-                          <Typography variant="subtitle2" color="text.secondary">Concepto:</Typography>
-                          <Typography variant="body1" fontWeight="medium" gutterBottom>
-                            {facturaSeleccionada.concepto}
-                          </Typography>
-                        </Grid>
-                        
-                        <Grid item xs={6}>
-                          <Typography variant="subtitle2" color="text.secondary">Fecha:</Typography>
-                          <Typography variant="body1" gutterBottom>
-                            {formatearFechaSimple(facturaSeleccionada.fecha)}
-                          </Typography>
-                        </Grid>
-                        
-                        <Grid item xs={6}>
-                          <Typography variant="subtitle2" color="text.secondary">Monto Total:</Typography>
-                          <Typography variant="body1" gutterBottom fontWeight="medium">
-                            {formatearMoneda(facturaSeleccionada.monto)}
-                          </Typography>
-                        </Grid>
-                        
-                        <Grid item xs={6}>
-                          <Typography variant="subtitle2" color="text.secondary">Total Abonado:</Typography>
-                          <Typography variant="body1" gutterBottom color="success.main">
-                            {formatearMoneda(facturaSeleccionada.abono)}
-                          </Typography>
-                        </Grid>
-                        
-                        <Grid item xs={6}>
-                          <Typography variant="subtitle2" color="text.secondary">Saldo Pendiente:</Typography>
-                          <Typography variant="body1" gutterBottom color="error.main" fontWeight="bold">
-                            {formatearMoneda(facturaSeleccionada.saldo)}
-                          </Typography>
-                        </Grid>
+                      bgcolor: '#f8f9fa',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Concepto:</Typography>
+                        <Typography variant="body1" gutterBottom sx={{ fontWeight: 'medium', color: 'text.primary' }}>
+                          {facturaSeleccionada.concepto}
+                        </Typography>
                       </Grid>
-                    </Paper>
-                    
-                    <TextField
-                      fullWidth
-                      label="Monto a Abonar"
-                      type="number"
-                      value={montoAbono}
-                      onChange={(e) => setMontoAbono(e.target.value)}
-                      error={!!errorAbono}
-                      helperText={errorAbono}
-                      margin="normal"
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">Bs.</InputAdornment>
-                        ),
-                        sx: { borderRadius: '10px' }
-                      }}
-                      sx={{ mt: 3 }}
-                    />
-                    
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      mt: 2,
-                      gap: 2
-                    }}>
-                      <motion.div
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        style={{ flex: 1 }}
+                      
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">Fecha:</Typography>
+                        <Typography variant="body1" gutterBottom>
+                          {formatearFechaSimple(facturaSeleccionada.fecha)}
+                        </Typography>
+                      </Grid>
+                      
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">Monto Total:</Typography>
+                        <Typography variant="body1" gutterBottom fontWeight="medium">
+                          {formatearMoneda(facturaSeleccionada.monto)}
+                        </Typography>
+                      </Grid>
+                      
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">Total Abonado:</Typography>
+                        <Typography variant="body1" gutterBottom color="success.main">
+                          {formatearMoneda(facturaSeleccionada.abono)}
+                        </Typography>
+                      </Grid>
+                      
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">Saldo Pendiente:</Typography>
+                        <Typography variant="body1" gutterBottom color="error.main" fontWeight="bold">
+                          {formatearMoneda(facturaSeleccionada.saldo)}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                  
+                  <TextField
+                    fullWidth
+                    label="Monto a Abonar"
+                    type="number"
+                    value={montoAbono}
+                    onChange={(e) => setMontoAbono(e.target.value)}
+                    error={!!errorAbono}
+                    helperText={errorAbono}
+                    margin="normal"
+                    variant="outlined"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">Bs.</InputAdornment>
+                      ),
+                      sx: { borderRadius: '10px' }
+                    }}
+                    sx={{ mt: 3 }}
+                  />
+                  
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    mt: 2,
+                    gap: 2
+                  }}>
+                    <motion.div
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      style={{ flex: 1 }}
+                    >
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        onClick={() => setMontoAbono((facturaSeleccionada.saldo / 2).toFixed(2))}
+                        sx={{ 
+                          borderRadius: '10px',
+                          py: 1
+                        }}
                       >
-                        <Button
-                          variant="outlined"
-                          fullWidth
-                          onClick={() => setMontoAbono((facturaSeleccionada.saldo / 2).toFixed(2))}
-                          sx={{ 
-                            borderRadius: '10px',
-                            py: 1
-                          }}
-                        >
-                          50% ({formatearMoneda(facturaSeleccionada.saldo / 2)})
-                        </Button>
-                      </motion.div>
-                      <motion.div
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        style={{ flex: 1 }}
+                        50% ({formatearMoneda(facturaSeleccionada.saldo / 2)})
+                      </Button>
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      style={{ flex: 1 }}
+                    >
+                      <Button
+                        variant="outlined"
+                        color="success"
+                        fullWidth
+                        onClick={() => setMontoAbono(facturaSeleccionada.saldo.toFixed(2))}
+                        sx={{ 
+                          borderRadius: '10px',
+                          py: 1
+                        }}
                       >
-                        <Button
-                          variant="outlined"
-                          color="success"
-                          fullWidth
-                          onClick={() => setMontoAbono(facturaSeleccionada.saldo.toFixed(2))}
-                          sx={{ 
-                            borderRadius: '10px',
-                            py: 1
-                          }}
-                        >
-                          100% ({formatearMoneda(facturaSeleccionada.saldo)})
-                        </Button>
-                      </motion.div>
-                    </Box>
+                        100% ({formatearMoneda(facturaSeleccionada.saldo)})
+                      </Button>
+                    </motion.div>
                   </Box>
-                )}
+                </Box>
               </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'space-between' }}>
+              <DialogActions sx={{ 
+                px: 3, 
+                pb: 3, 
+                pt: 2,
+                justifyContent: 'space-between',
+                bgcolor: '#ffffff' // Fondo blanco explícito
+              }}>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button 
                     onClick={() => setOpenAbonoModal(false)}
@@ -899,7 +931,12 @@ const FacturasPendientes = () => {
                 initial: { opacity: 0, y: 20 },
                 animate: { opacity: 1, y: 0 },
                 exit: { opacity: 0, y: 20 },
-                transition: { duration: 0.3 }
+                transition: { duration: 0.3 },
+                sx: { 
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                }
               }}
               maxWidth="sm"
               fullWidth
@@ -923,7 +960,22 @@ const FacturasPendientes = () => {
                   <CloseIcon />
                 </IconButton>
               </DialogTitle>
-              <DialogContent sx={{ pt: 3, p: 3 }}>
+              <DialogContent sx={{ 
+                pt: 3, 
+                p: 3,
+                bgcolor: '#ffffff', // Fondo blanco explícito
+                position: 'relative',
+                '&:before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: '#ffffff',
+                  zIndex: -1
+                }
+              }}>
                 <Box component={motion.div} layout>
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
@@ -936,7 +988,10 @@ const FacturasPendientes = () => {
                         required
                         variant="outlined"
                         InputProps={{
-                          sx: { borderRadius: '10px' }
+                          sx: { 
+                            borderRadius: '10px',
+                            bgcolor: '#ffffff'  // Asegura visibilidad
+                          }
                         }}
                       />
                     </Grid>
@@ -1010,7 +1065,12 @@ const FacturasPendientes = () => {
                   </Grid>
                 </Box>
               </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'space-between' }}>
+              <DialogActions sx={{ 
+                px: 3, 
+                pb: 3, 
+                justifyContent: 'space-between',
+                bgcolor: '#ffffff' // Fondo blanco explícito
+              }}>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button 
                     onClick={() => setOpenNuevaFacturaModal(false)}
