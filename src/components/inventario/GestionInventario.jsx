@@ -625,7 +625,12 @@ const GestionInventario = () => {
                     <StyledTableCell align="right">Costo Final ($)</StyledTableCell>
                   )}
                   <StyledTableCell align="right">Stock</StyledTableCell>
-                  <StyledTableCell align="right">Fecha Registro</StyledTableCell>
+        
+                  <StyledTableCell align="right">
+                      {producto.fechaIngreso instanceof Date && !isNaN(producto.fechaIngreso) 
+                        ? moment.utc(producto.fechaIngreso).format('DD/MM/YYYY')
+                        : 'Fecha inválida'}
+                    </StyledTableCell>
                   <StyledTableCell align="center">Acciones</StyledTableCell>
                 </TableRow>
               </TableHead>
