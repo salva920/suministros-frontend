@@ -8,7 +8,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
   ExitToApp, Search, PointOfSale, 
-  Inventory, Settings, People, AccountBalanceWallet, Assessment, LocalShipping, Receipt 
+  Inventory, Settings, People, AccountBalanceWallet, Assessment, LocalShipping, Receipt, PriceChange 
 } from '@mui/icons-material';
 import { logout } from '../services/authService';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -246,6 +246,12 @@ const Dashboard = () => {
               to: '/finanzas/facturas-pendientes',
               color: '#9E9E9E',
               icon: <Receipt sx={{ fontSize: '2rem' }} />
+            },
+            {
+              label: 'Lista de Precios',
+              to: '/precios',
+              color: '#4CAF50',
+              icon: <PriceChange sx={{ fontSize: '2rem' }} />
             }
           ].map((boton, index) => (
             <Grid item xs={12} md={3} key={index}>
