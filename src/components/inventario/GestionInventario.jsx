@@ -16,7 +16,6 @@ import HistorialEntradas from './HistorialEntradas';
 import HistorialSalidas from './HistorialSalidas';
 import { debounce } from 'lodash';
 import { styled } from '@mui/material/styles';
-import moment from 'moment-timezone';
 import moment from 'moment';
 import 'moment/locale/es';
 import axios from 'axios';
