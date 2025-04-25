@@ -78,9 +78,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
           {filteredTransactions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((t) => (
             <TableRow key={t._id} hover>
               <TableCell>
-                {moment.utc(t.fecha)
-                  .tz('America/Caracas')
-                  .format('DD/MM/YYYY')}
+                {formatearFechaSimple(t.fecha)}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
               <TableCell>
@@ -115,6 +113,30 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
       />
     </TableContainer>
   );
+};
+
+// Función simple para formatear fecha (sin usar moment.js)
+const formatearFechaSimple = (fechaString) => {
+  if (!fechaString) return 'No disponible';
+  
+  try {
+    // Crear una fecha a partir del string
+    const fecha = new Date(fechaString);
+    
+    // Verificar si la fecha es válida
+    if (isNaN(fecha.getTime())) return 'Fecha inválida';
+    
+    // Extraer día, mes y año
+    const dia = fecha.getDate();
+    const mes = fecha.getMonth() + 1; // getMonth() devuelve 0-11
+    const anio = fecha.getFullYear();
+    
+    // Formatear como DD/MM/YYYY
+    return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio}`;
+  } catch (error) {
+    console.error('Error al formatear fecha:', error);
+    return 'Error de formato';
+  }
 };
 
 const CajaInteractiva = () => {
