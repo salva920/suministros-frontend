@@ -14,13 +14,9 @@ import {
   Search as SearchIcon,
   PriceChange as PriceChangeIcon,
   MoreVert as MoreVertIcon,
-  DateRange as DateRangeIcon,
-  CalendarMonth as CalendarMonthIcon
+  FilterAlt as FilterAltIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { es } from 'date-fns/locale';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -46,18 +42,6 @@ const AnimatedCard = ({ children, delay }) => (
   </motion.div>
 );
 
-// Contenedor de acciones con animación
-const ActionButtonContainer = ({ children }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    whileHover={{ scale: 1.05 }}
-    className="action-buttons"
-  >
-    {children}
-  </motion.div>
-);
-
 const ListaPrecios = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -71,15 +55,14 @@ const ListaPrecios = () => {
     nombreProducto: '',
     precio1: '',
     precio2: '',
-    precio3: '',
-    fecha: new Date()
+    precio3: ''
   });
   
   // Estado para búsqueda y filtros
   const [busqueda, setBusqueda] = useState('');
   const [mesSeleccionado, setMesSeleccionado] = useState('');
   const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [openFilterMenu, setOpenFilterMenu] = useState(false);
   
   // Vista en modo tarjeta o tabla
   const [viewMode, setViewMode] = useState('card'); // 'card' o 'table'
@@ -113,22 +96,9 @@ const ListaPrecios = () => {
       setListasPrecios(response.data.listasPrecios || []);
       setTotalItems(response.data.totalDocs || 0);
       setTotalPages(response.data.totalPages || 0);
-      
-      toast.success('Listas de precios actualizadas', {
-        position: "bottom-right",
-        autoClose: 2000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
     } catch (error) {
       console.error('Error al cargar listas de precios:', error);
-      toast.error('Error al cargar las listas de precios', {
-        position: "bottom-right",
-        autoClose: 4000,
-      });
+      toast.error('Error al cargar las listas de precios');
       setListasPrecios([]);
     } finally {
       setLoading(false);
@@ -158,64 +128,66 @@ const ListaPrecios = () => {
     }));
   };
 
-  // Manejar cambio de fecha
-  const handleFechaChange = (fecha) => {
-    setCurrentItem(prev => ({
-      ...prev,
-      fecha
-    }));
+  // Formatear fecha para el backend
+  const formatearFecha = (fecha) => {
+    if (!fecha) return new Date().toISOString();
+    return new Date(fecha).toISOString();
   };
 
-  // Guardar lista de precios
+  // Manejar envío del formulario
   const handleSubmit = async () => {
     try {
       // Validar campos requeridos
       if (!currentItem.nombreProducto) {
-        toast.error('El nombre del producto es obligatorio');
+        toast.warning('El nombre del producto es obligatorio');
         return;
       }
 
-      // Preparar datos para enviar
-      const datosPrecio = {
-        nombreProducto: currentItem.nombreProducto,
+      const data = {
+        ...currentItem,
         precio1: parseFloat(currentItem.precio1) || 0,
         precio2: parseFloat(currentItem.precio2) || 0,
-        precio3: parseFloat(currentItem.precio3) || 0,
-        fecha: currentItem.fecha
+        precio3: parseFloat(currentItem.precio3) || 0
       };
 
       let response;
+      
       if (currentItem._id) {
-        // Actualizar existente
-        response = await axios.put(`${API_URL}/listaprecios/${currentItem._id}`, datosPrecio);
+        // Actualizar
+        response = await axios.put(`${API_URL}/listaprecios/${currentItem._id}`, data);
         toast.success('Lista de precios actualizada correctamente');
       } else {
         // Crear nuevo
-        response = await axios.post(`${API_URL}/listaprecios`, datosPrecio);
+        response = await axios.post(`${API_URL}/listaprecios`, data);
         toast.success('Lista de precios creada correctamente');
       }
 
-      console.log('Respuesta:', response.data);
       setOpenDialog(false);
       cargarListasPrecios();
-      
     } catch (error) {
       console.error('Error al guardar:', error);
       toast.error(`Error al guardar: ${error.message}`);
     }
   };
 
-  // Eliminar lista de precios con confirmación animada
+  // Editar item
+  const handleEdit = (item) => {
+    setCurrentItem({
+      ...item,
+      precio1: item.precio1 || 0,
+      precio2: item.precio2 || 0,
+      precio3: item.precio3 || 0
+    });
+    setOpenDialog(true);
+  };
+
+  // Eliminar item
   const handleDelete = async (id) => {
     if (window.confirm('¿Está seguro de eliminar esta lista de precios?')) {
       try {
         await axios.delete(`${API_URL}/listaprecios/${id}`);
-        
-        // Animación para la lista que se elimina
-        const updatedListas = listasPrecios.filter(item => item._id !== id);
-        setListasPrecios(updatedListas);
-        
         toast.success('Lista de precios eliminada correctamente');
+        cargarListasPrecios();
       } catch (error) {
         console.error('Error al eliminar:', error);
         toast.error('Error al eliminar la lista de precios');
@@ -223,261 +195,16 @@ const ListaPrecios = () => {
     }
   };
 
-  // Paginación
+  // Manejar cambio de página
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
+  // Manejar cambio de filas por página
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-
-  // Renderizado de vista de tarjetas
-  const renderCardView = () => (
-    <motion.div layout>
-      <Grid container spacing={2}>
-        <AnimatePresence>
-          {listasPrecios.length > 0 ? (
-            listasPrecios.map((lista, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={lista._id}>
-                <AnimatedCard delay={index}>
-                  <Card 
-                    elevation={3} 
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      transition: 'all 0.3s ease',
-                      background: theme.palette.background.paper,
-                      position: 'relative',
-                    }}
-                  >
-                    <Box 
-                      sx={{ 
-                        p: 1, 
-                        background: theme.palette.primary.main,
-                        color: 'white',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', flexGrow: 1 }}>
-                        {lista.nombreProducto}
-                      </Typography>
-                      <Box>
-                        <ActionButtonContainer>
-                          <IconButton 
-                            size="small" 
-                            sx={{ color: 'white' }}
-                            onClick={() => {
-                              setCurrentItem(lista);
-                              setOpenDialog(true);
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton 
-                            size="small" 
-                            sx={{ color: 'white' }}
-                            onClick={() => handleDelete(lista._id)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </ActionButtonContainer>
-                      </Box>
-                    </Box>
-                    <CardContent sx={{ flexGrow: 1, p: 2 }}>
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          Precios:
-                        </Typography>
-                        <Grid container spacing={1}>
-                          <Grid item xs={4}>
-                            <Chip 
-                              label={`Precio 1: $${lista.precio1?.toFixed(2) || '0.00'}`} 
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                              sx={{ width: '100%' }}
-                            />
-                          </Grid>
-                          <Grid item xs={4}>
-                            <Chip 
-                              label={`Precio 2: $${lista.precio2?.toFixed(2) || '0.00'}`} 
-                              size="small"
-                              color="secondary"
-                              variant="outlined"
-                              sx={{ width: '100%' }}
-                            />
-                          </Grid>
-                          <Grid item xs={4}>
-                            <Chip 
-                              label={`Precio 3: $${lista.precio3?.toFixed(2) || '0.00'}`} 
-                              size="small"
-                              color="info"
-                              variant="outlined"
-                              sx={{ width: '100%' }}
-                            />
-                          </Grid>
-                        </Grid>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </AnimatedCard>
-              </Grid>
-            ))
-          ) : (
-            <Grid item xs={12}>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Paper sx={{ p: 3, textAlign: 'center' }}>
-                  <Typography variant="subtitle1" color="text.secondary">
-                    No hay listas de precios disponibles
-                  </Typography>
-                </Paper>
-              </motion.div>
-            </Grid>
-          )}
-        </AnimatePresence>
-      </Grid>
-    </motion.div>
-  );
-
-  // Renderizado de vista de tabla
-  const renderTableView = () => (
-    <TableContainer sx={{ maxHeight: 440, borderRadius: '12px', overflow: 'hidden' }}>
-      <Table stickyHeader aria-label="sticky table">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ 
-              fontWeight: 'bold', 
-              bgcolor: theme.palette.primary.main, 
-              color: 'white'
-            }}>Producto</TableCell>
-            <TableCell sx={{ 
-              fontWeight: 'bold', 
-              bgcolor: theme.palette.primary.main, 
-              color: 'white'
-            }}>Precio 1</TableCell>
-            <TableCell sx={{ 
-              fontWeight: 'bold', 
-              bgcolor: theme.palette.primary.main, 
-              color: 'white'
-            }}>Precio 2</TableCell>
-            <TableCell sx={{ 
-              fontWeight: 'bold', 
-              bgcolor: theme.palette.primary.main, 
-              color: 'white'
-            }}>Precio 3</TableCell>
-            <TableCell sx={{ 
-              fontWeight: 'bold', 
-              bgcolor: theme.palette.primary.main, 
-              color: 'white'
-            }}>Acciones</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          <AnimatePresence>
-            {listasPrecios.length > 0 ? (
-              listasPrecios.map((lista, index) => (
-                <motion.tr
-                  key={lista._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  component={motion.tr}
-                >
-                  <TableRow hover>
-                    <TableCell>{lista.nombreProducto}</TableCell>
-                    <TableCell>${lista.precio1?.toFixed(2) || '0.00'}</TableCell>
-                    <TableCell>${lista.precio2?.toFixed(2) || '0.00'}</TableCell>
-                    <TableCell>${lista.precio3?.toFixed(2) || '0.00'}</TableCell>
-                    <TableCell>
-                      <ActionButtonContainer>
-                        <Tooltip title="Editar" TransitionComponent={Zoom} arrow>
-                          <IconButton 
-                            color="primary" 
-                            size="small"
-                            onClick={() => {
-                              setCurrentItem(lista);
-                              setOpenDialog(true);
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Eliminar" TransitionComponent={Zoom} arrow>
-                          <IconButton 
-                            color="error"
-                            size="small"
-                            onClick={() => handleDelete(lista._id)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </ActionButtonContainer>
-                    </TableCell>
-                  </TableRow>
-                </motion.tr>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  <Typography variant="subtitle1" color="text.secondary">
-                    No hay listas de precios disponibles
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-          </AnimatePresence>
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-
-  // Renderizar filtro de mes/año
-  const renderFiltroMes = () => (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-      <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel id="mes-select-label">Mes</InputLabel>
-        <Select
-          labelId="mes-select-label"
-          value={mesSeleccionado}
-          label="Mes"
-          onChange={(e) => setMesSeleccionado(e.target.value)}
-          startAdornment={<CalendarMonthIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />}
-        >
-          <MenuItem value="">Todos los meses</MenuItem>
-          {MESES.map((mes, index) => (
-            <MenuItem key={index + 1} value={index + 1}>{mes}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      
-      <FormControl size="small" sx={{ minWidth: 120 }}>
-        <InputLabel id="anio-select-label">Año</InputLabel>
-        <Select
-          labelId="anio-select-label"
-          value={anioSeleccionado}
-          label="Año"
-          onChange={(e) => setAnioSeleccionado(e.target.value)}
-          disabled={!mesSeleccionado}
-        >
-          {getAniosDisponibles().map(anio => (
-            <MenuItem key={anio} value={anio}>{anio}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Box>
-  );
 
   return (
     <motion.div
@@ -491,210 +218,293 @@ const ListaPrecios = () => {
           animate={{ y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Typography 
-            variant="h4" 
-            component="h1" 
-            gutterBottom 
-            color="primary"
-            sx={{ 
-              fontWeight: 'bold',
-              borderBottom: `2px solid ${theme.palette.primary.main}`,
-              pb: 1,
-              display: 'inline-block'
-            }}
-          >
-            Gestión de Listas de Precios
+          <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+            Listas de Precios
           </Typography>
         </motion.div>
-        
-        {/* Barra de herramientas animada */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
-          <Paper 
-            elevation={3} 
-            sx={{ 
-              p: 2, 
-              mb: 3, 
-              borderRadius: '12px',
-              background: theme.palette.background.paper,
-            }}
-          >
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={6}>
-                <motion.div
-                  whileFocus={{ scale: 1.02 }}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <TextField
-                    label="Buscar producto"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                    onFocus={() => setSearchFocused(true)}
-                    onBlur={() => setSearchFocused(false)}
-                    InputProps={{
-                      startAdornment: (
-                        <motion.div
-                          animate={{ rotate: searchFocused ? 360 : 0 }}
-                          transition={{ duration: 0.5 }}
-                          style={{ marginRight: '8px' }}
-                        >
-                          <SearchIcon color="action" />
-                        </motion.div>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '8px',
-                      }
-                    }}
-                  />
-                </motion.div>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                {renderFiltroMes()}
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                  <ActionButtonContainer>
-                    <Tooltip title="Cambiar vista" TransitionComponent={Zoom} arrow>
-                      <Button
-                        variant="outlined"
-                        color="secondary"
-                        onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
-                        startIcon={<MoreVertIcon />}
-                        size={isMobile ? "small" : "medium"}
-                      >
-                        {viewMode === 'card' ? 'Tabla' : 'Tarjetas'}
-                      </Button>
-                    </Tooltip>
-                  </ActionButtonContainer>
-                  <ActionButtonContainer>
-                    <Tooltip title="Actualizar datos" TransitionComponent={Zoom} arrow>
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        startIcon={<RefreshIcon />}
-                        onClick={() => cargarListasPrecios()}
-                        size={isMobile ? "small" : "medium"}
-                      >
-                        Actualizar
-                      </Button>
-                    </Tooltip>
-                  </ActionButtonContainer>
-                  <ActionButtonContainer>
-                    <Tooltip title="Añadir nueva lista" TransitionComponent={Zoom} arrow>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<AddIcon />}
-                        onClick={() => {
-                          setCurrentItem({
-                            nombreProducto: '',
-                            precio1: '',
-                            precio2: '',
-                            precio3: '',
-                            fecha: new Date()
-                          });
-                          setOpenDialog(true);
-                        }}
-                        size={isMobile ? "small" : "medium"}
-                        sx={{ 
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)'
-                        }}
-                      >
-                        {isMobile ? 'Nuevo' : 'Nueva Lista'}
-                      </Button>
-                    </Tooltip>
-                  </ActionButtonContainer>
-                </Box>
-              </Grid>
-            </Grid>
-          </Paper>
-        </motion.div>
-        
-        {/* Contenido principal con animación */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <Paper 
-            elevation={3} 
-            sx={{ 
-              width: '100%', 
-              overflow: 'hidden',
-              borderRadius: '12px',
-              background: theme.palette.background.paper
-            }}
-          >
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                >
-                  <CircularProgress color="primary" />
-                </motion.div>
-              </Box>
-            ) : (
-              <>
-                {/* Vista condicional: tarjetas o tabla */}
-                <Box sx={{ p: viewMode === 'card' ? 2 : 0 }}>
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={viewMode}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {viewMode === 'card' ? renderCardView() : renderTableView()}
-                    </motion.div>
-                  </AnimatePresence>
-                </Box>
-                
-                {/* Paginación con animación */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.5 }}
-                >
-                  <Divider />
-                  <TablePagination
-                    rowsPerPageOptions={[5, 10, 25, 50]}
-                    component="div"
-                    count={totalItems}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    labelRowsPerPage={isMobile ? 'Filas:' : 'Filas por página:'}
-                  />
-                </motion.div>
-              </>
-            )}
-          </Paper>
-        </motion.div>
-        
-        {/* Diálogo animado para agregar/editar */}
-        <Dialog 
-          open={openDialog} 
-          onClose={() => setOpenDialog(false)} 
-          maxWidth="sm" 
-          fullWidth
-          TransitionComponent={Fade}
-          PaperProps={{
-            sx: { borderRadius: '12px' }
+
+        {/* Barra de acciones */}
+        <Paper
+          elevation={3}
+          sx={{
+            p: 2,
+            mb: 3,
+            borderRadius: '12px',
+            background: theme.palette.background.default
           }}
         >
-          <DialogTitle sx={{ background: theme.palette.primary.main, color: 'white' }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      setCurrentItem({
+                        nombreProducto: '',
+                        precio1: '',
+                        precio2: '',
+                        precio3: ''
+                      });
+                      setOpenDialog(true);
+                    }}
+                    sx={{
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Nueva Lista
+                  </Button>
+                </motion.div>
+                
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<RefreshIcon />}
+                    onClick={cargarListasPrecios}
+                    sx={{ borderRadius: '8px' }}
+                  >
+                    Actualizar
+                  </Button>
+                </motion.div>
+                
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Button
+                    variant={openFilterMenu ? "contained" : "outlined"}
+                    color="secondary"
+                    startIcon={<FilterAltIcon />}
+                    onClick={() => setOpenFilterMenu(!openFilterMenu)}
+                    sx={{ borderRadius: '8px' }}
+                  >
+                    Filtros
+                  </Button>
+                </motion.div>
+              </Box>
+            </Grid>
+            
+            <Grid item xs={12} md={5}>
+              <TextField
+                fullWidth
+                placeholder="Buscar producto..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                  sx: { borderRadius: '8px' }
+                }}
+              />
+            </Grid>
+            
+            {openFilterMenu && (
+              <Grid item xs={12}>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Paper elevation={1} sx={{ p: 2, borderRadius: '8px' }}>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                          <InputLabel id="mes-select-label">Mes</InputLabel>
+                          <Select
+                            labelId="mes-select-label"
+                            value={mesSeleccionado}
+                            onChange={(e) => setMesSeleccionado(e.target.value)}
+                            label="Mes"
+                          >
+                            <MenuItem value="">Todos los meses</MenuItem>
+                            {MESES.map((mes, index) => (
+                              <MenuItem key={index} value={index + 1}>{mes}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                          <InputLabel id="anio-select-label">Año</InputLabel>
+                          <Select
+                            labelId="anio-select-label"
+                            value={anioSeleccionado}
+                            onChange={(e) => setAnioSeleccionado(e.target.value)}
+                            label="Año"
+                          >
+                            {getAniosDisponibles().map((anio) => (
+                              <MenuItem key={anio} value={anio}>{anio}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                </motion.div>
+              </Grid>
+            )}
+          </Grid>
+        </Paper>
+
+        {/* Mostrar cargando */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+            >
+              <CircularProgress color="primary" />
+            </motion.div>
+          </Box>
+        )}
+
+        {/* Mostrar datos */}
+        {!loading && listasPrecios.length === 0 ? (
+          <Paper
+            elevation={2}
+            sx={{
+              p: 4,
+              borderRadius: '12px',
+              textAlign: 'center',
+              background: theme.palette.background.default
+            }}
+          >
+            <Typography variant="h6" color="textSecondary">
+              No se encontraron listas de precios
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Intenta con otros filtros o crea una nueva lista
+            </Typography>
+          </Paper>
+        ) : (
+          <>
+            {/* Vista de tarjetas */}
+            {viewMode === 'card' && (
+              <Grid container spacing={3}>
+                <AnimatePresence>
+                  {listasPrecios.map((item, index) => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={item._id}>
+                      <AnimatedCard delay={index}>
+                        <Card 
+                          elevation={3}
+                          sx={{
+                            borderRadius: '12px',
+                            overflow: 'visible',
+                            position: 'relative',
+                            transition: 'all 0.3s',
+                            '&:hover': {
+                              boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                            }
+                          }}
+                        >
+                          <CardContent sx={{ p: 3 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                              <Typography variant="h6" fontWeight="bold" noWrap>
+                                {item.nombreProducto}
+                              </Typography>
+                              <Box>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEdit(item)}
+                                  color="primary"
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDelete(item._id)}
+                                  color="error"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </Box>
+                            
+                            <Divider sx={{ my: 1.5 }} />
+                            
+                            <Box sx={{ mt: 2 }}>
+                              <Grid container spacing={1}>
+                                <Grid item xs={4}>
+                                  <Chip
+                                    label={`$${item.precio1}`}
+                                    color="primary"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ width: '100%' }}
+                                  />
+                                </Grid>
+                                <Grid item xs={4}>
+                                  <Chip
+                                    label={`$${item.precio2}`}
+                                    color="secondary"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ width: '100%' }}
+                                  />
+                                </Grid>
+                                <Grid item xs={4}>
+                                  <Chip
+                                    label={`$${item.precio3}`}
+                                    color="info"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ width: '100%' }}
+                                  />
+                                </Grid>
+                              </Grid>
+                            </Box>
+                            
+                            {item.fechaCreacion && (
+                              <Typography 
+                                variant="caption" 
+                                color="textSecondary"
+                                sx={{ 
+                                  display: 'block',
+                                  mt: 2,
+                                  textAlign: 'right'
+                                }}
+                              >
+                                {new Date(item.fechaCreacion).toLocaleDateString()}
+                              </Typography>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </AnimatedCard>
+                    </Grid>
+                  ))}
+                </AnimatePresence>
+              </Grid>
+            )}
+
+            {/* Paginación */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+              <TablePagination
+                component="div"
+                count={totalItems}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                labelRowsPerPage="Por página:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+              />
+            </Box>
+          </>
+        )}
+
+        {/* Diálogo para crear/editar */}
+        <Dialog 
+          open={openDialog} 
+          onClose={() => setOpenDialog(false)}
+          maxWidth="md"
+          fullWidth
+          TransitionComponent={Fade}
+          TransitionProps={{ timeout: 400 }}
+        >
+          <DialogTitle sx={{ pb: 1 }}>
             <motion.div
               initial={{ x: -20 }}
               animate={{ x: 0 }}
@@ -721,28 +531,6 @@ const ListaPrecios = () => {
                   variant="outlined"
                   sx={{ mb: 2 }}
                 />
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-              >
-                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                  <DatePicker
-                    label="Fecha"
-                    value={currentItem.fecha}
-                    onChange={handleFechaChange}
-                    renderInput={(params) => (
-                      <TextField 
-                        {...params} 
-                        fullWidth 
-                        margin="dense" 
-                        sx={{ mb: 2 }}
-                      />
-                    )}
-                  />
-                </LocalizationProvider>
               </motion.div>
               
               <motion.div
