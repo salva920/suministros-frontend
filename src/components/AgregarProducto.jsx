@@ -184,7 +184,6 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
       }
 
       if (response.status === 200 || response.status === 201) {
-        toast.success(producto._id ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
         onProductoGuardado(response.data);
         resetForm();
         onClose();
