@@ -1,416 +1,739 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Table, Button, Form, Modal, Badge, Spinner } from 'react-bootstrap';
+import {
+  Container, Typography, Box, Paper, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, TablePagination, Button, TextField, Dialog, DialogTitle,
+  DialogContent, DialogActions, Grid, MenuItem, InputAdornment, IconButton, Chip,
+  Alert, CircularProgress, Divider, Tooltip, useTheme
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import {
+  Add as AddIcon,
+  Search as SearchIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Money as MoneyIcon,
+  CalendarToday as CalendarIcon,
+  Refresh as RefreshIcon,
+  FileCopy as FileCopyIcon,
+  Receipt as ReceiptIcon
+} from '@mui/icons-material';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FaMoneyBillWave, FaFileInvoiceDollar, FaSearch, FaCalendarAlt } from 'react-icons/fa';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import './FacturasPendientes.css'; // Crearemos este archivo después
+import { debounce } from 'lodash';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// URL de la API
+const API_URL = "https://suministros-backend.vercel.app/api";
+
+// Componentes estilizados
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  fontWeight: 'bold',
+  '&.MuiTableCell-head': {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.common.white,
+  }
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(even)': {
+    backgroundColor: theme.palette.action.hover,
+  },
+  '&:hover': {
+    backgroundColor: theme.palette.action.selected,
+    transition: 'background-color 0.3s ease',
+  },
+  // Cambiar el color si la factura está pagada
+  '&.pagada': {
+    backgroundColor: theme.palette.success.light,
+    '&:hover': {
+      backgroundColor: theme.palette.success.light,
+    }
+  }
+}));
 
 const FacturasPendientes = () => {
+  const theme = useTheme();
+  
+  // Estados para manejar datos y UI
   const [facturas, setFacturas] = useState([]);
-  const [facturasFiltradas, setFacturasFiltradas] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showAbonoModal, setShowAbonoModal] = useState(false);
-  const [currentFactura, setCurrentFactura] = useState(null);
-  const [filtroEstado, setFiltroEstado] = useState('pendientes');
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  
+  // Estados para filtros
   const [busqueda, setBusqueda] = useState('');
-  const [montoAbono, setMontoAbono] = useState('');
-  const [errorAbono, setErrorAbono] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('pendientes');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
-
-  // Función para cargar las facturas, optimizada con useCallback
-  const cargarFacturas = useCallback(async () => {
+  
+  // Estados para modal de abono
+  const [openAbonoModal, setOpenAbonoModal] = useState(false);
+  const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
+  const [montoAbono, setMontoAbono] = useState('');
+  const [errorAbono, setErrorAbono] = useState('');
+  
+  // Estados para modal de nueva factura
+  const [openNuevaFacturaModal, setOpenNuevaFacturaModal] = useState(false);
+  const [nuevaFactura, setNuevaFactura] = useState({
+    concepto: '',
+    proveedor: '',
+    numeroFactura: '',
+    monto: '',
+    fecha: new Date().toISOString().split('T')[0]
+  });
+  
+  // Función para formatear fecha de manera simple
+  const formatearFechaSimple = (fechaString) => {
+    if (!fechaString) return 'No disponible';
+    
     try {
-      setIsLoading(true);
+      const fecha = new Date(fechaString);
+      if (isNaN(fecha.getTime())) return 'Fecha inválida';
       
-      // URL base
-      let url = `${API_URL}/facturas-pendientes`;
+      const dia = fecha.getDate();
+      const mes = fecha.getMonth() + 1;
+      const anio = fecha.getFullYear();
       
-      // Parámetros de filtrado
-      const params = new URLSearchParams();
-      if (filtroEstado !== 'todas') {
-        params.append('estado', filtroEstado);
-      }
-      if (fechaDesde) {
-        params.append('fechaDesde', fechaDesde);
-      }
-      if (fechaHasta) {
-        params.append('fechaHasta', fechaHasta);
-      }
+      return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio}`;
+    } catch (error) {
+      return 'Error de formato';
+    }
+  };
+  
+  // Función para formatear moneda
+  const formatearMoneda = (valor) => {
+    return new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'VES'
+    }).format(valor);
+  };
+  
+  // Cargar facturas pendientes con paginación
+  const cargarFacturas = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page + 1, // API usa 1-indexed pages
+        limit: rowsPerPage,
+        estado: filtroEstado,
+        busqueda
+      });
       
-      // Añadir parámetros a la URL si existen
-      const queryString = params.toString();
-      if (queryString) {
-        url += `?${queryString}`;
-      }
+      if (fechaDesde) params.append('fechaDesde', fechaDesde);
+      if (fechaHasta) params.append('fechaHasta', fechaHasta);
       
-      const response = await axios.get(url);
-      setFacturas(response.data);
-      aplicarFiltros(response.data);
+      const response = await axios.get(`${API_URL}/facturas-pendientes?${params.toString()}`);
+      
+      setFacturas(response.data.facturas);
+      setTotalItems(response.data.totalDocs);
+      setTotalPages(response.data.totalPages);
     } catch (error) {
       console.error('Error al cargar facturas pendientes:', error);
       toast.error('No se pudieron cargar las facturas pendientes');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [filtroEstado, fechaDesde, fechaHasta]);
-
-  // Cargar facturas al montar el componente o cuando cambien los filtros
+  }, [page, rowsPerPage, filtroEstado, busqueda, fechaDesde, fechaHasta]);
+  
+  // Cargar facturas cuando cambien los filtros, página o límite
   useEffect(() => {
     cargarFacturas();
   }, [cargarFacturas]);
-
-  // Aplicar filtros de búsqueda de texto
-  const aplicarFiltros = useCallback((datos) => {
-    if (!busqueda.trim()) {
-      setFacturasFiltradas(datos);
-      return;
-    }
-    
-    const terminoBusqueda = busqueda.toLowerCase().trim();
-    const resultado = datos.filter(factura => 
-      factura.concepto.toLowerCase().includes(terminoBusqueda) ||
-      factura.proveedor?.toLowerCase().includes(terminoBusqueda) ||
-      factura.numeroFactura?.toLowerCase().includes(terminoBusqueda)
-    );
-    
-    setFacturasFiltradas(resultado);
-  }, [busqueda]);
-
-  // Aplicar filtros cuando cambia la búsqueda
-  useEffect(() => {
-    aplicarFiltros(facturas);
-  }, [facturas, busqueda, aplicarFiltros]);
-
-  // Función para formatear fecha
-  const formatearFecha = (fecha) => {
-    try {
-      return format(parseISO(fecha), 'dd/MM/yyyy', { locale: es });
-    } catch (error) {
-      return 'Fecha inválida';
-    }
+  
+  // Búsqueda con debounce para evitar múltiples llamadas
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setBusqueda(value);
+      setPage(0); // Volver a la primera página al buscar
+    }, 500),
+    []
+  );
+  
+  // Manejar cambio de página
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
-
-  // Función para formatear moneda
-  const formatearMoneda = (valor) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(valor);
+  
+  // Manejar cambio de filas por página
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
-
+  
+  // Restablecer filtros
+  const handleResetFiltros = () => {
+    setBusqueda('');
+    setFiltroEstado('pendientes');
+    setFechaDesde('');
+    setFechaHasta('');
+    setPage(0);
+  };
+  
   // Abrir modal de abono
-  const abrirModalAbono = (factura) => {
-    setCurrentFactura(factura);
+  const handleOpenAbonoModal = (factura) => {
+    setFacturaSeleccionada(factura);
     setMontoAbono('');
     setErrorAbono('');
-    setShowAbonoModal(true);
+    setOpenAbonoModal(true);
   };
-
+  
   // Registrar abono
-  const registrarAbono = async () => {
-    // Validar monto
+  const handleRegistrarAbono = async () => {
+    // Validaciones
     const monto = parseFloat(montoAbono);
     if (isNaN(monto) || monto <= 0) {
       setErrorAbono('El monto debe ser un número positivo');
       return;
     }
     
-    if (monto > currentFactura.saldo) {
+    if (monto > facturaSeleccionada.saldo) {
       setErrorAbono('El abono no puede ser mayor al saldo pendiente');
       return;
     }
     
+    setLoading(true);
     try {
-      setIsLoading(true);
-      await axios.post(`${API_URL}/facturas-pendientes/${currentFactura._id}/abonos`, {
-        monto,
-        fecha: new Date().toISOString()
+      await axios.post(`${API_URL}/facturas-pendientes/${facturaSeleccionada._id}/abonos`, {
+        monto
       });
       
       toast.success('Abono registrado correctamente');
-      setShowAbonoModal(false);
-      cargarFacturas(); // Recargar facturas para ver el saldo actualizado
+      setOpenAbonoModal(false);
+      cargarFacturas(); // Recargar para ver cambios
     } catch (error) {
       console.error('Error al registrar abono:', error);
       toast.error('No se pudo registrar el abono');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  // Resetear filtros
-  const resetearFiltros = () => {
-    setBusqueda('');
-    setFiltroEstado('pendientes');
-    setFechaDesde('');
-    setFechaHasta('');
-  };
-
-  return (
-    <Container fluid className="facturas-pendientes-container py-4">
-      <h2 className="mb-4 text-primary">
-        <FaFileInvoiceDollar className="me-2" />
-        Facturas Pendientes por Pagar
-      </h2>
+  
+  // Crear nueva factura
+  const handleCrearFactura = async () => {
+    // Validaciones
+    if (!nuevaFactura.concepto || !nuevaFactura.monto) {
+      toast.error('El concepto y monto son obligatorios');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await axios.post(`${API_URL}/facturas-pendientes`, nuevaFactura);
       
-      <Card className="shadow-sm mb-4">
-        <Card.Header className="bg-light">
-          <h5 className="mb-0">Filtros</h5>
-        </Card.Header>
-        <Card.Body>
-          <Row>
-            <Col md={6} lg={3} className="mb-3">
-              <Form.Group>
-                <Form.Label className="small text-muted">
-                  <FaSearch className="me-1" /> Buscar
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Buscar por concepto, proveedor..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6} lg={3} className="mb-3">
-              <Form.Group>
-                <Form.Label className="small text-muted">Estado</Form.Label>
-                <Form.Select
-                  value={filtroEstado}
-                  onChange={(e) => setFiltroEstado(e.target.value)}
-                >
-                  <option value="pendientes">Pendientes</option>
-                  <option value="pagadas">Pagadas</option>
-                  <option value="parciales">Pago Parcial</option>
-                  <option value="todas">Todas</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            <Col md={6} lg={3} className="mb-3">
-              <Form.Group>
-                <Form.Label className="small text-muted">
-                  <FaCalendarAlt className="me-1" /> Desde
-                </Form.Label>
-                <Form.Control
-                  type="date"
-                  value={fechaDesde}
-                  onChange={(e) => setFechaDesde(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6} lg={3} className="mb-3">
-              <Form.Group>
-                <Form.Label className="small text-muted">
-                  <FaCalendarAlt className="me-1" /> Hasta
-                </Form.Label>
-                <Form.Control
-                  type="date"
-                  value={fechaHasta}
-                  onChange={(e) => setFechaHasta(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-          <div className="d-flex justify-content-end">
-            <Button 
-              variant="secondary" 
-              size="sm"
-              onClick={resetearFiltros}
-              className="me-2"
+      toast.success('Factura pendiente registrada correctamente');
+      setOpenNuevaFacturaModal(false);
+      setNuevaFactura({
+        concepto: '',
+        proveedor: '',
+        numeroFactura: '',
+        monto: '',
+        fecha: new Date().toISOString().split('T')[0]
+      });
+      cargarFacturas(); // Recargar para ver la nueva factura
+    } catch (error) {
+      console.error('Error al crear factura pendiente:', error);
+      toast.error('No se pudo registrar la factura');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Eliminar factura
+  const handleEliminarFactura = async (facturaId) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta factura pendiente?')) {
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await axios.delete(`${API_URL}/facturas-pendientes/${facturaId}`);
+      
+      toast.success('Factura eliminada correctamente');
+      cargarFacturas(); // Recargar lista
+    } catch (error) {
+      console.error('Error al eliminar factura:', error);
+      toast.error('No se pudo eliminar la factura');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Manejar cambios en formulario de nueva factura
+  const handleNuevaFacturaChange = (e) => {
+    const { name, value } = e.target;
+    setNuevaFactura({
+      ...nuevaFactura,
+      [name]: value
+    });
+  };
+  
+  // Calcular saldo total
+  const saldoTotal = facturas.reduce((total, factura) => total + factura.saldo, 0);
+  
+  return (
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          <ReceiptIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Facturas Pendientes por Pagar
+        </Typography>
+        
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenNuevaFacturaModal(true)}
+        >
+          Nueva Factura
+        </Button>
+      </Box>
+      
+      {/* Filtros */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6" component="h2" gutterBottom>
+          Filtros
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
+        
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              label="Buscar"
+              variant="outlined"
+              size="small"
+              onChange={(e) => debouncedSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              select
+              label="Estado"
+              variant="outlined"
+              size="small"
+              value={filtroEstado}
+              onChange={(e) => {
+                setFiltroEstado(e.target.value);
+                setPage(0);
+              }}
             >
-              Limpiar
-            </Button>
-            <Button 
-              variant="primary" 
-              size="sm"
-              onClick={cargarFacturas}
+              <MenuItem value="pendientes">Pendientes</MenuItem>
+              <MenuItem value="pagadas">Pagadas</MenuItem>
+              <MenuItem value="parciales">Pago Parcial</MenuItem>
+              <MenuItem value="todas">Todas</MenuItem>
+            </TextField>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={2}>
+            <TextField
+              fullWidth
+              label="Desde"
+              type="date"
+              variant="outlined"
+              size="small"
+              value={fechaDesde}
+              onChange={(e) => {
+                setFechaDesde(e.target.value);
+                setPage(0);
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={2}>
+            <TextField
+              fullWidth
+              label="Hasta"
+              type="date"
+              variant="outlined"
+              size="small"
+              value={fechaHasta}
+              onChange={(e) => {
+                setFechaHasta(e.target.value);
+                setPage(0);
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={2} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+            <Button
+              variant="outlined"
+              size="medium"
+              startIcon={<RefreshIcon />}
+              onClick={handleResetFiltros}
             >
-              Aplicar Filtros
+              Reiniciar
             </Button>
-          </div>
-        </Card.Body>
-      </Card>
-
-      <Card className="shadow-sm">
-        <Card.Header className="d-flex justify-content-between align-items-center bg-light">
-          <h5 className="mb-0">Listado de Facturas</h5>
-          <span className="badge bg-primary rounded-pill">
-            {facturasFiltradas.length} registros
-          </span>
-        </Card.Header>
-        <Card.Body className="p-0">
-          {isLoading ? (
-            <div className="text-center py-5">
-              <Spinner animation="border" variant="primary" />
-              <p className="mt-2">Cargando facturas...</p>
-            </div>
-          ) : facturasFiltradas.length === 0 ? (
-            <div className="text-center py-5">
-              <p className="text-muted">No se encontraron facturas pendientes</p>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <Table hover className="mb-0 tabla-facturas">
-                <thead className="table-light">
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Concepto</th>
-                    <th className="text-end">Monto</th>
-                    <th className="text-end">Abono</th>
-                    <th className="text-end">Saldo</th>
-                    <th className="text-center">Estado</th>
-                    <th className="text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {facturasFiltradas.map(factura => (
-                    <tr key={factura._id} className={factura.saldo === 0 ? 'table-success' : ''}>
-                      <td>{formatearFecha(factura.fecha)}</td>
-                      <td>
-                        <div className="factura-concepto">
-                          {factura.concepto}
-                          {factura.proveedor && (
-                            <small className="text-muted d-block">
-                              Proveedor: {factura.proveedor}
-                            </small>
-                          )}
-                          {factura.numeroFactura && (
-                            <small className="text-muted d-block">
-                              N° Factura: {factura.numeroFactura}
-                            </small>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-end fw-bold">{formatearMoneda(factura.monto)}</td>
-                      <td className="text-end">{formatearMoneda(factura.abono)}</td>
-                      <td className="text-end fw-bold">
-                        {formatearMoneda(factura.saldo)}
-                      </td>
-                      <td className="text-center">
-                        {factura.saldo === 0 ? (
-                          <Badge bg="success" pill>Pagada</Badge>
-                        ) : factura.abono > 0 ? (
-                          <Badge bg="warning" text="dark" pill>Parcial</Badge>
-                        ) : (
-                          <Badge bg="danger" pill>Pendiente</Badge>
-                        )}
-                      </td>
-                      <td className="text-center">
-                        <Button 
-                          variant="outline-success"
-                          size="sm"
-                          disabled={factura.saldo === 0}
-                          onClick={() => abrirModalAbono(factura)}
-                        >
-                          <FaMoneyBillWave className="me-1" /> Abonar
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          )}
-        </Card.Body>
-        <Card.Footer className="bg-light">
-          <Row className="align-items-center">
-            <Col>
-              <small className="text-muted">
-                Total de facturas: {facturasFiltradas.length}
-              </small>
-            </Col>
-            <Col className="text-end">
-              <small className="text-muted">
-                Saldo total: {formatearMoneda(
-                  facturasFiltradas.reduce((total, factura) => total + factura.saldo, 0)
-                )}
-              </small>
-            </Col>
-          </Row>
-        </Card.Footer>
-      </Card>
-
+          </Grid>
+        </Grid>
+      </Paper>
+      
+      {/* Tabla de facturas */}
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <TableContainer sx={{ maxHeight: 440 }}>
+          <Table stickyHeader aria-label="facturas pendientes">
+            <TableHead>
+              <TableRow>
+                <StyledTableCell>Fecha</StyledTableCell>
+                <StyledTableCell>Concepto</StyledTableCell>
+                <StyledTableCell align="right">Monto</StyledTableCell>
+                <StyledTableCell align="right">Abono</StyledTableCell>
+                <StyledTableCell align="right">Saldo</StyledTableCell>
+                <StyledTableCell align="center">Estado</StyledTableCell>
+                <StyledTableCell align="center">Acciones</StyledTableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading && facturas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                    <CircularProgress size={40} />
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Cargando facturas...
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : facturas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                    <Typography variant="body1">
+                      No se encontraron facturas pendientes
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                facturas.map((factura) => (
+                  <StyledTableRow 
+                    key={factura._id}
+                    className={factura.saldo === 0 ? 'pagada' : ''}
+                  >
+                    <TableCell>{formatearFechaSimple(factura.fecha)}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                        {factura.concepto}
+                      </Typography>
+                      {factura.proveedor && (
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          Proveedor: {factura.proveedor}
+                        </Typography>
+                      )}
+                      {factura.numeroFactura && (
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          N° Factura: {factura.numeroFactura}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                      {formatearMoneda(factura.monto)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {formatearMoneda(factura.abono)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                      {formatearMoneda(factura.saldo)}
+                    </TableCell>
+                    <TableCell align="center">
+                      {factura.saldo === 0 ? (
+                        <Chip 
+                          label="Pagada" 
+                          color="success" 
+                          size="small" 
+                        />
+                      ) : factura.abono > 0 ? (
+                        <Chip 
+                          label="Parcial" 
+                          color="warning" 
+                          size="small" 
+                        />
+                      ) : (
+                        <Chip 
+                          label="Pendiente" 
+                          color="error" 
+                          size="small" 
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                        <Tooltip title="Registrar abono">
+                          <span>
+                            <IconButton 
+                              size="small" 
+                              color="primary" 
+                              disabled={factura.saldo === 0}
+                              onClick={() => handleOpenAbonoModal(factura)}
+                            >
+                              <MoneyIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        
+                        <Tooltip title="Eliminar">
+                          <IconButton 
+                            size="small" 
+                            color="error"
+                            onClick={() => handleEliminarFactura(factura._id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </StyledTableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, bgcolor: 'background.default' }}>
+          <Typography variant="body2" color="text.secondary">
+            Saldo total: <strong>{formatearMoneda(saldoTotal)}</strong>
+          </Typography>
+          
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={totalItems}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Filas por página:"
+            labelDisplayedRows={({ from, to, count }) => {
+              return `${from}–${to} de ${count !== -1 ? count : `más de ${to}`}`;
+            }}
+          />
+        </Box>
+      </Paper>
+      
       {/* Modal de Abono */}
-      <Modal show={showAbonoModal} onHide={() => setShowAbonoModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Registrar Abono</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {currentFactura && (
-            <>
-              <div className="mb-3">
-                <h6>Detalles de la Factura:</h6>
-                <p className="mb-1">
-                  <strong>Concepto:</strong> {currentFactura.concepto}
-                </p>
-                <p className="mb-1">
-                  <strong>Fecha:</strong> {formatearFecha(currentFactura.fecha)}
-                </p>
-                <p className="mb-1">
-                  <strong>Monto Total:</strong> {formatearMoneda(currentFactura.monto)}
-                </p>
-                <p className="mb-1">
-                  <strong>Abono Actual:</strong> {formatearMoneda(currentFactura.abono)}
-                </p>
-                <p className="mb-0">
-                  <strong>Saldo Pendiente:</strong> {formatearMoneda(currentFactura.saldo)}
-                </p>
-              </div>
+      <Dialog open={openAbonoModal} onClose={() => setOpenAbonoModal(false)}>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+          Registrar Abono
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, minWidth: 400 }}>
+          {facturaSeleccionada && (
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>
+                Detalles de la Factura:
+              </Typography>
               
-              <Form.Group className="mb-3">
-                <Form.Label>Monto a Abonar</Form.Label>
-                <Form.Control
-                  type="number"
-                  placeholder="Ingrese el monto"
-                  value={montoAbono}
-                  onChange={(e) => setMontoAbono(e.target.value)}
-                  isInvalid={!!errorAbono}
-                  min="0.01"
-                  step="0.01"
-                  max={currentFactura.saldo}
-                />
-                <Form.Control.Feedback type="invalid">
-                  {errorAbono}
-                </Form.Control.Feedback>
+              <Grid container spacing={1} sx={{ mb: 3 }}>
+                <Grid item xs={5}>
+                  <Typography variant="body2" color="text.secondary">
+                    Concepto:
+                  </Typography>
+                </Grid>
+                <Grid item xs={7}>
+                  <Typography variant="body2" fontWeight="medium">
+                    {facturaSeleccionada.concepto}
+                  </Typography>
+                </Grid>
                 
-                <div className="mt-3 d-flex justify-content-between">
-                  <Button 
-                    variant="outline-secondary" 
-                    size="sm"
-                    onClick={() => setMontoAbono((currentFactura.saldo / 2).toString())}
-                  >
-                    50%
-                  </Button>
-                  <Button 
-                    variant="outline-secondary" 
-                    size="sm"
-                    onClick={() => setMontoAbono(currentFactura.saldo.toString())}
-                  >
-                    100%
-                  </Button>
-                </div>
-              </Form.Group>
-            </>
+                <Grid item xs={5}>
+                  <Typography variant="body2" color="text.secondary">
+                    Fecha:
+                  </Typography>
+                </Grid>
+                <Grid item xs={7}>
+                  <Typography variant="body2">
+                    {formatearFechaSimple(facturaSeleccionada.fecha)}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={5}>
+                  <Typography variant="body2" color="text.secondary">
+                    Monto Total:
+                  </Typography>
+                </Grid>
+                <Grid item xs={7}>
+                  <Typography variant="body2">
+                    {formatearMoneda(facturaSeleccionada.monto)}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={5}>
+                  <Typography variant="body2" color="text.secondary">
+                    Abono Actual:
+                  </Typography>
+                </Grid>
+                <Grid item xs={7}>
+                  <Typography variant="body2">
+                    {formatearMoneda(facturaSeleccionada.abono)}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={5}>
+                  <Typography variant="body2" color="text.secondary">
+                    Saldo Pendiente:
+                  </Typography>
+                </Grid>
+                <Grid item xs={7}>
+                  <Typography variant="body2" fontWeight="bold">
+                    {formatearMoneda(facturaSeleccionada.saldo)}
+                  </Typography>
+                </Grid>
+              </Grid>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <TextField
+                fullWidth
+                label="Monto a Abonar"
+                type="number"
+                value={montoAbono}
+                onChange={(e) => setMontoAbono(e.target.value)}
+                error={!!errorAbono}
+                helperText={errorAbono}
+                margin="normal"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">Bs.</InputAdornment>
+                  ),
+                }}
+              />
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setMontoAbono((facturaSeleccionada.saldo / 2).toFixed(2))}
+                >
+                  50% ({formatearMoneda(facturaSeleccionada.saldo / 2)})
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setMontoAbono(facturaSeleccionada.saldo.toFixed(2))}
+                >
+                  100% ({formatearMoneda(facturaSeleccionada.saldo)})
+                </Button>
+              </Box>
+            </Box>
           )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAbonoModal(false)}>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setOpenAbonoModal(false)}>
             Cancelar
           </Button>
           <Button 
-            variant="primary" 
-            onClick={registrarAbono}
-            disabled={isLoading}
+            variant="contained" 
+            onClick={handleRegistrarAbono}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <MoneyIcon />}
           >
-            {isLoading ? 'Registrando...' : 'Registrar Abono'}
+            {loading ? 'Registrando...' : 'Registrar Abono'}
           </Button>
-        </Modal.Footer>
-      </Modal>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Modal de Nueva Factura */}
+      <Dialog open={openNuevaFacturaModal} onClose={() => setOpenNuevaFacturaModal(false)}>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+          Registrar Nueva Factura Pendiente
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, minWidth: 400 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Concepto"
+                name="concepto"
+                value={nuevaFactura.concepto}
+                onChange={handleNuevaFacturaChange}
+                required
+              />
+            </Grid>
+            
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Proveedor"
+                name="proveedor"
+                value={nuevaFactura.proveedor}
+                onChange={handleNuevaFacturaChange}
+              />
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Número de Factura"
+                name="numeroFactura"
+                value={nuevaFactura.numeroFactura}
+                onChange={handleNuevaFacturaChange}
+              />
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Fecha"
+                type="date"
+                name="fecha"
+                value={nuevaFactura.fecha}
+                onChange={handleNuevaFacturaChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Monto"
+                name="monto"
+                type="number"
+                value={nuevaFactura.monto}
+                onChange={handleNuevaFacturaChange}
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">Bs.</InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setOpenNuevaFacturaModal(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleCrearFactura}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
+          >
+            {loading ? 'Registrando...' : 'Registrar Factura'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

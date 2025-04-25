@@ -1,0 +1,26 @@
+/* Estilos adicionales para el componente FacturasPendientes */
+
+.MuiTableRow-root.pagada {
+  background-color: rgba(76, 175, 80, 0.15);
+}
+
+.MuiTableRow-root.pagada:hover {
+  background-color: rgba(76, 175, 80, 0.25);
+}
+
+/* Animación para los estados de carga */
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.loading-pulse {
+  animation: pulse 1.5s infinite;
+} 

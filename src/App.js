@@ -22,6 +22,7 @@ import Administracion from './components/administracion/Administracion';
 import Ventas from './components/ventas/Ventas';
 import HistorialVentas from './components/ventas/HistorialVentas';
 import Caja from './components/administracion/Caja';
+import FacturasPendientes from './components/finanzas/FacturasPendientes';
 
 const App = () => {
   return (
@@ -49,6 +50,7 @@ const App = () => {
             <Route path="/inventario" element={<GestionInventario />} />
             <Route path="/administracion" element={<Administracion />} />
             <Route path="/administracion/caja" element={<Caja />} />
+            <Route path="/finanzas/facturas-pendientes" element={<FacturasPendientes />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" />} />
