@@ -356,53 +356,74 @@ const GestionInventario = () => {
   };
 
   const agregarStock = async () => {
-    if (isSubmitting || !entradaStock.fechaHora) {
-      toast.error('Complete todos los campos requeridos');
-      return;
-    }
-
     try {
-      setIsSubmitting(true);
-      
-      const productoActual = productos.find(p => p.id === entradaStock.productoId);
-      const cantidadIngresada = Number(entradaStock.cantidad);
-      
-      const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
-        .startOf('day')
-        .toISOString();
+      // Validar que la cantidad ingresada sea un número positivo
+      if (isNaN(entradaStock.cantidad) || entradaStock.cantidad <= 0) {
+        toast.error('La cantidad ingresada debe ser un número positivo');
+        return;
+      }
 
-      await axios.post(
-        `${API_URL}/productos/${productoActual.id}/entradas`,
-        {
-          cantidad: cantidadIngresada,
-          fechaHora: fechaUTC
+      // Verificar que el producto existe
+      if (!entradaStock.productoId) {
+        toast.error('No se ha seleccionado un producto válido');
+        return;
+      }
+
+      // Lógica para actualizar en el backend
+      const response = await axios.post(`${API_URL}/productos/${entradaStock.productoId}/stock`, {
+        cantidad: Number(entradaStock.cantidad)
+      });
+
+      if (response.status !== 200) {
+        throw new Error('Error al actualizar el stock');
+      }
+
+      // Actualización más robusta del estado
+      const nuevosProductos = productos.map(p => {
+        if (p.id === entradaStock.productoId) {
+          return {
+            ...p,
+            stock: p.stock + Number(entradaStock.cantidad),
+            cantidad: p.cantidad + Number(entradaStock.cantidad) // Actualizar cantidad también
+          };
         }
-      );
-
-      // Actualizar estado local
-      const nuevosProductos = productos.map(p => 
-        p.id === productoActual.id 
-          ? { ...p, stock: p.stock + cantidadIngresada } 
-          : p
-      );
+        return p;
+      });
       
       setProductos(nuevosProductos);
-      toast.success('Stock agregado correctamente');
       
-      // Resetear formulario
+      // Si el producto editado es el mismo, actualizar estado
+      if (productoEditando?.id === entradaStock.productoId) {
+        setProductoEditando(prev => ({
+          ...prev,
+          stock: prev.stock + Number(entradaStock.cantidad),
+          cantidad: prev.cantidad + Number(entradaStock.cantidad)
+        }));
+      }
+      
+      // Si el modal de edición está abierto, asegurarse de que se actualice
+      if (mostrarFormulario && productoEditando?.id === entradaStock.productoId) {
+        // Forzar actualización del formulario de edición
+        const productoActualizado = nuevosProductos.find(p => p.id === entradaStock.productoId);
+        if (productoActualizado) {
+          setProductoEditando(productoActualizado);
+        }
+      }
+      
+      // Mostrar notificación de éxito
+      toast.success(`Se agregaron ${entradaStock.cantidad} unidades al stock`);
+      
+      // Cerrar el modal de entrada de stock
+      setModalEntradaAbierto(false);
       setEntradaStock({
         productoId: null,
         cantidad: '',
         proveedor: '',
         fechaHora: ''
       });
-
     } catch (error) {
-      console.error('Error:', error);
-      toast.error(error.response?.data?.message || 'Error al agregar stock');
-    } finally {
-      setIsSubmitting(false);
-      setModalEntradaAbierto(false);
+      console.error('Error al agregar stock:', error);
+      toast.error('Error al agregar stock');
     }
   };
 
