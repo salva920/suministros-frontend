@@ -17,6 +17,8 @@ import HistorialSalidas from './HistorialSalidas';
 import { debounce } from 'lodash';
 import { styled } from '@mui/material/styles';
 import moment from 'moment-timezone';
+import moment from 'moment';
+import 'moment/locale/es';
 import axios from 'axios';
 import TasaCambio from '../TasaCambio';
 import { VpnKey } from '@mui/icons-material';
@@ -126,6 +128,9 @@ const GestionInventario = () => {
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
+
+  // Configurar moment para usar español
+  moment.locale('es');
 
   const cargarProductos = useCallback(async () => {
     if (cargando) return; // Evita llamadas múltiples si ya está cargando
@@ -660,7 +665,9 @@ const GestionInventario = () => {
                     <StyledTableCell align="right">
                       {producto.fechaIngreso instanceof Date && !isNaN(producto.fechaIngreso) 
                         ? moment.utc(producto.fechaIngreso).format('DD/MM/YYYY')
-                        : 'Fecha inválida'}
+                        : typeof producto.fechaIngreso === 'string' && producto.fechaIngreso
+                          ? moment.utc(new Date(producto.fechaIngreso)).format('DD/MM/YYYY')
+                          : 'Fecha inválida'}
                     </StyledTableCell>
                     <StyledTableCell align="center">
                       <IconButton onClick={() => abrirEntradaStock(producto)}>
