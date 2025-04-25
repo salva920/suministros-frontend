@@ -129,7 +129,7 @@ const transformarProducto = (producto) => {
       flete: parseNumber(producto.flete),
       cantidad: parseNumber(producto.cantidad),
       costoFinal: parseNumber(producto.costoFinal),
-      stock: parseNumber(producto.stock),
+      stock: parseNumber(producto.stock) || parseNumber(producto.cantidad),
       fechaIngreso: fechaIngreso,
     };
   } catch (error) {
@@ -161,6 +161,7 @@ const GestionInventario = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'nombre', direction: 'asc' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [cargando, setCargando] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -168,44 +169,25 @@ const GestionInventario = () => {
   useEffect(() => {
     const cargarProductos = async () => {
       try {
-        setIsLoading(true);
+        setCargando(true);
+        
         const response = await axios.get(`${API_URL}/productos`);
+        const datosProductos = response.data?.productos || response.data || [];
         
-        // Verificar la estructura de la respuesta
-        console.log('Datos recibidos:', response.data);
-        
-        // Manejar estructura paginada
-        let datosProductos = [];
-        if (response.data && Array.isArray(response.data.productos)) {
-          // La respuesta está paginada
-          datosProductos = response.data.productos;
-          console.log("Datos extraídos de estructura paginada:", datosProductos.length);
-        } else if (Array.isArray(response.data)) {
-          // La respuesta es un array directo
-          datosProductos = response.data;
-          console.log("Datos extraídos de array directo:", datosProductos.length);
-        } else if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-          // La respuesta es un objeto único (un solo producto)
-          datosProductos = [response.data];
-          console.log("Datos extraídos de objeto único");
-        }
-        
-        // Transformar los productos
         const productosTransformados = datosProductos
           .map(p => transformarProducto(p))
-          .filter(p => p !== null); // Filtrar valores nulos
+          .filter(p => p !== null);
         
-        console.log('Productos finales disponibles:', productosTransformados.length);
         setProductos(productosTransformados);
-        
-        setIsLoading(false);
       } catch (error) {
-        console.error('Error cargando datos:', error);
-        toast.error('Error al cargar los productos');
-        setIsLoading(false);
+        console.error('Error al cargar productos:', error);
+        toast.error('Error al cargar productos');
         setProductos([]);
+      } finally {
+        setCargando(false);
       }
     };
+    
     cargarProductos();
   }, []);
 
@@ -332,8 +314,11 @@ const GestionInventario = () => {
 
   const actualizarProducto = (productoActualizado) => {
     try {
-      // Transformar el producto recibido
-      const productoTransformado = transformarProducto(productoActualizado);
+      // Transformar el producto recibido asegurando que el stock se maneje correctamente
+      const productoTransformado = transformarProducto({
+        ...productoActualizado,
+        stock: productoActualizado.stock || productoActualizado.cantidad // Asegurar stock
+      });
       
       if (!productoTransformado) {
         toast.error('Error procesando el producto actualizado');
@@ -400,7 +385,6 @@ const GestionInventario = () => {
       });
       
       setProductos(nuevosProductos);
-      toast.success('Stock agregado correctamente');
       
       // Si el producto editando es el mismo, actualizar estado
       if (productoEditando?.id === productoActual.id) {
@@ -411,7 +395,6 @@ const GestionInventario = () => {
         }));
       }
       
-      // Una sola notificación de éxito
       toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
       
       // Resetear formulario
