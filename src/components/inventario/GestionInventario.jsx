@@ -330,13 +330,21 @@ const GestionInventario = () => {
     toast.success('Producto agregado correctamente');
   };
 
-  const actualizarProducto = async (productoActualizado) => {
+  const actualizarProducto = (productoActualizado) => {
     try {
-      const response = await axios.put(`${API_URL}/productos/${productoActualizado.id}`, productoActualizado);
-      const productoTransformado = transformarProducto(response.data);
+      // Transformar el producto recibido
+      const productoTransformado = transformarProducto(productoActualizado);
+      
+      if (!productoTransformado) {
+        toast.error('Error procesando el producto actualizado');
+        return;
+      }
+
+      // Actualizar el estado de productos sin hacer una solicitud PUT
       const nuevosProductos = productos.map(p => 
         p.id === productoTransformado.id ? productoTransformado : p
       );
+      
       setProductos(nuevosProductos);
       toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
     } catch (error) {
