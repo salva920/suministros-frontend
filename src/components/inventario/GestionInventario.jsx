@@ -721,9 +721,9 @@ const GestionInventario = () => {
                     </StyledTableCell>
                     <StyledTableCell align="right">
                       {producto.fechaIngreso instanceof Date && !isNaN(producto.fechaIngreso) 
-                        ? moment(producto.fechaIngreso).format('DD/MM/YYYY')
+                        ? moment.utc(producto.fechaIngreso).add(1, 'days').format('DD/MM/YYYY')
                         : typeof producto.fechaIngreso === 'string' && producto.fechaIngreso
-                          ? moment(new Date(producto.fechaIngreso)).format('DD/MM/YYYY')
+                          ? moment.utc(new Date(producto.fechaIngreso)).add(1, 'days').format('DD/MM/YYYY')
                           : 'Fecha inválida'}
                     </StyledTableCell>
                     <StyledTableCell align="center">
