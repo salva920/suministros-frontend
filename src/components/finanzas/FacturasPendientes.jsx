@@ -3,7 +3,7 @@ import {
   Container, Typography, Box, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TablePagination, Button, TextField, Dialog, DialogTitle,
   DialogContent, DialogActions, Grid, MenuItem, InputAdornment, IconButton, Chip,
-  Alert, CircularProgress, Divider, Tooltip, useTheme
+  Alert, CircularProgress, Divider, Tooltip, useTheme, useMediaQuery
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -15,23 +15,47 @@ import {
   CalendarToday as CalendarIcon,
   Refresh as RefreshIcon,
   FileCopy as FileCopyIcon,
-  Receipt as ReceiptIcon
+  Receipt as ReceiptIcon,
+  FilterAlt as FilterAltIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { debounce } from 'lodash';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 
-// URL de la API - CORREGIDA para coincidir con server.js
+// URL de la API
 const API_URL = "https://suministros-backend.vercel.app/api/facturaPendiente";
 
-// Componentes estilizados
+// Variantes de animación para Framer Motion
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      when: "beforeChildren",
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
+// Componentes estilizados mejorados
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold',
   '&.MuiTableCell-head': {
     backgroundColor: theme.palette.primary.main,
+    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
     color: theme.palette.common.white,
+    fontSize: '0.95rem',
+    whiteSpace: 'nowrap',
+    padding: '16px'
   }
 }));
 
@@ -42,18 +66,39 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:hover': {
     backgroundColor: theme.palette.action.selected,
     transition: 'background-color 0.3s ease',
+    boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
+    transform: 'translateY(-2px)',
   },
+  transition: 'all 0.2s ease',
   // Cambiar el color si la factura está pagada
   '&.pagada': {
     backgroundColor: theme.palette.success.light,
     '&:hover': {
       backgroundColor: theme.palette.success.light,
+      filter: 'brightness(1.05)',
     }
   }
 }));
 
+// Contenedor con estilo para el filtrado
+const FilterContainer = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+  borderRadius: '16px',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+  background: 'linear-gradient(120deg, #fafafa 0%, #ffffff 100%)'
+}));
+
+// Contenedor principal estilizado
+const MainContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
+
 const FacturasPendientes = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
   // Estados para manejar datos y UI
   const [facturas, setFacturas] = useState([]);
@@ -68,6 +113,7 @@ const FacturasPendientes = () => {
   const [filtroEstado, setFiltroEstado] = useState('pendientes');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   
   // Estados para modal de abono
   const [openAbonoModal, setOpenAbonoModal] = useState(false);
@@ -114,6 +160,7 @@ const FacturasPendientes = () => {
   // Cargar facturas pendientes con paginación
   const cargarFacturas = useCallback(async () => {
     setLoading(true);
+    
     try {
       const params = new URLSearchParams({
         page: page + 1, // API usa 1-indexed pages
@@ -287,363 +334,766 @@ const FacturasPendientes = () => {
   };
   
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <ToastContainer position="top-right" autoClose={3000} />
-      
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" color="primary" gutterBottom>
-          Facturas Pendientes
-        </Typography>
-        
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={abrirModalNuevaFactura}
-        >
-          Nueva Factura
-        </Button>
-      </Box>
-      
-      {/* Filtros */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Buscar"
-              variant="outlined"
-              size="small"
-              onChange={handleBusquedaChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              select
-              label="Estado"
-              value={filtroEstado}
-              onChange={handleFiltroEstadoChange}
-              variant="outlined"
-              size="small"
-            >
-              <MenuItem value="pendientes">Pendientes</MenuItem>
-              <MenuItem value="parciales">Abonadas</MenuItem>
-              <MenuItem value="pagadas">Pagadas</MenuItem>
-              <MenuItem value="todas">Todas</MenuItem>
-            </TextField>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Desde"
-              type="date"
-              value={fechaDesde}
-              onChange={handleFechaDesdeChange}
-              variant="outlined"
-              size="small"
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Hasta"
-              type="date"
-              value={fechaHasta}
-              onChange={handleFechaHastaChange}
-              variant="outlined"
-              size="small"
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-        </Grid>
-      </Paper>
-      
-      {/* Tabla de facturas */}
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <StyledTableCell>Fecha</StyledTableCell>
-                <StyledTableCell>Concepto</StyledTableCell>
-                <StyledTableCell>Proveedor</StyledTableCell>
-                <StyledTableCell>N° Factura</StyledTableCell>
-                <StyledTableCell align="right">Monto</StyledTableCell>
-                <StyledTableCell align="right">Abonado</StyledTableCell>
-                <StyledTableCell align="right">Saldo</StyledTableCell>
-                <StyledTableCell align="center">Acciones</StyledTableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading && facturas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <CircularProgress size={40} />
-                    <Typography sx={{ mt: 2 }}>Cargando facturas...</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : facturas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <Alert severity="info">
-                      No hay facturas que coincidan con los filtros aplicados
-                    </Alert>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                facturas.map((factura) => (
-                  <StyledTableRow 
-                    key={factura._id}
-                    className={factura.saldo === 0 ? 'pagada' : ''}
-                  >
-                    <TableCell>{formatearFechaSimple(factura.fecha)}</TableCell>
-                    <TableCell>{factura.concepto}</TableCell>
-                    <TableCell>{factura.proveedor || '-'}</TableCell>
-                    <TableCell>{factura.numeroFactura || '-'}</TableCell>
-                    <TableCell align="right">{formatearMoneda(factura.monto)}</TableCell>
-                    <TableCell align="right">{formatearMoneda(factura.abono)}</TableCell>
-                    <TableCell align="right">
-                      <Chip 
-                        label={formatearMoneda(factura.saldo)}
-                        color={factura.saldo === 0 ? 'success' : factura.abono > 0 ? 'warning' : 'error'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                        {factura.saldo > 0 && (
-                          <Tooltip title="Registrar abono">
-                            <IconButton 
-                              color="primary"
-                              onClick={() => abrirModalAbono(factura)}
-                            >
-                              <MoneyIcon />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        <Tooltip title="Eliminar">
-                          <IconButton 
-                            color="error"
-                            onClick={() => handleEliminarFactura(factura._id)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </StyledTableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={totalItems}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Filas por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <MainContainer maxWidth="lg">
+        <ToastContainer 
+          position="top-right" 
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
         />
-      </Paper>
-      
-      {/* Modal de Abono */}
-      <Dialog open={openAbonoModal} onClose={() => setOpenAbonoModal(false)}>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          Registrar Abono
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3, minWidth: 400 }}>
-          {facturaSeleccionada && (
-            <Box>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2">Concepto:</Typography>
-                  <Typography variant="body1" gutterBottom>
-                    {facturaSeleccionada.concepto}
-                  </Typography>
-                </Grid>
-                
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2">Fecha:</Typography>
-                  <Typography variant="body1" gutterBottom>
-                    {formatearFechaSimple(facturaSeleccionada.fecha)}
-                  </Typography>
-                </Grid>
-                
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2">Monto Total:</Typography>
-                  <Typography variant="body1" gutterBottom>
-                    {formatearMoneda(facturaSeleccionada.monto)}
-                  </Typography>
-                </Grid>
-                
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2">Total Abonado:</Typography>
-                  <Typography variant="body1" gutterBottom>
-                    {formatearMoneda(facturaSeleccionada.abono)}
-                  </Typography>
-                </Grid>
-                
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2">Saldo Pendiente:</Typography>
-                  <Typography variant="body1" gutterBottom color="error.main" fontWeight="bold">
-                    {formatearMoneda(facturaSeleccionada.saldo)}
-                  </Typography>
-                </Grid>
+        
+        <motion.div variants={itemVariants}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 4,
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? 2 : 0
+          }}>
+            <Typography 
+              variant="h4" 
+              component={motion.h4}
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              sx={{ 
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: 'bold',
+                mb: isMobile ? 2 : 0
+              }}
+            >
+              Facturas Pendientes
+            </Typography>
+            
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={abrirModalNuevaFactura}
+                sx={{
+                  borderRadius: '12px',
+                  padding: '10px 20px',
+                  background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                  boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  width: isMobile ? '100%' : 'auto'
+                }}
+              >
+                Nueva Factura
+              </Button>
+            </motion.div>
+          </Box>
+        </motion.div>
+        
+        {/* Filtros */}
+        <motion.div
+          variants={itemVariants}
+          transition={{ duration: 0.3 }}
+        >
+          <FilterContainer elevation={2}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              mb: 2
+            }}>
+              <Typography 
+                variant="h6" 
+                color="primary"
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+              >
+                <FilterAltIcon /> Filtros
+              </Typography>
+              <Button
+                color="primary"
+                startIcon={<RefreshIcon />}
+                onClick={() => {
+                  setBusqueda('');
+                  setFiltroEstado('pendientes');
+                  setFechaDesde('');
+                  setFechaHasta('');
+                  setPage(0);
+                }}
+                sx={{ textTransform: 'none' }}
+              >
+                Reiniciar filtros
+              </Button>
+            </Box>
+            
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="Buscar"
+                  variant="outlined"
+                  size="small"
+                  onChange={handleBusquedaChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon color="primary" />
+                      </InputAdornment>
+                    ),
+                    sx: { borderRadius: '10px' }
+                  }}
+                />
               </Grid>
               
-              <Divider sx={{ my: 2 }} />
-              
-              <TextField
-                fullWidth
-                label="Monto a Abonar"
-                type="number"
-                value={montoAbono}
-                onChange={(e) => setMontoAbono(e.target.value)}
-                error={!!errorAbono}
-                helperText={errorAbono}
-                margin="normal"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">Bs.</InputAdornment>
-                  ),
-                }}
-              />
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                <Button
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Estado"
+                  value={filtroEstado}
+                  onChange={handleFiltroEstadoChange}
                   variant="outlined"
                   size="small"
-                  onClick={() => setMontoAbono((facturaSeleccionada.saldo / 2).toFixed(2))}
+                  InputProps={{
+                    sx: { borderRadius: '10px' }
+                  }}
                 >
-                  50% ({formatearMoneda(facturaSeleccionada.saldo / 2)})
-                </Button>
-                <Button
+                  <MenuItem value="pendientes">Pendientes</MenuItem>
+                  <MenuItem value="parciales">Abonadas</MenuItem>
+                  <MenuItem value="pagadas">Pagadas</MenuItem>
+                  <MenuItem value="todas">Todas</MenuItem>
+                </TextField>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="Desde"
+                  type="date"
+                  value={fechaDesde}
+                  onChange={handleFechaDesdeChange}
                   variant="outlined"
                   size="small"
-                  onClick={() => setMontoAbono(facturaSeleccionada.saldo.toFixed(2))}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{
+                    sx: { borderRadius: '10px' },
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <CalendarIcon color="primary" fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="Hasta"
+                  type="date"
+                  value={fechaHasta}
+                  onChange={handleFechaHastaChange}
+                  variant="outlined"
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{
+                    sx: { borderRadius: '10px' },
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <CalendarIcon color="primary" fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </FilterContainer>
+        </motion.div>
+        
+        {/* Tabla de facturas */}
+        <motion.div
+          variants={itemVariants}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <Paper sx={{ 
+            borderRadius: '16px', 
+            overflow: 'hidden',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+          }}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <StyledTableCell>Fecha</StyledTableCell>
+                    <StyledTableCell>Concepto</StyledTableCell>
+                    <StyledTableCell>Proveedor</StyledTableCell>
+                    <StyledTableCell>N° Factura</StyledTableCell>
+                    <StyledTableCell align="right">Monto</StyledTableCell>
+                    <StyledTableCell align="right">Abonado</StyledTableCell>
+                    <StyledTableCell align="right">Saldo</StyledTableCell>
+                    <StyledTableCell align="center">Acciones</StyledTableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <AnimatePresence>
+                    {loading && facturas.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            >
+                              <CircularProgress size={50} thickness={4} />
+                            </motion.div>
+                            <Typography sx={{ mt: 2 }}>Cargando facturas...</Typography>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ) : facturas.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                          <Alert 
+                            severity="info" 
+                            icon={<ReceiptIcon fontSize="inherit" />}
+                            sx={{ 
+                              maxWidth: '600px', 
+                              mx: 'auto',
+                              borderRadius: '10px',
+                              '& .MuiAlert-icon': {
+                                fontSize: '2rem',
+                                alignItems: 'center'
+                              }
+                            }}
+                          >
+                            <Typography variant="h6" sx={{ mb: 1 }}>No hay facturas</Typography>
+                            No hay facturas que coincidan con los filtros aplicados
+                          </Alert>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      facturas.map((factura, index) => (
+                        <motion.tr
+                          key={factura._id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.02 }}
+                          component={StyledTableRow}
+                          className={factura.saldo === 0 ? 'pagada' : ''}
+                          layout
+                        >
+                          <TableCell>{formatearFechaSimple(factura.fecha)}</TableCell>
+                          <TableCell>
+                            <Tooltip title={factura.concepto} arrow>
+                              <Typography 
+                                sx={{ 
+                                  maxWidth: '200px', 
+                                  overflow: 'hidden', 
+                                  textOverflow: 'ellipsis', 
+                                  whiteSpace: 'nowrap',
+                                  fontWeight: factura.saldo === 0 ? 'normal' : 'medium'
+                                }}
+                              >
+                                {factura.concepto}
+                              </Typography>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell>{factura.proveedor || '-'}</TableCell>
+                          <TableCell>{factura.numeroFactura || '-'}</TableCell>
+                          <TableCell align="right">{formatearMoneda(factura.monto)}</TableCell>
+                          <TableCell align="right">{formatearMoneda(factura.abono)}</TableCell>
+                          <TableCell align="right">
+                            <motion.div whileHover={{ scale: 1.05 }}>
+                              <Chip 
+                                label={formatearMoneda(factura.saldo)}
+                                color={factura.saldo === 0 ? 'success' : factura.abono > 0 ? 'warning' : 'error'}
+                                variant={factura.saldo === 0 ? 'filled' : 'outlined'}
+                                sx={{ 
+                                  fontWeight: 'bold',
+                                  boxShadow: factura.saldo === 0 ? '0 2px 5px rgba(76, 175, 80, 0.4)' : 'none'
+                                }}
+                              />
+                            </motion.div>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                              {factura.saldo > 0 && (
+                                <Tooltip title="Registrar abono" arrow>
+                                  <motion.div
+                                    whileHover={{ scale: 1.15 }}
+                                    whileTap={{ scale: 0.9 }}
+                                  >
+                                    <IconButton 
+                                      color="primary"
+                                      onClick={() => abrirModalAbono(factura)}
+                                      size="small"
+                                      sx={{ 
+                                        boxShadow: '0 2px 5px rgba(33, 150, 243, 0.3)',
+                                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                        '&:hover': {
+                                          backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                                        }
+                                      }}
+                                    >
+                                      <MoneyIcon />
+                                    </IconButton>
+                                  </motion.div>
+                                </Tooltip>
+                              )}
+                              <Tooltip title="Eliminar" arrow>
+                                <motion.div
+                                  whileHover={{ scale: 1.15 }}
+                                  whileTap={{ scale: 0.9 }}
+                                >
+                                  <IconButton 
+                                    color="error"
+                                    onClick={() => handleEliminarFactura(factura._id)}
+                                    size="small"
+                                    sx={{ 
+                                      boxShadow: '0 2px 5px rgba(244, 67, 54, 0.3)',
+                                      backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                                      }
+                                    }}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </motion.div>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        </motion.tr>
+                      ))
+                    )}
+                  </AnimatePresence>
+                </TableBody>
+              </Table>
+            </TableContainer>
+            
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              component="div"
+              count={totalItems}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Filas por página:"
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+              sx={{
+                borderTop: '1px solid rgba(224, 224, 224, 1)',
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                  fontWeight: 'medium'
+                }
+              }}
+            />
+          </Paper>
+        </motion.div>
+        
+        {/* Modal de Abono */}
+        <AnimatePresence>
+          {openAbonoModal && (
+            <Dialog 
+              open={openAbonoModal} 
+              onClose={() => setOpenAbonoModal(false)}
+              PaperComponent={motion.div}
+              PaperProps={{
+                initial: { opacity: 0, y: 20 },
+                animate: { opacity: 1, y: 0 },
+                exit: { opacity: 0, y: 20 },
+                transition: { duration: 0.3 }
+              }}
+              maxWidth="sm"
+              fullWidth
+            >
+              <DialogTitle sx={{ 
+                bgcolor: 'primary.main', 
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontWeight: 'bold',
+                fontSize: '1.25rem'
+              }}>
+                Registrar Abono
+                <IconButton 
+                  size="small" 
+                  onClick={() => setOpenAbonoModal(false)}
+                  sx={{ color: 'white' }}
                 >
-                  100% ({formatearMoneda(facturaSeleccionada.saldo)})
-                </Button>
-              </Box>
-            </Box>
+                  <CloseIcon />
+                </IconButton>
+              </DialogTitle>
+              <DialogContent sx={{ pt: 3, minWidth: { xs: 300, sm: 400 }, p: 3 }}>
+                {facturaSeleccionada && (
+                  <Box component={motion.div} layout>
+                    <Paper sx={{ 
+                      p: 2, 
+                      mb: 3, 
+                      borderRadius: '12px',
+                      background: 'linear-gradient(120deg, #e0f7fa 0%, #f5f5f5 100%)',
+                      boxShadow: '0 3px 10px rgba(0,0,0,0.08)'
+                    }}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" color="text.secondary">Concepto:</Typography>
+                          <Typography variant="body1" fontWeight="medium" gutterBottom>
+                            {facturaSeleccionada.concepto}
+                          </Typography>
+                        </Grid>
+                        
+                        <Grid item xs={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Fecha:</Typography>
+                          <Typography variant="body1" gutterBottom>
+                            {formatearFechaSimple(facturaSeleccionada.fecha)}
+                          </Typography>
+                        </Grid>
+                        
+                        <Grid item xs={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Monto Total:</Typography>
+                          <Typography variant="body1" gutterBottom fontWeight="medium">
+                            {formatearMoneda(facturaSeleccionada.monto)}
+                          </Typography>
+                        </Grid>
+                        
+                        <Grid item xs={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Total Abonado:</Typography>
+                          <Typography variant="body1" gutterBottom color="success.main">
+                            {formatearMoneda(facturaSeleccionada.abono)}
+                          </Typography>
+                        </Grid>
+                        
+                        <Grid item xs={6}>
+                          <Typography variant="subtitle2" color="text.secondary">Saldo Pendiente:</Typography>
+                          <Typography variant="body1" gutterBottom color="error.main" fontWeight="bold">
+                            {formatearMoneda(facturaSeleccionada.saldo)}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                    
+                    <TextField
+                      fullWidth
+                      label="Monto a Abonar"
+                      type="number"
+                      value={montoAbono}
+                      onChange={(e) => setMontoAbono(e.target.value)}
+                      error={!!errorAbono}
+                      helperText={errorAbono}
+                      margin="normal"
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">Bs.</InputAdornment>
+                        ),
+                        sx: { borderRadius: '10px' }
+                      }}
+                      sx={{ mt: 3 }}
+                    />
+                    
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      mt: 2,
+                      gap: 2
+                    }}>
+                      <motion.div
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        style={{ flex: 1 }}
+                      >
+                        <Button
+                          variant="outlined"
+                          fullWidth
+                          onClick={() => setMontoAbono((facturaSeleccionada.saldo / 2).toFixed(2))}
+                          sx={{ 
+                            borderRadius: '10px',
+                            py: 1
+                          }}
+                        >
+                          50% ({formatearMoneda(facturaSeleccionada.saldo / 2)})
+                        </Button>
+                      </motion.div>
+                      <motion.div
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        style={{ flex: 1 }}
+                      >
+                        <Button
+                          variant="outlined"
+                          color="success"
+                          fullWidth
+                          onClick={() => setMontoAbono(facturaSeleccionada.saldo.toFixed(2))}
+                          sx={{ 
+                            borderRadius: '10px',
+                            py: 1
+                          }}
+                        >
+                          100% ({formatearMoneda(facturaSeleccionada.saldo)})
+                        </Button>
+                      </motion.div>
+                    </Box>
+                  </Box>
+                )}
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'space-between' }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    onClick={() => setOpenAbonoModal(false)}
+                    variant="outlined"
+                    sx={{ 
+                      borderRadius: '10px',
+                      px: 3,
+                      textTransform: 'none'
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    variant="contained" 
+                    onClick={handleRegistrarAbono}
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={20} /> : <MoneyIcon />}
+                    sx={{ 
+                      borderRadius: '10px',
+                      px: 3,
+                      background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                      boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                      textTransform: 'none',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {loading ? 'Registrando...' : 'Registrar Abono'}
+                  </Button>
+                </motion.div>
+              </DialogActions>
+            </Dialog>
           )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setOpenAbonoModal(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleRegistrarAbono}
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : <MoneyIcon />}
-          >
-            {loading ? 'Registrando...' : 'Registrar Abono'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      
-      {/* Modal de Nueva Factura */}
-      <Dialog open={openNuevaFacturaModal} onClose={() => setOpenNuevaFacturaModal(false)}>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          Registrar Nueva Factura Pendiente
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3, minWidth: 400 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Concepto"
-                name="concepto"
-                value={nuevaFactura.concepto}
-                onChange={handleNuevaFacturaChange}
-                required
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Proveedor"
-                name="proveedor"
-                value={nuevaFactura.proveedor}
-                onChange={handleNuevaFacturaChange}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Número de Factura"
-                name="numeroFactura"
-                value={nuevaFactura.numeroFactura}
-                onChange={handleNuevaFacturaChange}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Fecha"
-                type="date"
-                name="fecha"
-                value={nuevaFactura.fecha}
-                onChange={handleNuevaFacturaChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Monto"
-                name="monto"
-                type="number"
-                value={nuevaFactura.monto}
-                onChange={handleNuevaFacturaChange}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">Bs.</InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setOpenNuevaFacturaModal(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleCrearFactura}
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
-          >
-            {loading ? 'Registrando...' : 'Registrar Factura'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+        </AnimatePresence>
+        
+        {/* Modal de Nueva Factura */}
+        <AnimatePresence>
+          {openNuevaFacturaModal && (
+            <Dialog 
+              open={openNuevaFacturaModal} 
+              onClose={() => setOpenNuevaFacturaModal(false)}
+              PaperComponent={motion.div}
+              PaperProps={{
+                initial: { opacity: 0, y: 20 },
+                animate: { opacity: 1, y: 0 },
+                exit: { opacity: 0, y: 20 },
+                transition: { duration: 0.3 }
+              }}
+              maxWidth="sm"
+              fullWidth
+            >
+              <DialogTitle sx={{ 
+                bgcolor: 'primary.main', 
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontWeight: 'bold',
+                fontSize: '1.25rem'
+              }}>
+                Registrar Nueva Factura Pendiente
+                <IconButton 
+                  size="small" 
+                  onClick={() => setOpenNuevaFacturaModal(false)}
+                  sx={{ color: 'white' }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </DialogTitle>
+              <DialogContent sx={{ pt: 3, p: 3 }}>
+                <Box component={motion.div} layout>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Concepto"
+                        name="concepto"
+                        value={nuevaFactura.concepto}
+                        onChange={handleNuevaFacturaChange}
+                        required
+                        variant="outlined"
+                        InputProps={{
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Proveedor"
+                        name="proveedor"
+                        value={nuevaFactura.proveedor}
+                        onChange={handleNuevaFacturaChange}
+                        variant="outlined"
+                        InputProps={{
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Número de Factura"
+                        name="numeroFactura"
+                        value={nuevaFactura.numeroFactura}
+                        onChange={handleNuevaFacturaChange}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: <ReceiptIcon color="primary" sx={{ mr: 1, opacity: 0.6 }} />,
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Fecha"
+                        type="date"
+                        name="fecha"
+                        value={nuevaFactura.fecha}
+                        onChange={handleNuevaFacturaChange}
+                        InputLabelProps={{ shrink: true }}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: <CalendarIcon color="primary" sx={{ mr: 1, opacity: 0.6 }} />,
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Monto"
+                        name="monto"
+                        type="number"
+                        value={nuevaFactura.monto}
+                        onChange={handleNuevaFacturaChange}
+                        required
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <MoneyIcon color="primary" sx={{ mr: 0.5 }} /> Bs.
+                            </InputAdornment>
+                          ),
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'space-between' }}>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    onClick={() => setOpenNuevaFacturaModal(false)}
+                    variant="outlined"
+                    sx={{ 
+                      borderRadius: '10px',
+                      px: 3,
+                      textTransform: 'none'
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    variant="contained" 
+                    onClick={handleCrearFactura}
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
+                    sx={{ 
+                      borderRadius: '10px',
+                      px: 3,
+                      background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                      boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                      textTransform: 'none',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {loading ? 'Registrando...' : 'Registrar Factura'}
+                  </Button>
+                </motion.div>
+              </DialogActions>
+            </Dialog>
+          )}
+        </AnimatePresence>
+        
+        <ToastContainer 
+          position="bottom-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
+      </MainContainer>
+    </motion.div>
   );
 };
 
-export default FacturasPendientes; 
+// Función para mostrar el estado como chip
+const EstadoChip = ({ pagada, saldo }) => {
+  if (pagada) {
+    return (
+      <Chip 
+        label="Pagada" 
+        color="success"
+        size="small"
+        variant="filled"
+        sx={{ 
+          fontWeight: 'bold',
+          boxShadow: '0 2px 5px rgba(0,200,83,0.2)',
+          '& .MuiChip-label': { px: 2 }
+        }}
+      />
+    );
+  }
+  
+  return (
+    <Chip 
+      label="Pendiente" 
+      color="warning"
+      size="small"
+      variant="filled"
+      sx={{ 
+        fontWeight: 'bold',
+        boxShadow: '0 2px 5px rgba(255,152,0,0.2)',
+        '& .MuiChip-label': { px: 2 }
+      }}
+    />
+  );
+};
+
+export default FacturasPendientes;
