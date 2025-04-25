@@ -3,7 +3,8 @@ import {
   Container, Typography, Box, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TablePagination, Button, TextField, Dialog, DialogTitle,
   DialogContent, DialogActions, IconButton, CircularProgress, Card, CardContent,
-  Grid, Chip, useTheme, useMediaQuery, Divider, Tooltip, Zoom, Fade
+  Grid, Chip, useTheme, useMediaQuery, Divider, Tooltip, Zoom, Fade,
+  FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -12,14 +13,24 @@ import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
   PriceChange as PriceChangeIcon,
-  MoreVert as MoreVertIcon
+  MoreVert as MoreVertIcon,
+  DateRange as DateRangeIcon,
+  CalendarMonth as CalendarMonthIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { es } from 'date-fns/locale';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const API_URL = "https://suministros-backend.vercel.app/api";
+// Nombres de los meses en español
+const MESES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
 
 // Componente con animación para la tarjeta de lista de precios
 const AnimatedCard = ({ children, delay }) => (
@@ -60,11 +71,14 @@ const ListaPrecios = () => {
     nombreProducto: '',
     precio1: '',
     precio2: '',
-    precio3: ''
+    precio3: '',
+    fecha: new Date()
   });
   
-  // Estado para búsqueda
+  // Estado para búsqueda y filtros
   const [busqueda, setBusqueda] = useState('');
+  const [mesSeleccionado, setMesSeleccionado] = useState('');
+  const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
   const [searchFocused, setSearchFocused] = useState(false);
   
   // Vista en modo tarjeta o tabla
@@ -80,13 +94,20 @@ const ListaPrecios = () => {
   const cargarListasPrecios = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/listaprecios`, {
-        params: {
-          page: page + 1, // +1 porque MUI usa 0-based indexing
-          limit: rowsPerPage,
-          busqueda
-        }
-      });
+      // Construir parámetros de consulta
+      const params = {
+        page: page + 1, // +1 porque MUI usa 0-based indexing
+        limit: rowsPerPage,
+        busqueda
+      };
+      
+      // Agregar filtros de mes y año si están seleccionados
+      if (mesSeleccionado) {
+        params.mes = mesSeleccionado;
+        params.anio = anioSeleccionado;
+      }
+      
+      const response = await axios.get(`${API_URL}/listaprecios`, { params });
       
       // Usar la estructura de respuesta de mongoose-paginate-v2
       setListasPrecios(response.data.listasPrecios || []);
@@ -116,7 +137,17 @@ const ListaPrecios = () => {
 
   useEffect(() => {
     cargarListasPrecios();
-  }, [page, rowsPerPage, busqueda]);
+  }, [page, rowsPerPage, busqueda, mesSeleccionado, anioSeleccionado]);
+
+  // Generar años para el selector
+  const getAniosDisponibles = () => {
+    const anioActual = new Date().getFullYear();
+    const anios = [];
+    for (let i = anioActual - 5; i <= anioActual + 1; i++) {
+      anios.push(i);
+    }
+    return anios;
+  };
 
   // Manejar cambios en el formulario
   const handleChange = (e) => {
@@ -124,6 +155,14 @@ const ListaPrecios = () => {
     setCurrentItem(prev => ({
       ...prev,
       [name]: name.startsWith('precio') ? parseFloat(value) || '' : value
+    }));
+  };
+
+  // Manejar cambio de fecha
+  const handleFechaChange = (fecha) => {
+    setCurrentItem(prev => ({
+      ...prev,
+      fecha
     }));
   };
 
@@ -135,23 +174,34 @@ const ListaPrecios = () => {
         toast.error('El nombre del producto es obligatorio');
         return;
       }
-      
+
+      // Preparar datos para enviar
+      const datosPrecio = {
+        nombreProducto: currentItem.nombreProducto,
+        precio1: parseFloat(currentItem.precio1) || 0,
+        precio2: parseFloat(currentItem.precio2) || 0,
+        precio3: parseFloat(currentItem.precio3) || 0,
+        fecha: currentItem.fecha
+      };
+
+      let response;
       if (currentItem._id) {
         // Actualizar existente
-        await axios.put(`${API_URL}/listaprecios/${currentItem._id}`, currentItem);
+        response = await axios.put(`${API_URL}/listaprecios/${currentItem._id}`, datosPrecio);
         toast.success('Lista de precios actualizada correctamente');
       } else {
-        // Crear nueva
-        await axios.post(`${API_URL}/listaprecios`, currentItem);
+        // Crear nuevo
+        response = await axios.post(`${API_URL}/listaprecios`, datosPrecio);
         toast.success('Lista de precios creada correctamente');
       }
-      
+
+      console.log('Respuesta:', response.data);
       setOpenDialog(false);
       cargarListasPrecios();
       
     } catch (error) {
       console.error('Error al guardar:', error);
-      toast.error('Error al guardar la lista de precios');
+      toast.error(`Error al guardar: ${error.message}`);
     }
   };
 
@@ -393,6 +443,42 @@ const ListaPrecios = () => {
     </TableContainer>
   );
 
+  // Renderizar filtro de mes/año
+  const renderFiltroMes = () => (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="mes-select-label">Mes</InputLabel>
+        <Select
+          labelId="mes-select-label"
+          value={mesSeleccionado}
+          label="Mes"
+          onChange={(e) => setMesSeleccionado(e.target.value)}
+          startAdornment={<CalendarMonthIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />}
+        >
+          <MenuItem value="">Todos los meses</MenuItem>
+          {MESES.map((mes, index) => (
+            <MenuItem key={index + 1} value={index + 1}>{mes}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      
+      <FormControl size="small" sx={{ minWidth: 120 }}>
+        <InputLabel id="anio-select-label">Año</InputLabel>
+        <Select
+          labelId="anio-select-label"
+          value={anioSeleccionado}
+          label="Año"
+          onChange={(e) => setAnioSeleccionado(e.target.value)}
+          disabled={!mesSeleccionado}
+        >
+          {getAniosDisponibles().map(anio => (
+            <MenuItem key={anio} value={anio}>{anio}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Box>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -471,6 +557,9 @@ const ListaPrecios = () => {
                 </motion.div>
               </Grid>
               <Grid item xs={12} md={6}>
+                {renderFiltroMes()}
+              </Grid>
+              <Grid item xs={12} md={6}>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                   <ActionButtonContainer>
                     <Tooltip title="Cambiar vista" TransitionComponent={Zoom} arrow>
@@ -509,7 +598,8 @@ const ListaPrecios = () => {
                             nombreProducto: '',
                             precio1: '',
                             precio2: '',
-                            precio3: ''
+                            precio3: '',
+                            fecha: new Date()
                           });
                           setOpenDialog(true);
                         }}
@@ -600,13 +690,11 @@ const ListaPrecios = () => {
           maxWidth="sm" 
           fullWidth
           TransitionComponent={Fade}
-          transitionDuration={400}
+          PaperProps={{
+            sx: { borderRadius: '12px' }
+          }}
         >
-          <DialogTitle sx={{ 
-            background: theme.palette.primary.main, 
-            color: 'white',
-            fontSize: '1.2rem' 
-          }}>
+          <DialogTitle sx={{ background: theme.palette.primary.main, color: 'white' }}>
             <motion.div
               initial={{ x: -20 }}
               animate={{ x: 0 }}
@@ -639,6 +727,28 @@ const ListaPrecios = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.2 }}
+              >
+                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+                  <DatePicker
+                    label="Fecha"
+                    value={currentItem.fecha}
+                    onChange={handleFechaChange}
+                    renderInput={(params) => (
+                      <TextField 
+                        {...params} 
+                        fullWidth 
+                        margin="dense" 
+                        sx={{ mb: 2 }}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
               >
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={4}>
