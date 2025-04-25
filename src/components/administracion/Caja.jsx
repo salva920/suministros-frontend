@@ -16,8 +16,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
-import moment from 'moment-timezone';
-import 'moment-timezone';
+import moment from 'moment';
+import 'moment/locale/es';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -224,6 +224,39 @@ const CajaInteractiva = () => {
     acc[t.moneda].salidas += t.salida;
     return acc;
   }, {});
+
+  // Función precisa para formatear fechas
+  const formatearFechaPrecisa = (fecha) => {
+    if (!fecha) return 'No disponible';
+    
+    try {
+      // Crear objeto fecha a partir del valor
+      let fechaObj;
+      if (fecha instanceof Date) {
+        fechaObj = fecha;
+      } else if (typeof fecha === 'string') {
+        fechaObj = new Date(fecha);
+      } else {
+        return 'Formato inválido';
+      }
+      
+      // Verificar que la fecha sea válida
+      if (isNaN(fechaObj.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      // Extraer componentes de la fecha directamente
+      const dia = fechaObj.getUTCDate();
+      const mes = fechaObj.getUTCMonth() + 1; // Los meses en JS son 0-11
+      const anio = fechaObj.getUTCFullYear();
+      
+      // Formatear manualmente para evitar problemas de zona horaria
+      return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio}`;
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return 'Error de formato';
+    }
+  };
 
   if (!state.accesoAutorizado) {
     return (
