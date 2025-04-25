@@ -627,10 +627,10 @@ const GestionInventario = () => {
                   <StyledTableCell align="right">Stock</StyledTableCell>
         
                   <StyledTableCell align="right">
-                      {producto.fechaIngreso instanceof Date && !isNaN(producto.fechaIngreso) 
-                        ? moment.utc(producto.fechaIngreso).format('DD/MM/YYYY')
-                        : 'Fecha inválida'}
-                    </StyledTableCell>
+                    {producto && producto.fechaIngreso 
+                      ? moment.utc(producto.fechaIngreso).format('DD/MM/YYYY') 
+                      : 'No disponible'}
+                  </StyledTableCell>
                   <StyledTableCell align="center">Acciones</StyledTableCell>
                 </TableRow>
               </TableHead>
@@ -663,9 +663,9 @@ const GestionInventario = () => {
                       />
                     </StyledTableCell>
                     <StyledTableCell align="right">
-                      {producto.fechaIngreso instanceof Date && !isNaN(producto.fechaIngreso) 
-                        ? moment.utc(producto.fechaIngreso).format('DD/MM/YYYY')
-                        : 'Fecha inválida'}
+                      {producto && producto.fechaIngreso 
+                        ? moment.utc(producto.fechaIngreso).format('DD/MM/YYYY') 
+                        : 'No disponible'}
                     </StyledTableCell>
                     <StyledTableCell align="center">
                       <IconButton onClick={() => abrirEntradaStock(producto)}>
