@@ -18,7 +18,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
 import moment from 'moment-timezone';
 import 'moment-timezone';
-import 'moment/locale/es';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -79,11 +78,9 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
           {filteredTransactions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((t) => (
             <TableRow key={t._id} hover>
               <TableCell>
-                {t.fecha instanceof Date && !isNaN(t.fecha) 
-                  ? moment.utc(t.fecha).add(1, 'days').format('DD/MM/YYYY')
-                  : typeof t.fecha === 'string' && t.fecha
-                    ? moment.utc(new Date(t.fecha)).add(1, 'days').format('DD/MM/YYYY')
-                    : 'Fecha inválida'}
+                {moment.utc(t.fecha)
+                  .tz('America/Caracas')
+                  .format('DD/MM/YYYY')}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
               <TableCell>
