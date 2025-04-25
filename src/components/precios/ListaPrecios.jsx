@@ -77,22 +77,16 @@ const ListaPrecios = () => {
   const cargarListasPrecios = async () => {
     setLoading(true);
     try {
-      // Construir parámetros de consulta
       const params = {
         page: page + 1, // +1 porque MUI usa 0-based indexing
         limit: rowsPerPage,
-        busqueda
+        busqueda,
+        mes: mesSeleccionado,
+        anio: anioSeleccionado
       };
-      
-      // Agregar filtros de mes y año si están seleccionados
-      if (mesSeleccionado) {
-        params.mes = mesSeleccionado;
-        params.anio = anioSeleccionado;
-      }
       
       const response = await axios.get(`${API_URL}/listaprecios`, { params });
       
-      // Usar la estructura de respuesta de mongoose-paginate-v2
       setListasPrecios(response.data.listasPrecios || []);
       setTotalItems(response.data.totalDocs || 0);
       setTotalPages(response.data.totalPages || 0);
@@ -137,7 +131,6 @@ const ListaPrecios = () => {
   // Manejar envío del formulario
   const handleSubmit = async () => {
     try {
-      // Validar campos requeridos
       if (!currentItem.nombreProducto) {
         toast.warning('El nombre del producto es obligatorio');
         return;
@@ -150,23 +143,20 @@ const ListaPrecios = () => {
         precio3: parseFloat(currentItem.precio3) || 0
       };
 
-      let response;
-      
       if (currentItem._id) {
-        // Actualizar
-        response = await axios.put(`${API_URL}/listaprecios/${currentItem._id}`, data);
+        await axios.put(`${API_URL}/listaprecios/${currentItem._id}`, data);
         toast.success('Lista de precios actualizada correctamente');
       } else {
-        // Crear nuevo
-        response = await axios.post(`${API_URL}/listaprecios`, data);
+        await axios.post(`${API_URL}/listaprecios`, data);
         toast.success('Lista de precios creada correctamente');
       }
 
       setOpenDialog(false);
       cargarListasPrecios();
+      setCurrentItem({ nombreProducto: '', precio1: '', precio2: '', precio3: '' });
     } catch (error) {
-      console.error('Error al guardar:', error);
-      toast.error(`Error al guardar: ${error.message}`);
+      console.error('Error al guardar la lista de precios:', error);
+      toast.error('Error al guardar la lista de precios');
     }
   };
 
