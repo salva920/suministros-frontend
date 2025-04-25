@@ -72,70 +72,31 @@ function TabPanel(props) {
 }
 
 const transformarProducto = (producto) => {
-  if (!producto || typeof producto !== 'object') {
-    console.warn('Producto inválido:', producto);
-    return null;
-  }
+  if (!producto) return null;
   
-  try {
-    // Función para parsear valores numéricos
-    const parseNumber = (value) => {
-      if (value === undefined || value === null) return 0;
-      if (typeof value === 'number') return value;
-      return parseFloat(value) || 0;
-    };
-    
-    // Función para parsear fechas manteniendo UTC
-    const parseDate = (value) => {
-      try {
-        if (!value) return new Date();
-        
-        // Intentar parsear usando moment en UTC
-        const momentDate = moment.utc(value);
-        if (momentDate.isValid()) {
-          // Mantener en UTC para evitar problemas de zona horaria
-          return momentDate.toDate();
-        }
-        
-        // Si falló moment, intentar con Date directamente
-        const fecha = new Date(value);
-        if (!isNaN(fecha.getTime())) return fecha;
-        
-        // Fallback - fecha actual en UTC
-        console.warn('No se pudo parsear la fecha, usando fecha actual:', value);
-        return moment.utc().toDate();
-      } catch (e) {
-        console.error('Error parseando fecha:', e, value);
-        return moment.utc().toDate();
-      }
-    };
-    
-    // Asegurar que el ID esté presente
-    const id = producto._id?.toString() || producto.id?.toString() || '';
-    
-    // Intentar parsear la fecha de ingreso en UTC
-    let fechaIngreso = parseDate(producto.fechaIngreso);
-    
-    console.log(`Fecha ingreso original: ${producto.fechaIngreso}, parseada UTC: ${moment.utc(fechaIngreso).format('YYYY-MM-DD')}`);
-    
-    return {
-      _id: id,
-      id: id,
-      nombre: producto.nombre || '',
-      codigo: producto.codigo || '',
-      proveedor: producto.proveedor || '',
-      costoInicial: parseNumber(producto.costoInicial),
-      acarreo: parseNumber(producto.acarreo),
-      flete: parseNumber(producto.flete),
-      cantidad: parseNumber(producto.cantidad),
-      costoFinal: parseNumber(producto.costoFinal),
-      stock: parseNumber(producto.stock) || parseNumber(producto.cantidad),
-      fechaIngreso: fechaIngreso,
-    };
-  } catch (error) {
-    console.error('Error transformando producto:', error, producto);
-    return null;
-  }
+  const parseNumber = (value) => {
+    if (value === undefined || value === null) return 0;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+  
+  return {
+    id: producto._id || producto.id,
+    nombre: producto.nombre || '',
+    codigo: producto.codigo || '',
+    descripcion: producto.descripcion || '',
+    proveedor: producto.proveedor || '',
+    precio: parseNumber(producto.precio),
+    costo: parseNumber(producto.costo),
+    costoInicial: parseNumber(producto.costoInicial),
+    acarreo: parseNumber(producto.acarreo),
+    flete: parseNumber(producto.flete),
+    costoFinal: parseNumber(producto.costoFinal),
+    stock: parseNumber(producto.stock) || parseNumber(producto.cantidad),
+    cantidad: parseNumber(producto.cantidad) || parseNumber(producto.stock),
+    fechaIngreso: producto.fechaIngreso || null,
+    // Otros campos que necesites...
+  };
 };
 
 const GestionInventario = () => {
@@ -166,85 +127,150 @@ const GestionInventario = () => {
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
 
-  useEffect(() => {
-    const cargarProductos = async () => {
-      try {
-        setCargando(true);
-        
-        const response = await axios.get(`${API_URL}/productos`);
-        const datosProductos = response.data?.productos || response.data || [];
-        
-        const productosTransformados = datosProductos
-          .map(p => transformarProducto(p))
-          .filter(p => p !== null);
-        
-        setProductos(productosTransformados);
-      } catch (error) {
-        console.error('Error al cargar productos:', error);
-        toast.error('Error al cargar productos');
-        setProductos([]);
-      } finally {
-        setCargando(false);
-      }
-    };
+  const cargarProductos = useCallback(async () => {
+    if (cargando) return; // Evita llamadas múltiples si ya está cargando
     
-    cargarProductos();
-  }, []);
+    try {
+      setCargando(true);
+      
+      const response = await axios.get(`${API_URL}/productos`);
+      const datosProductos = response.data?.productos || response.data || [];
+      
+      // Transformar productos correctamente
+      const productosTransformados = datosProductos
+        .map(p => {
+          // Asegurarse de manejar las fechas correctamente
+          const producto = transformarProducto(p);
+          if (producto && producto.fechaIngreso) {
+            // Normalizar el formato de fecha para evitar problemas
+            producto.fechaIngreso = normalizarFecha(producto.fechaIngreso);
+          }
+          return producto;
+        })
+        .filter(p => p !== null);
+      
+      setProductos(productosTransformados);
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+      toast.error('Error al cargar productos');
+    } finally {
+      setCargando(false);
+    }
+  }, [cargando]);
+
+  const normalizarFecha = (fecha) => {
+    if (!fecha) return '';
+    
+    // Convertir a objeto Date si es string
+    const fechaObj = typeof fecha === 'string' ? new Date(fecha) : fecha;
+    
+    // Formatear a YYYY-MM-DD (formato que acepta el input date)
+    const year = fechaObj.getFullYear();
+    const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
+    const day = String(fechaObj.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  };
 
   useEffect(() => {
-    console.log("Estado de productos actualizado, cantidad:", productos.length);
-  }, [productos]);
+    cargarProductos();
+  }, [cargarProductos]);
 
-  const abrirEditar = (producto) => {
-    try {
-      console.log("Producto original a editar:", producto);
+  const handleEditarProducto = (producto) => {
+    console.log('Producto original a editar:', producto);
+    
+    // Crear una copia para no modificar el original
+    const productoParaEditar = { ...producto };
+    
+    // Normalizar la fecha para el formulario
+    if (productoParaEditar.fechaIngreso) {
+      const fechaOriginal = new Date(productoParaEditar.fechaIngreso);
+      console.log('Fecha original:', fechaOriginal);
       
-      // Asegurar que tengamos un ID válido
-      const productoId = producto._id || producto.id;
-      if (!productoId) {
-        console.error("Error: El producto no tiene ID");
-        toast.error("No se puede editar este producto");
+      const fechaFormateada = normalizarFecha(fechaOriginal);
+      console.log('Fecha formateada para edición:', fechaFormateada);
+      
+      productoParaEditar.fechaIngreso = fechaFormateada;
+    }
+    
+    console.log('Producto normalizado para edición:', productoParaEditar);
+    setProductoEditando(productoParaEditar);
+    setMostrarFormulario(true);
+  };
+
+  const actualizarProducto = (productoActualizado) => {
+    try {
+      // Asegurarse de que la fecha esté en formato correcto para el backend
+      const productoPreparado = { ...productoActualizado };
+      
+      if (productoPreparado.fechaIngreso) {
+        // Convertir a formato ISO para el backend
+        const fechaObj = new Date(productoPreparado.fechaIngreso);
+        productoPreparado.fechaIngreso = fechaObj.toISOString();
+      }
+      
+      const productoTransformado = transformarProducto(productoPreparado);
+      
+      if (!productoTransformado) {
+        toast.error('Error procesando el producto actualizado');
         return;
       }
+
+      // Actualizar estado local sin solicitud redundante al backend
+      const nuevosProductos = productos.map(p => 
+        p.id === productoTransformado.id ? productoTransformado : p
+      );
       
-      // Formatear fecha correctamente para el formulario
-      // Usar moment.utc para mantener la fecha en UTC y evitar conversiones a zona horaria local
-      let fechaFormateada = '';
-      if (producto.fechaIngreso) {
-        // Usar UTC para evitar problemas de zona horaria
-        const fechaUTC = moment.utc(producto.fechaIngreso);
-        if (fechaUTC.isValid()) {
-          // Formatear en YYYY-MM-DD manteniendo la fecha UTC
-          fechaFormateada = fechaUTC.format('YYYY-MM-DD');
-        } else {
-          console.warn("Fecha inválida:", producto.fechaIngreso);
-          fechaFormateada = moment.utc().format('YYYY-MM-DD');
-        }
-      } else {
-        fechaFormateada = moment.utc().format('YYYY-MM-DD');
-      }
+      setProductos(nuevosProductos);
       
-      console.log("Fecha original:", producto.fechaIngreso);
-      console.log("Fecha formateada para edición:", fechaFormateada);
+      // Reset estados para evitar problemas al agregar nuevos productos
+      setProductoEditando(null);
+      setMostrarFormulario(false);
       
-      // Normalizar el producto para edición
-      const productoNormalizado = {
-        ...producto,
-        _id: productoId,
-        fechaIngreso: fechaFormateada, // Usar fecha ya formateada en UTC
-        stockActual: producto.stock // Mantener referencia al stock actual
-      };
-      
-      console.log("Producto normalizado para edición:", productoNormalizado);
-      
-      // Establecer el producto en edición
-      setProductoEditando(productoNormalizado);
-      
-      // Mostrar el formulario de edición
-      setMostrarFormulario(true);
+      // Una sola notificación
+      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
     } catch (error) {
-      console.error("Error al preparar producto para edición:", error);
-      toast.error("Error al preparar el producto para edición");
+      console.error('Error al actualizar el producto:', error);
+      toast.error('Error al actualizar el producto');
+      
+      // Resetear estados incluso si hay error
+      setProductoEditando(null);
+      setMostrarFormulario(false);
+    }
+  };
+
+  const handleProductoGuardado = (nuevoProducto) => {
+    // Verificar si es una actualización o un nuevo producto
+    const esActualizacion = nuevoProducto._id || nuevoProducto.id;
+    
+    if (esActualizacion) {
+      actualizarProducto(nuevoProducto);
+    } else {
+      // Es un nuevo producto
+      try {
+        const productoTransformado = transformarProducto(nuevoProducto);
+        if (!productoTransformado) {
+          toast.error('Error procesando el nuevo producto');
+          return;
+        }
+        
+        // Agregar al estado
+        setProductos(prevProductos => [productoTransformado, ...prevProductos]);
+        
+        // Reset estados
+        setProductoEditando(null);
+        setMostrarFormulario(false);
+        
+        // Una sola notificación
+        toast.success('Producto agregado correctamente');
+      } catch (error) {
+        console.error('Error al procesar nuevo producto:', error);
+        toast.error('Error al agregar el producto');
+        
+        // Resetear estados incluso si hay error
+        setProductoEditando(null);
+        setMostrarFormulario(false);
+      }
     }
   };
 
@@ -304,37 +330,6 @@ const GestionInventario = () => {
     } catch (error) {
       console.error("Error actualizando la lista de productos:", error);
       cargarProductos();
-    }
-  };
-
-  const handleProductoGuardado = (nuevoProducto) => {
-    actualizarListaProductos(nuevoProducto);
-    toast.success('Producto agregado correctamente');
-  };
-
-  const actualizarProducto = (productoActualizado) => {
-    try {
-      // Transformar el producto recibido asegurando que el stock se maneje correctamente
-      const productoTransformado = transformarProducto({
-        ...productoActualizado,
-        stock: productoActualizado.stock || productoActualizado.cantidad // Asegurar stock
-      });
-      
-      if (!productoTransformado) {
-        toast.error('Error procesando el producto actualizado');
-        return;
-      }
-
-      // Actualizar el estado de productos sin hacer una solicitud PUT
-      const nuevosProductos = productos.map(p => 
-        p.id === productoTransformado.id ? productoTransformado : p
-      );
-      
-      setProductos(nuevosProductos);
-      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
-    } catch (error) {
-      console.error('Error al actualizar el producto:', error);
-      toast.error('Error al actualizar el producto');
     }
   };
 
@@ -671,7 +666,7 @@ const GestionInventario = () => {
                       <IconButton onClick={() => abrirEntradaStock(producto)}>
                         <InputIcon color="primary" />
                       </IconButton>
-                      <IconButton onClick={() => abrirEditar(producto)}>
+                      <IconButton onClick={() => handleEditarProducto(producto)}>
                         <Edit color="primary" />
                       </IconButton>
                       <IconButton onClick={() => eliminarProducto(producto.id)}>
@@ -716,7 +711,7 @@ const GestionInventario = () => {
           setProductoEditando(null);
         }}
         productoEditando={productoEditando}
-        onProductoGuardado={productoEditando ? actualizarProducto : handleProductoGuardado}
+        onProductoGuardado={handleProductoGuardado}
       />
 
       <Dialog open={modalEntradaAbierto} onClose={() => setModalEntradaAbierto(false)}>
