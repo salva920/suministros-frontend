@@ -20,9 +20,11 @@ import {
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { debounce } from 'lodash';
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 
-// URL de la API
-const API_URL = "https://suministros-backend.vercel.app/api";
+// URL de la API - CORREGIDA para coincidir con server.js
+const API_URL = "https://suministros-backend.vercel.app/api/facturaPendiente";
 
 // Componentes estilizados
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -123,7 +125,7 @@ const FacturasPendientes = () => {
       if (fechaDesde) params.append('fechaDesde', fechaDesde);
       if (fechaHasta) params.append('fechaHasta', fechaHasta);
       
-      const response = await axios.get(`${API_URL}/facturas-pendientes?${params.toString()}`);
+      const response = await axios.get(`${API_URL}?${params.toString()}`);
       
       setFacturas(response.data.facturas);
       setTotalItems(response.data.totalDocs);
@@ -141,37 +143,49 @@ const FacturasPendientes = () => {
     cargarFacturas();
   }, [cargarFacturas]);
   
-  // Búsqueda con debounce para evitar múltiples llamadas
-  const debouncedSearch = useCallback(
-    debounce((value) => {
-      setBusqueda(value);
-      setPage(0); // Volver a la primera página al buscar
-    }, 500),
-    []
-  );
-  
-  // Manejar cambio de página
+  // Manejador de cambio de página
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
   
-  // Manejar cambio de filas por página
+  // Manejador de cambio de filas por página
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
   
-  // Restablecer filtros
-  const handleResetFiltros = () => {
-    setBusqueda('');
-    setFiltroEstado('pendientes');
-    setFechaDesde('');
-    setFechaHasta('');
+  // Función para buscar facturas (con debounce)
+  const buscarFacturas = debounce((valor) => {
+    setBusqueda(valor);
+    setPage(0);
+  }, 500);
+  
+  // Manejador de cambio en búsqueda
+  const handleBusquedaChange = (e) => {
+    const valor = e.target.value;
+    buscarFacturas(valor);
+  };
+  
+  // Manejador de cambio en filtro de estado
+  const handleFiltroEstadoChange = (e) => {
+    setFiltroEstado(e.target.value);
+    setPage(0);
+  };
+  
+  // Manejador de cambio en fecha desde
+  const handleFechaDesdeChange = (e) => {
+    setFechaDesde(e.target.value);
+    setPage(0);
+  };
+  
+  // Manejador de cambio en fecha hasta
+  const handleFechaHastaChange = (e) => {
+    setFechaHasta(e.target.value);
     setPage(0);
   };
   
   // Abrir modal de abono
-  const handleOpenAbonoModal = (factura) => {
+  const abrirModalAbono = (factura) => {
     setFacturaSeleccionada(factura);
     setMontoAbono('');
     setErrorAbono('');
@@ -180,60 +194,73 @@ const FacturasPendientes = () => {
   
   // Registrar abono
   const handleRegistrarAbono = async () => {
-    // Validaciones
-    const monto = parseFloat(montoAbono);
-    if (isNaN(monto) || monto <= 0) {
-      setErrorAbono('El monto debe ser un número positivo');
+    if (!montoAbono || isNaN(montoAbono) || parseFloat(montoAbono) <= 0) {
+      setErrorAbono('Ingrese un monto válido');
       return;
     }
     
-    if (monto > facturaSeleccionada.saldo) {
-      setErrorAbono('El abono no puede ser mayor al saldo pendiente');
+    if (parseFloat(montoAbono) > facturaSeleccionada.saldo) {
+      setErrorAbono('El abono no puede superar el saldo pendiente');
       return;
     }
     
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/facturas-pendientes/${facturaSeleccionada._id}/abonos`, {
-        monto
+      await axios.post(`${API_URL}/${facturaSeleccionada._id}/abonos`, {
+        monto: parseFloat(montoAbono)
       });
       
       toast.success('Abono registrado correctamente');
       setOpenAbonoModal(false);
-      cargarFacturas(); // Recargar para ver cambios
+      cargarFacturas();
     } catch (error) {
       console.error('Error al registrar abono:', error);
-      toast.error('No se pudo registrar el abono');
+      toast.error('Error al registrar el abono');
     } finally {
       setLoading(false);
     }
   };
   
+  // Abrir modal de nueva factura
+  const abrirModalNuevaFactura = () => {
+    setNuevaFactura({
+      concepto: '',
+      proveedor: '',
+      numeroFactura: '',
+      monto: '',
+      fecha: new Date().toISOString().split('T')[0]
+    });
+    setOpenNuevaFacturaModal(true);
+  };
+  
+  // Manejador de cambio en campos de nueva factura
+  const handleNuevaFacturaChange = (e) => {
+    const { name, value } = e.target;
+    setNuevaFactura(prev => ({ ...prev, [name]: value }));
+  };
+  
   // Crear nueva factura
   const handleCrearFactura = async () => {
-    // Validaciones
-    if (!nuevaFactura.concepto || !nuevaFactura.monto) {
-      toast.error('El concepto y monto son obligatorios');
+    if (!nuevaFactura.concepto.trim()) {
+      toast.error('El concepto es obligatorio');
+      return;
+    }
+    
+    if (!nuevaFactura.monto || isNaN(nuevaFactura.monto) || parseFloat(nuevaFactura.monto) <= 0) {
+      toast.error('Ingrese un monto válido');
       return;
     }
     
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/facturas-pendientes`, nuevaFactura);
+      await axios.post(API_URL, nuevaFactura);
       
-      toast.success('Factura pendiente registrada correctamente');
+      toast.success('Factura registrada correctamente');
       setOpenNuevaFacturaModal(false);
-      setNuevaFactura({
-        concepto: '',
-        proveedor: '',
-        numeroFactura: '',
-        monto: '',
-        fecha: new Date().toISOString().split('T')[0]
-      });
-      cargarFacturas(); // Recargar para ver la nueva factura
+      cargarFacturas();
     } catch (error) {
-      console.error('Error al crear factura pendiente:', error);
-      toast.error('No se pudo registrar la factura');
+      console.error('Error al crear factura:', error);
+      toast.error('Error al registrar la factura');
     } finally {
       setLoading(false);
     }
@@ -241,48 +268,38 @@ const FacturasPendientes = () => {
   
   // Eliminar factura
   const handleEliminarFactura = async (facturaId) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta factura pendiente?')) {
+    if (!window.confirm('¿Está seguro de eliminar esta factura?')) {
       return;
     }
     
     setLoading(true);
     try {
-      await axios.delete(`${API_URL}/facturas-pendientes/${facturaId}`);
+      await axios.delete(`${API_URL}/${facturaId}`);
       
       toast.success('Factura eliminada correctamente');
-      cargarFacturas(); // Recargar lista
+      cargarFacturas();
     } catch (error) {
       console.error('Error al eliminar factura:', error);
-      toast.error('No se pudo eliminar la factura');
+      toast.error('Error al eliminar la factura');
     } finally {
       setLoading(false);
     }
   };
   
-  // Manejar cambios en formulario de nueva factura
-  const handleNuevaFacturaChange = (e) => {
-    const { name, value } = e.target;
-    setNuevaFactura({
-      ...nuevaFactura,
-      [name]: value
-    });
-  };
-  
-  // Calcular saldo total
-  const saldoTotal = facturas.reduce((total, factura) => total + factura.saldo, 0);
-  
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          <ReceiptIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Facturas Pendientes por Pagar
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <ToastContainer position="top-right" autoClose={3000} />
+      
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" color="primary" gutterBottom>
+          Facturas Pendientes
         </Typography>
         
         <Button
           variant="contained"
+          color="primary"
           startIcon={<AddIcon />}
-          onClick={() => setOpenNuevaFacturaModal(true)}
+          onClick={abrirModalNuevaFactura}
         >
           Nueva Factura
         </Button>
@@ -290,11 +307,6 @@ const FacturasPendientes = () => {
       
       {/* Filtros */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" component="h2" gutterBottom>
-          Filtros
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={3}>
             <TextField
@@ -302,7 +314,7 @@ const FacturasPendientes = () => {
               label="Buscar"
               variant="outlined"
               size="small"
-              onChange={(e) => debouncedSearch(e.target.value)}
+              onChange={handleBusquedaChange}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -318,111 +330,76 @@ const FacturasPendientes = () => {
               fullWidth
               select
               label="Estado"
+              value={filtroEstado}
+              onChange={handleFiltroEstadoChange}
               variant="outlined"
               size="small"
-              value={filtroEstado}
-              onChange={(e) => {
-                setFiltroEstado(e.target.value);
-                setPage(0);
-              }}
             >
               <MenuItem value="pendientes">Pendientes</MenuItem>
+              <MenuItem value="parciales">Abonadas</MenuItem>
               <MenuItem value="pagadas">Pagadas</MenuItem>
-              <MenuItem value="parciales">Pago Parcial</MenuItem>
               <MenuItem value="todas">Todas</MenuItem>
             </TextField>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               label="Desde"
               type="date"
+              value={fechaDesde}
+              onChange={handleFechaDesdeChange}
               variant="outlined"
               size="small"
-              value={fechaDesde}
-              onChange={(e) => {
-                setFechaDesde(e.target.value);
-                setPage(0);
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
           
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               label="Hasta"
               type="date"
+              value={fechaHasta}
+              onChange={handleFechaHastaChange}
               variant="outlined"
               size="small"
-              value={fechaHasta}
-              onChange={(e) => {
-                setFechaHasta(e.target.value);
-                setPage(0);
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
               InputLabelProps={{ shrink: true }}
             />
-          </Grid>
-          
-          <Grid item xs={12} md={2} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-            <Button
-              variant="outlined"
-              size="medium"
-              startIcon={<RefreshIcon />}
-              onClick={handleResetFiltros}
-            >
-              Reiniciar
-            </Button>
           </Grid>
         </Grid>
       </Paper>
       
       {/* Tabla de facturas */}
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <TableContainer sx={{ maxHeight: 440 }}>
-          <Table stickyHeader aria-label="facturas pendientes">
+      <Paper>
+        <TableContainer>
+          <Table>
             <TableHead>
               <TableRow>
                 <StyledTableCell>Fecha</StyledTableCell>
                 <StyledTableCell>Concepto</StyledTableCell>
+                <StyledTableCell>Proveedor</StyledTableCell>
+                <StyledTableCell>N° Factura</StyledTableCell>
                 <StyledTableCell align="right">Monto</StyledTableCell>
-                <StyledTableCell align="right">Abono</StyledTableCell>
+                <StyledTableCell align="right">Abonado</StyledTableCell>
                 <StyledTableCell align="right">Saldo</StyledTableCell>
-                <StyledTableCell align="center">Estado</StyledTableCell>
                 <StyledTableCell align="center">Acciones</StyledTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading && facturas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                  <TableCell colSpan={8} align="center">
                     <CircularProgress size={40} />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      Cargando facturas...
-                    </Typography>
+                    <Typography sx={{ mt: 2 }}>Cargando facturas...</Typography>
                   </TableCell>
                 </TableRow>
               ) : facturas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                    <Typography variant="body1">
-                      No se encontraron facturas pendientes
-                    </Typography>
+                  <TableCell colSpan={8} align="center">
+                    <Alert severity="info">
+                      No hay facturas que coincidan con los filtros aplicados
+                    </Alert>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -432,69 +409,32 @@ const FacturasPendientes = () => {
                     className={factura.saldo === 0 ? 'pagada' : ''}
                   >
                     <TableCell>{formatearFechaSimple(factura.fecha)}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                        {factura.concepto}
-                      </Typography>
-                      {factura.proveedor && (
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          Proveedor: {factura.proveedor}
-                        </Typography>
-                      )}
-                      {factura.numeroFactura && (
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          N° Factura: {factura.numeroFactura}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                      {formatearMoneda(factura.monto)}
-                    </TableCell>
+                    <TableCell>{factura.concepto}</TableCell>
+                    <TableCell>{factura.proveedor || '-'}</TableCell>
+                    <TableCell>{factura.numeroFactura || '-'}</TableCell>
+                    <TableCell align="right">{formatearMoneda(factura.monto)}</TableCell>
+                    <TableCell align="right">{formatearMoneda(factura.abono)}</TableCell>
                     <TableCell align="right">
-                      {formatearMoneda(factura.abono)}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                      {formatearMoneda(factura.saldo)}
-                    </TableCell>
-                    <TableCell align="center">
-                      {factura.saldo === 0 ? (
-                        <Chip 
-                          label="Pagada" 
-                          color="success" 
-                          size="small" 
-                        />
-                      ) : factura.abono > 0 ? (
-                        <Chip 
-                          label="Parcial" 
-                          color="warning" 
-                          size="small" 
-                        />
-                      ) : (
-                        <Chip 
-                          label="Pendiente" 
-                          color="error" 
-                          size="small" 
-                        />
-                      )}
+                      <Chip 
+                        label={formatearMoneda(factura.saldo)}
+                        color={factura.saldo === 0 ? 'success' : factura.abono > 0 ? 'warning' : 'error'}
+                        variant="outlined"
+                      />
                     </TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                        <Tooltip title="Registrar abono">
-                          <span>
+                        {factura.saldo > 0 && (
+                          <Tooltip title="Registrar abono">
                             <IconButton 
-                              size="small" 
-                              color="primary" 
-                              disabled={factura.saldo === 0}
-                              onClick={() => handleOpenAbonoModal(factura)}
+                              color="primary"
+                              onClick={() => abrirModalAbono(factura)}
                             >
                               <MoneyIcon />
                             </IconButton>
-                          </span>
-                        </Tooltip>
-                        
+                          </Tooltip>
+                        )}
                         <Tooltip title="Eliminar">
                           <IconButton 
-                            size="small" 
                             color="error"
                             onClick={() => handleEliminarFactura(factura._id)}
                           >
@@ -510,25 +450,17 @@ const FacturasPendientes = () => {
           </Table>
         </TableContainer>
         
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, bgcolor: 'background.default' }}>
-          <Typography variant="body2" color="text.secondary">
-            Saldo total: <strong>{formatearMoneda(saldoTotal)}</strong>
-          </Typography>
-          
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            component="div"
-            count={totalItems}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Filas por página:"
-            labelDisplayedRows={({ from, to, count }) => {
-              return `${from}–${to} de ${count !== -1 ? count : `más de ${to}`}`;
-            }}
-          />
-        </Box>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={totalItems}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Filas por página:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        />
       </Paper>
       
       {/* Modal de Abono */}
@@ -539,62 +471,38 @@ const FacturasPendientes = () => {
         <DialogContent sx={{ pt: 3, minWidth: 400 }}>
           {facturaSeleccionada && (
             <Box>
-              <Typography variant="subtitle1" gutterBottom>
-                Detalles de la Factura:
-              </Typography>
-              
-              <Grid container spacing={1} sx={{ mb: 3 }}>
-                <Grid item xs={5}>
-                  <Typography variant="body2" color="text.secondary">
-                    Concepto:
-                  </Typography>
-                </Grid>
-                <Grid item xs={7}>
-                  <Typography variant="body2" fontWeight="medium">
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2">Concepto:</Typography>
+                  <Typography variant="body1" gutterBottom>
                     {facturaSeleccionada.concepto}
                   </Typography>
                 </Grid>
                 
-                <Grid item xs={5}>
-                  <Typography variant="body2" color="text.secondary">
-                    Fecha:
-                  </Typography>
-                </Grid>
-                <Grid item xs={7}>
-                  <Typography variant="body2">
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2">Fecha:</Typography>
+                  <Typography variant="body1" gutterBottom>
                     {formatearFechaSimple(facturaSeleccionada.fecha)}
                   </Typography>
                 </Grid>
                 
-                <Grid item xs={5}>
-                  <Typography variant="body2" color="text.secondary">
-                    Monto Total:
-                  </Typography>
-                </Grid>
-                <Grid item xs={7}>
-                  <Typography variant="body2">
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2">Monto Total:</Typography>
+                  <Typography variant="body1" gutterBottom>
                     {formatearMoneda(facturaSeleccionada.monto)}
                   </Typography>
                 </Grid>
                 
-                <Grid item xs={5}>
-                  <Typography variant="body2" color="text.secondary">
-                    Abono Actual:
-                  </Typography>
-                </Grid>
-                <Grid item xs={7}>
-                  <Typography variant="body2">
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2">Total Abonado:</Typography>
+                  <Typography variant="body1" gutterBottom>
                     {formatearMoneda(facturaSeleccionada.abono)}
                   </Typography>
                 </Grid>
                 
-                <Grid item xs={5}>
-                  <Typography variant="body2" color="text.secondary">
-                    Saldo Pendiente:
-                  </Typography>
-                </Grid>
-                <Grid item xs={7}>
-                  <Typography variant="body2" fontWeight="bold">
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2">Saldo Pendiente:</Typography>
+                  <Typography variant="body1" gutterBottom color="error.main" fontWeight="bold">
                     {formatearMoneda(facturaSeleccionada.saldo)}
                   </Typography>
                 </Grid>
