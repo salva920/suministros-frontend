@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Container, Grid, Typography, Paper, Card, CardContent, CardHeader,
-  IconButton, Button, Box, Divider, LinearProgress,
+  IconButton, Button, Box, Divider, LinearProgress, CircularProgress,
   Tooltip, Avatar, useTheme, useMediaQuery, Chip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -261,17 +261,18 @@ const Dashboard = () => {
         </Box>
         
         {loading ? (
-          <Box sx={{ width: '100%', textAlign: 'center', py: 8 }}>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <CircularProgress size={60} thickness={4} />
-              <Typography variant="h6" sx={{ mt: 2, color: 'text.secondary' }}>
-                Cargando datos...
-              </Typography>
-            </motion.div>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '60vh', 
+            flexDirection: 'column',
+            gap: 2
+          }}>
+            <CircularProgress size={60} thickness={4} />
+            <Typography variant="h6" color="text.secondary">
+              Cargando información...
+            </Typography>
           </Box>
         ) : (
           <>
