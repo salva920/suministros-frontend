@@ -24,7 +24,7 @@ import {
    AccountBalance as AccountIcon,
    Save as SaveIcon
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -32,7 +32,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
 import moment from 'moment-timezone';
 import 'moment-timezone';
-import { motion, AnimatePresence } from 'framer-motion';
 import { styled } from '@mui/material/styles';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
