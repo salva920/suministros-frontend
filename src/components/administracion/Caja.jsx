@@ -23,8 +23,7 @@ import {
    TrendingUp as TrendingUpIcon,
    TrendingDown as TrendingDownIcon,
    AccountBalance as AccountIcon,
-   Save as SaveIcon,
-   Money as MonetizationIcon
+   Save as SaveIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -33,6 +32,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
 import moment from 'moment-timezone';
+import 'moment-timezone';
 import { styled } from '@mui/material/styles';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
@@ -736,7 +736,7 @@ const CajaInteractiva = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <MonetizationIcon color={state.nuevaTransaccion.tipo === 'entrada' ? 'success' : 'error'} />
+                        <AttachMoney color={state.nuevaTransaccion.tipo === 'entrada' ? 'success' : 'error'} />
                       </InputAdornment>
                     ),
                     sx: { 
