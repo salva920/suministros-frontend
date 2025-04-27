@@ -23,7 +23,8 @@ import {
    TrendingUp as TrendingUpIcon,
    TrendingDown as TrendingDownIcon,
    AccountBalance as AccountIcon,
-   Save as SaveIcon
+   Save as SaveIcon,
+   Money as MonetizationIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -32,7 +33,6 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
 import moment from 'moment-timezone';
-import 'moment-timezone';
 import { styled } from '@mui/material/styles';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
@@ -700,8 +700,7 @@ const CajaInteractiva = () => {
             alignItems: 'center',
             py: 2,
             background: state.nuevaTransaccion.tipo === 'entrada' 
-              ? 'linear-gradient(45deg, #2e7d32 30%, #4caf50 90%)'
-              : 'linear-gradient(45deg, #d32f2f 30%, #f44336 90%)',
+              ? 'linear-gradient(45deg, #2e7d32 30%, #4caf50 90%)',
             fontWeight: 'bold'
           }}>
             {state.nuevaTransaccion.tipo === 'entrada' ? 'Registrar Ingreso' : 'Registrar Egreso'}
@@ -737,7 +736,7 @@ const CajaInteractiva = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <MoneyIcon color={state.nuevaTransaccion.tipo === 'entrada' ? 'success' : 'error'} />
+                        <MonetizationIcon color={state.nuevaTransaccion.tipo === 'entrada' ? 'success' : 'error'} />
                       </InputAdornment>
                     ),
                     sx: { 
