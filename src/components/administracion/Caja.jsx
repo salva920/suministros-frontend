@@ -699,7 +699,8 @@ const CajaInteractiva = () => {
             alignItems: 'center',
             py: 2,
             background: state.nuevaTransaccion.tipo === 'entrada' 
-              ? 'linear-gradient(45deg, #2e7d32 30%, #4caf50 90%)',
+              ? 'linear-gradient(45deg, #2e7d32 30%, #4caf50 90%)'
+              : 'linear-gradient(45deg, #d32f2f 30%, #f44336 90%)',
             fontWeight: 'bold'
           }}>
             {state.nuevaTransaccion.tipo === 'entrada' ? 'Registrar Ingreso' : 'Registrar Egreso'}
