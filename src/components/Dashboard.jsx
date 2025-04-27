@@ -1,15 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  AppBar, Toolbar, Typography, Container, Grid, 
-  Paper, TextField, IconButton, Button, Card, 
-  CardContent, CircularProgress, Box, Divider, LinearProgress,
+import React, { useState, useEffect } from 'react';
+import {
+  Container, Grid, Typography, Paper, Card, CardContent, CardHeader,
+  IconButton, Button, Box, Divider, LinearProgress,
   Tooltip, Avatar, useTheme, useMediaQuery, Chip
 } from '@mui/material';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { 
-  ExitToApp, Search, PointOfSale, 
-  Inventory, Settings, People, AccountBalanceWallet, Assessment, LocalShipping, Receipt, PriceChange,
+import { styled } from '@mui/material/styles';
+import {
   Dashboard as DashboardIcon,
   ShoppingCart as ShoppingCartIcon,
   MonetizationOn as MoneyIcon,
@@ -27,16 +23,11 @@ import {
   AttachMoney as AttachMoneyIcon,
   Star as StarIcon
 } from '@mui/icons-material';
-import { logout } from '../services/authService';
-import WarningIcon from '@mui/icons-material/Warning';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { Chart, LinearScale, BarElement, CategoryScale, Tooltip as ChartTooltip, Legend } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { useNavigate } from 'react-router-dom';
 
-// Registrar los componentes necesarios para Chart.js
-Chart.register(LinearScale, BarElement, CategoryScale, ChartTooltip, Legend);
-
+// API URL
 const API_URL = "https://suministros-backend.vercel.app/api";
 
 // Variantes de animación
@@ -79,6 +70,17 @@ const StatsCard = styled(Card)(({ theme }) => ({
   }
 }));
 
+const ChartPlaceholder = styled(Box)(({ theme }) => ({
+  height: '300px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexDirection: 'column',
+  backgroundColor: 'rgba(0,0,0,0.03)',
+  borderRadius: '8px',
+  padding: theme.spacing(2)
+}));
+
 const ChartContainer = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   borderRadius: '16px',
@@ -106,6 +108,36 @@ const StatusChip = styled(Chip)(({ theme, status }) => ({
   padding: '4px 0'
 }));
 
+// Componente para visualizar datos en lugar de gráficos
+const StatsBars = ({ data, color }) => {
+  const max = Math.max(...data.values);
+  
+  return (
+    <Box sx={{ width: '100%' }}>
+      {data.labels.map((label, index) => (
+        <Box key={index} sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+            <Typography variant="body2">{label}</Typography>
+            <Typography variant="body2" fontWeight="bold">
+              {data.prefix || ''}{data.values[index]}{data.suffix || ''}
+            </Typography>
+          </Box>
+          <Box sx={{ width: '100%', bgcolor: 'background.paper', borderRadius: '4px', overflow: 'hidden' }}>
+            <Box 
+              sx={{ 
+                height: '10px', 
+                width: `${(data.values[index] / max) * 100}%`,
+                bgcolor: color || 'primary.main',
+                borderRadius: '4px'
+              }} 
+            />
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 const Dashboard = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -122,35 +154,16 @@ const Dashboard = () => {
     ultimasVentas: []
   });
   
-  const [salesChartData, setSalesChartData] = useState({
+  const [salesData, setSalesData] = useState({
     labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-    datasets: [
-      {
-        label: 'Ventas Mensuales',
-        data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        backgroundColor: 'rgba(25, 118, 210, 0.6)',
-        borderColor: 'rgba(25, 118, 210, 0.8)',
-        borderWidth: 1
-      }
-    ]
+    values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    prefix: '$'
   });
   
-  const [productsChartData, setProductsChartData] = useState({
-    labels: ['Productos A', 'Productos B', 'Productos C', 'Productos D', 'Productos E'],
-    datasets: [
-      {
-        label: 'Productos más vendidos',
-        data: [0, 0, 0, 0, 0],
-        backgroundColor: [
-          'rgba(255, 99, 132, 0.7)',
-          'rgba(54, 162, 235, 0.7)',
-          'rgba(255, 206, 86, 0.7)',
-          'rgba(75, 192, 192, 0.7)',
-          'rgba(153, 102, 255, 0.7)'
-        ],
-        borderWidth: 1
-      }
-    ]
+  const [productsData, setProductsData] = useState({
+    labels: ['Clavos', 'Tornillos', 'Martillos', 'Pinturas', 'Cerrojos'],
+    values: [0, 0, 0, 0, 0],
+    suffix: ' unidades'
   });
   
   const fetchData = async () => {
@@ -176,35 +189,16 @@ const Dashboard = () => {
           ]
         });
         
-        setSalesChartData({
+        setSalesData({
           labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-          datasets: [
-            {
-              label: 'Ventas Mensuales',
-              data: [30500, 32400, 28600, 33700, 39800, 35200, 37400, 39200, 42600, 42680, 0, 0],
-              backgroundColor: 'rgba(25, 118, 210, 0.6)',
-              borderColor: 'rgba(25, 118, 210, 0.8)',
-              borderWidth: 1
-            }
-          ]
+          values: [30500, 32400, 28600, 33700, 39800, 35200, 37400, 39200, 42600, 42680, 0, 0],
+          prefix: '$'
         });
         
-        setProductsChartData({
+        setProductsData({
           labels: ['Clavos', 'Tornillos', 'Martillos', 'Pinturas', 'Cerrojos'],
-          datasets: [
-            {
-              label: 'Productos más vendidos',
-              data: [120, 95, 78, 65, 53],
-              backgroundColor: [
-                'rgba(255, 99, 132, 0.7)',
-                'rgba(54, 162, 235, 0.7)',
-                'rgba(255, 206, 86, 0.7)',
-                'rgba(75, 192, 192, 0.7)',
-                'rgba(153, 102, 255, 0.7)'
-              ],
-              borderWidth: 1
-            }
-          ]
+          values: [120, 95, 78, 65, 53],
+          suffix: ' unidades'
         });
         
         setLoading(false);
@@ -228,156 +222,83 @@ const Dashboard = () => {
     }).format(value);
   };
   
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      tooltip: {
-        backgroundColor: 'rgba(0,0,0,0.8)',
-        titleFont: {
-          size: 14,
-          weight: 'bold'
-        },
-        bodyFont: {
-          size: 13
-        },
-        padding: 12,
-        cornerRadius: 8,
-        displayColors: true
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: 'rgba(0,0,0,0.05)'
-        }
-      },
-      x: {
-        grid: {
-          display: false
-        }
-      }
-    }
-  };
-  
   return (
     <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <motion.div variants={itemVariants}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            mb: 4,
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: isMobile ? 2 : 0
-          }}>
-            <Typography variant="h4" component="h1" sx={{ 
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1
-            }}>
-              <DashboardIcon fontSize="large" color="primary" />
-              Panel de Control
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button 
-                  variant="outlined" 
-                  startIcon={<RefreshIcon />}
-                  onClick={fetchData}
-                  sx={{ 
-                    borderRadius: '10px',
-                    textTransform: 'none'
-                  }}
-                >
-                  Actualizar
-                </Button>
-              </motion.div>
-              
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button 
-                  variant="contained"
-                  startIcon={<ShoppingCartIcon />}
-                  onClick={() => navigate('/ventas')}
-                  sx={{ 
-                    borderRadius: '10px',
-                    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                    boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
-                    textTransform: 'none',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  Nueva Venta
-                </Button>
-              </motion.div>
-            </Box>
-          </Box>
-        </motion.div>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box 
+          component={motion.div} 
+          variants={itemVariants}
+          sx={{ 
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 4
+          }}
+        >
+          <Typography variant="h4" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DashboardIcon fontSize="large" color="primary" />
+            Panel de Control
+          </Typography>
+          
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button 
+              variant="outlined" 
+              startIcon={<RefreshIcon />} 
+              onClick={fetchData}
+              disabled={loading}
+              sx={{ 
+                borderRadius: '10px',
+                textTransform: 'none'
+              }}
+            >
+              Actualizar
+            </Button>
+          </motion.div>
+        </Box>
         
         {loading ? (
-          <Box sx={{ width: '100%', mt: 2 }}>
-            <LinearProgress 
-              color="secondary" 
-              sx={{
-                height: 6,
-                borderRadius: 3,
-                '& .MuiLinearProgress-bar': {
-                  borderRadius: 3,
-                }
-              }}
-            />
+          <Box sx={{ width: '100%', textAlign: 'center', py: 8 }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <CircularProgress size={60} thickness={4} />
+              <Typography variant="h6" sx={{ mt: 2, color: 'text.secondary' }}>
+                Cargando datos...
+              </Typography>
+            </motion.div>
           </Box>
         ) : (
           <>
             {/* Tarjetas de estadísticas */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={3}>
                 <motion.div variants={itemVariants}>
                   <StatsCard>
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        mb: 2
-                      }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                          Ventas Totales
+                    <CardContent>
+                      <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        Ventas Totales
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                          {formatCurrency(stats.totalVentas)}
                         </Typography>
-                        <Avatar sx={{ 
-                          bgcolor: 'primary.light', 
-                          width: 48, 
-                          height: 48,
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                        }}>
-                          <MoneyIcon />
+                        <Avatar sx={{ bgcolor: 'rgba(25, 118, 210, 0.12)', width: 40, height: 40 }}>
+                          <MoneyIcon color="primary" />
                         </Avatar>
                       </Box>
-                      
-                      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {formatCurrency(stats.totalVentas)}
-                      </Typography>
-                      
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',  
-                        color: 'success.main',
-                        gap: 0.5
-                      }}>
-                        <ArrowUpIcon fontSize="small" />
-                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                          +8.5% respecto al mes anterior
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                        <TrendingUpIcon sx={{ color: 'success.main', fontSize: 16, mr: 0.5 }} />
+                        <Typography variant="body2" color="success.main">
+                          +12% 
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary" sx={{ ml: 0.5 }}>
+                          desde el mes pasado
                         </Typography>
                       </Box>
                     </CardContent>
@@ -385,42 +306,28 @@ const Dashboard = () => {
                 </motion.div>
               </Grid>
               
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={3}>
                 <motion.div variants={itemVariants}>
                   <StatsCard>
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        mb: 2
-                      }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                          Clientes
+                    <CardContent>
+                      <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        Ventas Mensuales
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                          {formatCurrency(stats.ventasMensuales)}
                         </Typography>
-                        <Avatar sx={{ 
-                          bgcolor: 'success.light', 
-                          width: 48, 
-                          height: 48,
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                        }}>
-                          <PeopleIcon />
+                        <Avatar sx={{ bgcolor: 'rgba(76, 175, 80, 0.12)', width: 40, height: 40 }}>
+                          <ShoppingCartIcon color="success" />
                         </Avatar>
                       </Box>
-                      
-                      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {stats.totalClientes}
-                      </Typography>
-                      
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',  
-                        color: 'success.main',
-                        gap: 0.5
-                      }}>
-                        <ArrowUpIcon fontSize="small" />
-                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                          +12 nuevos este mes
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                        <TrendingUpIcon sx={{ color: 'success.main', fontSize: 16, mr: 0.5 }} />
+                        <Typography variant="body2" color="success.main">
+                          +8% 
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary" sx={{ ml: 0.5 }}>
+                          desde la semana pasada
                         </Typography>
                       </Box>
                     </CardContent>
@@ -428,108 +335,58 @@ const Dashboard = () => {
                 </motion.div>
               </Grid>
               
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={3}>
                 <motion.div variants={itemVariants}>
                   <StatsCard>
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        mb: 2
-                      }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                          Inventario
+                    <CardContent>
+                      <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        Total Clientes
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                          {stats.totalClientes}
                         </Typography>
-                        <Avatar sx={{ 
-                          bgcolor: 'info.light', 
-                          width: 48, 
-                          height: 48,
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                        }}>
-                          <InventoryIcon />
+                        <Avatar sx={{ bgcolor: 'rgba(156, 39, 176, 0.12)', width: 40, height: 40 }}>
+                          <PeopleIcon sx={{ color: '#9c27b0' }} />
                         </Avatar>
                       </Box>
-                      
-                      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {stats.productosStock}
-                      </Typography>
-                      
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',  
-                        color: stats.productosStock < 300 ? 'warning.main' : 'success.main',
-                        gap: 0.5
-                      }}>
-                        {stats.productosStock < 300 ? (
-                          <>
-                            <ArrowDownIcon fontSize="small" />
-                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                              5 productos con stock bajo
-                            </Typography>
-                          </>
-                        ) : (
-                          <>
-                            <TrendingUpIcon fontSize="small" />
-                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                              Niveles de stock óptimos
-                            </Typography>
-                          </>
-                        )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                        <TrendingUpIcon sx={{ color: 'success.main', fontSize: 16, mr: 0.5 }} />
+                        <Typography variant="body2" color="success.main">
+                          +5% 
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary" sx={{ ml: 0.5 }}>
+                          nuevos este mes
+                        </Typography>
                       </Box>
                     </CardContent>
                   </StatsCard>
                 </motion.div>
               </Grid>
               
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={3}>
                 <motion.div variants={itemVariants}>
                   <StatsCard>
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        mb: 2
-                      }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                          Facturas Pendientes
+                    <CardContent>
+                      <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        Productos en Stock
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+                          {stats.productosStock}
                         </Typography>
-                        <Avatar sx={{ 
-                          bgcolor: 'warning.light', 
-                          width: 48, 
-                          height: 48,
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-                        }}>
-                          <AssignmentIcon />
+                        <Avatar sx={{ bgcolor: 'rgba(255, 152, 0, 0.12)', width: 40, height: 40 }}>
+                          <InventoryIcon sx={{ color: '#ff9800' }} />
                         </Avatar>
                       </Box>
-                      
-                      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        {stats.facturasPendientes}
-                      </Typography>
-                      
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',  
-                        color: stats.facturasPendientes > 5 ? 'warning.main' : 'success.main',
-                        gap: 0.5
-                      }}>
-                        {stats.facturasPendientes > 5 ? (
-                          <>
-                            <TrendingUpIcon fontSize="small" />
-                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                              3 facturas por vencer pronto
-                            </Typography>
-                          </>
-                        ) : (
-                          <>
-                            <TrendingDownIcon fontSize="small" />
-                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                              Disminución de 10% este mes
-                            </Typography>
-                          </>
-                        )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                        <TrendingDownIcon sx={{ color: 'warning.main', fontSize: 16, mr: 0.5 }} />
+                        <Typography variant="body2" color="warning.main">
+                          -3% 
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary" sx={{ ml: 0.5 }}>
+                          desde el mes pasado
+                        </Typography>
                       </Box>
                     </CardContent>
                   </StatsCard>
@@ -547,7 +404,10 @@ const Dashboard = () => {
                       Ventas Mensuales
                     </Typography>
                     <Box sx={{ height: 300 }}>
-                      <Bar data={salesChartData} options={chartOptions} />
+                      <StatsBars 
+                        data={salesData}
+                        color="rgba(25, 118, 210, 0.7)"
+                      />
                     </Box>
                   </ChartContainer>
                 </motion.div>
@@ -561,12 +421,9 @@ const Dashboard = () => {
                       Productos Más Vendidos
                     </Typography>
                     <Box sx={{ height: 300 }}>
-                      <Bar 
-                        data={productsChartData} 
-                        options={{
-                          ...chartOptions,
-                          indexAxis: 'y',
-                        }} 
+                      <StatsBars 
+                        data={productsData}
+                        color="rgba(255, 99, 132, 0.7)"
                       />
                     </Box>
                   </ChartContainer>
