@@ -36,6 +36,31 @@ import { styled } from '@mui/material/styles';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
+// Variantes de animación para Framer Motion
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      when: "beforeChildren",
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 24
+    }
+  }
+};
+
 const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) => {
   const theme = useTheme();
   
@@ -674,8 +699,7 @@ const CajaInteractiva = () => {
             alignItems: 'center',
             py: 2,
             background: state.nuevaTransaccion.tipo === 'entrada' 
-              ? 'linear-gradient(45deg, #2e7d32 30%, #4caf50 90%)'
-              : 'linear-gradient(45deg, #d32f2f 30%, #f44336 90%)',
+              ? 'linear-gradient(45deg, #2e7d32 30%, #4caf50 90%)',
             fontWeight: 'bold'
           }}>
             {state.nuevaTransaccion.tipo === 'entrada' ? 'Registrar Ingreso' : 'Registrar Egreso'}
