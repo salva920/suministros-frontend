@@ -16,20 +16,18 @@ import {
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import backgroundImage from '../assets/ferreteria-bg.jpg'; // Asegúrate de tener esta imagen
 
 // URL de la API
 const API_URL = "https://suministros-backend.vercel.app/api";
 
-// Estilos de componentes
+// Estilos de componentes - Usando gradiente en lugar de imagen
 const LoginContainer = styled(Container)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   minHeight: '100vh',
-  background: `linear-gradient(rgba(25, 118, 210, 0.7), rgba(25, 118, 210, 0.4)), url(${backgroundImage})`,
+  background: 'linear-gradient(135deg, #0a2e63 0%, #1976d2 50%, #42a5f5 100%)',
   backgroundSize: 'cover',
-  backgroundPosition: 'center',
   padding: theme.spacing(2)
 }));
 
