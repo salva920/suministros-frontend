@@ -1,18 +1,54 @@
 import React, { useState } from 'react';
-import { Container, Paper, Typography, TextField, Button, Grid, Link, Alert } from '@mui/material';
-import { Lock as LockIcon } from '@mui/icons-material';
+import { 
+  Container, Paper, Typography, TextField, Button, Grid, Link, Alert,
+  InputAdornment, IconButton, CircularProgress, FormControlLabel, Checkbox,
+  Box, Slide, Fade
+} from '@mui/material';
+import { 
+  Lock as LockIcon,
+  Person as PersonIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  Login as LoginIcon
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ferreteriaBg from '../ferreteria.jpg';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { motion } from 'framer-motion';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
+
+// Variantes para animaciones
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      duration: 0.6,
+      when: "beforeChildren",
+      staggerChildren: 0.2
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { 
+    y: 0, 
+    opacity: 1,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  }
+};
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -24,6 +60,7 @@ const Login = () => {
       return;
     }
 
+    setLoading(true);
     try {
       const response = await axios.post(`${API_URL}/login`, {
         username,
@@ -32,7 +69,12 @@ const Login = () => {
       
       if (response.data.auth) {
         localStorage.setItem('token', 'authenticated');
-        sessionStorage.setItem('isLoggedIn', 'true');  
+        sessionStorage.setItem('isLoggedIn', 'true');
+        
+        if (rememberMe) {
+          localStorage.setItem('username', username);
+        }
+        
         toast.success('Bienvenido al sistema');
         navigate('/dashboard', { replace: true });
       }
@@ -46,7 +88,13 @@ const Login = () => {
       } else {
         toast.error('Error de conexión');
       }
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleTogglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -57,112 +105,307 @@ const Login = () => {
       backgroundPosition: 'center',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <Container maxWidth="xs">
-        <Paper elevation={6} sx={{ 
-          padding: '2rem',
-          borderRadius: '12px',
-          background: 'rgba(26, 54, 93, 0.9)', // Fondo semi-transparente
-          color: 'white',
-          backdropFilter: 'blur(4px)'
-        }}>
-          <Grid container direction="column" alignItems="center" spacing={3}>
-            <Grid item>
-              <LockIcon sx={{ fontSize: '3rem', color: '#FFD700' }} />
-            </Grid>
-            <Grid item>
-              <Typography variant="h4" align="center" sx={{ fontWeight: 'bold' }}>
-                Iniciar Sesión
-              </Typography>
-              <Typography variant="subtitle1" align="center" sx={{ marginTop: '0.5rem' }}>
-                Bienvenido a Distribuciones Romero
-              </Typography>
-            </Grid>
-            <Grid item sx={{ width: '100%' }}>
-              <form onSubmit={handleSubmit}>
-                {errorMessage && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {errorMessage}
-                  </Alert>
-                )}
-                <TextField
-                  fullWidth
-                  label="Usuario"
-                  variant="outlined"
-                  margin="normal"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  sx={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    borderRadius: '8px',
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: 'transparent',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#FF6B35',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#FF6B35',
-                      },
-                    }
-                  }}
-                  required
-                />
-                <TextField
-                  fullWidth
-                  label="Contraseña"
-                  variant="outlined"
-                  margin="normal"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  sx={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    borderRadius: '8px',
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
-                        borderColor: 'transparent',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#FF6B35',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#FF6B35',
-                      },
-                    }
-                  }}
-                  required
-                />
-                <Button
-                  fullWidth
-                  variant="contained"
-                  type="submit"
-                  sx={{
-                    marginTop: '1.5rem',
-                    padding: '12px',
-                    backgroundColor: '#FF6B35',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '1rem',
-                    borderRadius: '8px',
-                    '&:hover': {
-                      backgroundColor: '#E65A2E'
-                    }
-                  }}
+      {/* Overlay con efecto de gradiente */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'linear-gradient(135deg, rgba(0,22,57,0.85) 0%, rgba(26,54,93,0.75) 100%)',
+        zIndex: 1
+      }} />
+      
+      <Container maxWidth="xs" sx={{ position: 'relative', zIndex: 2 }}>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          style={{ width: '100%' }}
+        >
+          <Paper elevation={16} sx={{ 
+            padding: '2.5rem',
+            borderRadius: '16px',
+            background: 'rgba(255, 255, 255, 0.15)', 
+            color: 'white',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.18)',
+            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+          }}>
+            <Grid container direction="column" alignItems="center" spacing={3}>
+              <Grid item>
+                <motion.div
+                  whileHover={{ rotate: [0, -15, 15, -15, 0], scale: 1.1 }}
+                  transition={{ duration: 0.5 }}
                 >
-                  Ingresar
-                </Button>
-              </form>
+                  <Box sx={{ 
+                    backgroundColor: 'rgba(255, 215, 0, 0.15)', 
+                    borderRadius: '50%', 
+                    padding: '1rem',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    boxShadow: '0 0 20px rgba(255, 215, 0, 0.4)'
+                  }}>
+                    <LockIcon sx={{ fontSize: '3.5rem', color: '#FFD700' }} />
+                  </Box>
+                </motion.div>
+              </Grid>
+              
+              <Grid item>
+                <motion.div variants={itemVariants}>
+                  <Typography variant="h4" align="center" sx={{ 
+                    fontWeight: 'bold',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Iniciar Sesión
+                  </Typography>
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                  <Typography variant="subtitle1" align="center" sx={{ 
+                    marginTop: '0.75rem',
+                    opacity: 0.9,
+                    fontWeight: '300',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Bienvenido a Distribuciones Romero
+                  </Typography>
+                </motion.div>
+              </Grid>
+              
+              <Grid item sx={{ width: '100%' }}>
+                <form onSubmit={handleSubmit}>
+                  {errorMessage && (
+                    <Fade in={!!errorMessage}>
+                      <Alert severity="error" sx={{ 
+                        mb: 2,
+                        borderRadius: '10px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        '& .MuiAlert-icon': {
+                          color: '#ff3d00'
+                        }
+                      }}>
+                        {errorMessage}
+                      </Alert>
+                    </Fade>
+                  )}
+                  
+                  <motion.div variants={itemVariants}>
+                    <TextField
+                      fullWidth
+                      label="Usuario"
+                      variant="outlined"
+                      margin="normal"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PersonIcon sx={{ color: 'rgba(255, 107, 53, 0.8)' }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                        borderRadius: '12px',
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'transparent',
+                            transition: 'all 0.2s ease-in-out',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: '#FF6B35',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#FF6B35',
+                            borderWidth: '2px'
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.7)'
+                        },
+                        '& .MuiInputLabel-root.Mui-focused': {
+                          color: '#FF6B35'
+                        },
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        transition: 'transform 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-2px)'
+                        }
+                      }}
+                      required
+                    />
+                  </motion.div>
+                  
+                  <motion.div variants={itemVariants}>
+                    <TextField
+                      fullWidth
+                      label="Contraseña"
+                      variant="outlined"
+                      margin="normal"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LockIcon sx={{ color: 'rgba(255, 107, 53, 0.8)' }} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              aria-label="toggle password visibility"
+                              onClick={handleTogglePasswordVisibility}
+                              edge="end"
+                            >
+                              {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                            </IconButton>
+                          </InputAdornment>
+                        )
+                      }}
+                      sx={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                        borderRadius: '12px',
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'transparent',
+                            transition: 'all 0.2s ease-in-out',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: '#FF6B35',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#FF6B35',
+                            borderWidth: '2px'
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.7)'
+                        },
+                        '& .MuiInputLabel-root.Mui-focused': {
+                          color: '#FF6B35'
+                        },
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        transition: 'transform 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-2px)'
+                        }
+                      }}
+                      required
+                    />
+                  </motion.div>
+                  
+                  <motion.div variants={itemVariants}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      my: 1.5
+                    }}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox 
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            sx={{ 
+                              color: 'rgba(255, 215, 0, 0.7)',
+                              '&.Mui-checked': {
+                                color: '#FFD700',
+                              }
+                            }}
+                          />
+                        }
+                        label={
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: 'rgba(255, 255, 255, 0.9)',
+                              fontSize: '0.875rem'
+                            }}
+                          >
+                            Recordarme
+                          </Typography>
+                        }
+                      />
+                    </Box>
+                  </motion.div>
+                  
+                  <motion.div 
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      type="submit"
+                      disabled={loading}
+                      startIcon={loading ? null : <LoginIcon />}
+                      sx={{
+                        marginTop: '1.5rem',
+                        padding: '12px',
+                        backgroundColor: '#FF6B35',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '1rem',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 14px rgba(255, 107, 53, 0.4)',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: '#E65A2E',
+                          boxShadow: '0 6px 20px rgba(255, 107, 53, 0.6)',
+                          transform: 'translateY(-2px)'
+                        },
+                        '&:active': {
+                          transform: 'translateY(1px)',
+                          boxShadow: '0 2px 10px rgba(255, 107, 53, 0.4)'
+                        }
+                      }}
+                    >
+                      {loading ? <CircularProgress size={24} color="inherit" /> : 'Ingresar'}
+                    </Button>
+                  </motion.div>
+                </form>
+              </Grid>
+              
+              <Grid item>
+                <motion.div 
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Link 
+                    href="#" 
+                    variant="body2" 
+                    sx={{ 
+                      color: '#FFD700',
+                      fontWeight: 500,
+                      textDecoration: 'none',
+                      '&:hover': {
+                        textDecoration: 'underline'
+                      }
+                    }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </motion.div>
+              </Grid>
+              
+              <Grid item>
+                <motion.div variants={itemVariants}>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', mt: 2 }}>
+                    © {new Date().getFullYear()} Distribuciones Romero. Todos los derechos reservados.
+                  </Typography>
+                </motion.div>
+              </Grid>
             </Grid>
-            <Grid item>
-              <Link href="#" variant="body2" sx={{ color: '#FFD700' }}>
-                ¿Olvidaste tu contraseña?
-              </Link>
-            </Grid>
-          </Grid>
-        </Paper>
+          </Paper>
+        </motion.div>
       </Container>
     </div>
   );
