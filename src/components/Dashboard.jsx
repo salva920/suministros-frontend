@@ -8,31 +8,23 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
-  ExitToApp, Search, PointOfSale, 
-  Inventory, Settings, People, AccountBalanceWallet, Assessment, LocalShipping, Receipt, PriceChange,
-  Dashboard as DashboardIcon,
+  ExitToApp, Search, 
+  Inventory, Settings, People, Receipt, PriceChange,
   ShoppingCart as ShoppingCartIcon,
   MonetizationOn as MoneyIcon,
   People as PeopleIcon,
   Inventory as InventoryIcon,
-  BarChart as ChartIcon,
   Assignment as AssignmentIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  MoreVert as MoreVertIcon,
-  Refresh as RefreshIcon,
-  ArrowUpward as ArrowUpIcon,
-  ArrowDownward as ArrowDownIcon,
-  AccountCircle as UserIcon,
-  AttachMoney as AttachMoneyIcon,
-  Star as StarIcon
+  AttachMoney as AttachMoneyIcon
 } from '@mui/icons-material';
 import { logout } from '../services/authService';
 import WarningIcon from '@mui/icons-material/Warning';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { styled } from '@mui/material/styles';
 
-const API_URL = "https://suministros-backend.vercel.app"; // URL de tu backend en Vercel
+const API_URL = "https://suministros-backend.vercel.app";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -70,17 +62,6 @@ const StatsCard = styled(Card)(({ theme }) => ({
     transform: 'translateY(-5px)',
     boxShadow: '0 12px 28px rgba(0,0,0,0.15)'
   }
-}));
-
-const ChartPlaceholder = styled(Box)(({ theme }) => ({
-  height: '300px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexDirection: 'column',
-  backgroundColor: 'rgba(0,0,0,0.03)',
-  borderRadius: '8px',
-  padding: theme.spacing(2)
 }));
 
 const QuickLinkButton = styled(Button)(({ theme }) => ({
@@ -141,11 +122,6 @@ const formatCurrency = (amount) => {
 };
 
 const Dashboard = () => {
-  const [dashboardData, setDashboardData] = useState({
-    ventas: 0,
-    productos: [],
-    clientes: 0
-  });
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -153,19 +129,13 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-
-  const lowStockProducts = useMemo(() => 
-    dashboardData.productos.filter(p => p.stock < 5), 
-    [dashboardData.productos]
-  );
 
   const [stats, setStats] = useState({
     totalVentas: 0,
     ventasMensuales: 0,
     totalClientes: 0,
     productosStock: 0,
-    facturasPendientes: 0,
+    productosBajoStock: 0,
     ultimasVentas: []
   });
 
@@ -185,53 +155,36 @@ const Dashboard = () => {
     setCargando(true);
     try {
       const response = await fetch(`${API_URL}/api/dashboard`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
       const result = await response.json();
-      
-      if (!result?.success || !result.data) {
-        throw new Error('Respuesta inválida del servidor');
-      }
-      
-      setDashboardData({
-        ventas: result.data.ventasTotales || 0,
-        productos: Array.isArray(result.data.productosBajoStock) 
-          ? result.data.productosBajoStock 
-          : [],
-        clientes: result.data.totalClientes || 0
-      });
+      if (!result?.success || !result.data) throw new Error('Respuesta inválida del servidor');
 
       setStats({
         totalVentas: result.data.ventasTotales || 0,
         ventasMensuales: result.data.ventasMensuales || 0,
         totalClientes: result.data.totalClientes || 0,
         productosStock: result.data.productosStock || 0,
-        facturasPendientes: result.data.facturasPendientes || 0,
+        productosBajoStock: result.data.productosBajoStock?.length || 0,
         ultimasVentas: result.data.ultimasVentas || []
       });
 
       setSalesData({
         labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-        values: result.data.salesData || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        values: result.data.salesData || [],
         prefix: '$'
       });
 
       setProductsData({
         labels: ['Clavos', 'Tornillos', 'Martillos', 'Pinturas', 'Cerrojos'],
-        values: result.data.productsData || [0, 0, 0, 0, 0],
+        values: result.data.productsData || [],
         suffix: ' uds.'
       });
 
     } catch (error) {
-      console.error('Error en fetch:', {
-        error: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString()
-      });
+      console.error('Error:', error);
       toast.error(`Error: ${error.message}`);
+      setError(error.message);
     } finally {
       setCargando(false);
     }
@@ -239,29 +192,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  useEffect(() => {
     if (location.state?.fromLogin) {
-      toast.success('¡Inicio de sesión exitoso!', {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      toast.success('¡Inicio de sesión exitoso!');
     }
   }, [location]);
-
-  useEffect(() => {
-    if (lowStockProducts.length > 0) {
-      toast.warning(`${lowStockProducts.length} productos con bajo stock`, {
-        position: "top-right",
-        autoClose: 10000,
-      });
-    }
-  }, [lowStockProducts.length]);
 
   const handleLogout = () => {
     logout();
@@ -269,42 +203,12 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const handleRefresh = () => {
-    fetchData();
-  };
-
-  const renderCard = (titulo, valor, esMoneda = false, colorAdicional) => (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          {titulo}
-        </Typography>
-        <Typography 
-          variant="h4" 
-          style={colorAdicional ? { color: colorAdicional } : {}}
-        >
-          {esMoneda 
-            ? `$${valor.toLocaleString('es-MX', { minimumFractionDigits: 2 })}` 
-            : valor.toLocaleString()}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-
   if (error) {
     return (
       <Container maxWidth="xl" sx={{ textAlign: 'center', mt: 10 }}>
-        <Typography variant="h4" color="error">
-          Error cargando el dashboard
-        </Typography>
-        <Typography variant="body1" sx={{ mt: 2 }}>
-          {error}
-        </Typography>
-        <Button 
-          variant="contained" 
-          sx={{ mt: 3 }}
-          onClick={() => window.location.reload()}
-        >
+        <Typography variant="h4" color="error">Error cargando el dashboard</Typography>
+        <Typography variant="body1" sx={{ mt: 2 }}>{error}</Typography>
+        <Button variant="contained" sx={{ mt: 3 }} onClick={() => window.location.reload()}>
           Reintentar
         </Button>
       </Container>
@@ -313,36 +217,18 @@ const Dashboard = () => {
 
   if (cargando) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress size={80} />
       </Box>
     );
   }
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <motion.div variants={containerVariants} initial="hidden" animate="visible">
       <AppBar position="static" sx={{ bgcolor: 'primary.dark' }}>
         <Toolbar>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              flexGrow: 1, 
-              fontWeight: 'bold',
-              color: 'common.white',
-              textTransform: 'uppercase',
-              letterSpacing: 1
-            }}
-          >
-            Distribuciones y suministros Romero C.A. 
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: 'common.white', textTransform: 'uppercase' }}>
+            Distribuciones y suministros Romero C.A.
           </Typography>
           
           <TextField
@@ -351,165 +237,18 @@ const Dashboard = () => {
             size="small"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            InputProps={{
-              startAdornment: <Search sx={{ mr: 1, color: 'warning.main' }} />
-            }}
-            sx={{ 
-              mr: 2, 
-              bgcolor: 'rgba(255, 255, 255, 0.9)', 
-              borderRadius: 25,
-              width: 300
-            }}
+            InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'warning.main' }} />}}
+            sx={{ mr: 2, bgcolor: 'rgba(255, 255, 255, 0.9)', borderRadius: 25, width: 300 }}
           />
           
-          <IconButton 
-            color="inherit" 
-            onClick={handleLogout}
-            sx={{ color: 'warning.main' }}
-          >
+          <IconButton color="inherit" onClick={handleLogout} sx={{ color: 'warning.main' }}>
             <ExitToApp />
           </IconButton>
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="xl" sx={{ mt: 4, px: { xs: 2, sm: 3, md: 4 } }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={4}>
-            {renderCard('Ventas Totales', dashboardData.ventas, true, '#FFD700')}
-          </Grid>
-          
-          <Grid item xs={12} sm={4}>
-            {renderCard(
-              'Productos con Bajo Stock', 
-              lowStockProducts.length,
-              false,
-              lowStockProducts.length > 0 ? 'error.main' : null
-            )}
-          </Grid>
-          
-          <Grid item xs={12} sm={4}>
-            {renderCard('Clientes Registrados', dashboardData.clientes)}
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={3} sx={{ my: 4 }}>
-          {[
-            { 
-              label: 'Procesar Venta', 
-              to: '/ventas/procesar', 
-              color: '#C62828',
-              icon: <PointOfSale sx={{ fontSize: '2rem' }} />
-            },
-            {
-              label: 'Inventario',
-              to: '/inventario',
-              color: '#1565C0',
-              icon: <Inventory sx={{ fontSize: '2rem' }} />
-            },
-            {
-              label: 'Gestión de Clientes',
-              to: '/clientes/registrar',
-              color: '#2E7D32',
-              icon: <People sx={{ fontSize: '2rem' }} />
-            },
-            {
-              label: 'Administración',
-              to: '/administracion',
-              color: '#6A4C93',
-              icon: <Settings sx={{ fontSize: '2rem' }} />
-            },
-            {
-              label: 'Facturas Pendientes',
-              to: '/finanzas/facturas-pendientes',
-              color: '#9E9E9E',
-              icon: <Receipt sx={{ fontSize: '2rem' }} />
-            },
-            {
-              label: 'Lista de Precios',
-              to: '/precios',
-              color: '#4CAF50',
-              icon: <PriceChange sx={{ fontSize: '2rem' }} />
-            }
-          ].map((boton, index) => (
-            <Grid item xs={12} md={3} key={index}>
-              <Button
-                component={Link}
-                to={boton.to}
-                variant="contained"
-                sx={{ 
-                  height: 110,
-                  bgcolor: boton.color,
-                  fontSize: '1rem',
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase',
-                  boxShadow: 3,
-                  borderRadius: 2,
-                  transition: 'all 0.2s ease',
-                  '&:hover': { 
-                    bgcolor: `${boton.color}CC`, 
-                    transform: 'scale(1.02)' 
-                  }
-                }}
-                fullWidth
-                startIcon={boton.icon}
-              >
-                {boton.label}
-              </Button>
-            </Grid>
-          ))}
-        </Grid>
-
-        {lowStockProducts.length > 0 && (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Paper elevation={3} sx={{ 
-                p: 3, 
-                borderLeft: 4, 
-                borderColor: 'warning.main',
-                bgcolor: 'warning.light'
-              }}>
-                <Typography 
-                  variant="h6" 
-                  gutterBottom 
-                  sx={{ 
-                    color: 'error.main',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1
-                  }}
-                >
-                  <WarningIcon fontSize="inherit" />
-                  Productos con Bajo Stock ({lowStockProducts.length})
-                </Typography>
-                
-                <Grid container spacing={2}>
-                  {lowStockProducts.map((producto) => (
-                    <Grid item xs={12} sm={6} md={4} key={producto._id}>
-                      <Paper sx={{ 
-                        p: 2, 
-                        border: 1, 
-                        borderColor: 'warning.light',
-                        borderRadius: 2,
-                        bgcolor: 'background.paper'
-                      }}>
-                        <Typography 
-                          variant="subtitle1" 
-                          sx={{ fontWeight: 'bold', color: 'warning.dark' }}
-                        >
-                          {producto.nombre}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'error.main' }}>
-                          Stock: {producto.stock}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Paper>
-            </Grid>
-          </Grid>
-        )}
-
+        {/* Sección de Estadísticas Principales */}
         <Grid container spacing={3} sx={{ my: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <motion.div variants={itemVariants}>
@@ -524,7 +263,7 @@ const Dashboard = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <TrendingUpIcon sx={{ color: 'success.main', fontSize: '1rem' }} />
                     <Typography variant="body2" color="success.main">
-                      +12.5% respecto al mes anterior
+                      +12.5% mes anterior
                     </Typography>
                   </Box>
                 </CardContent>
@@ -545,7 +284,7 @@ const Dashboard = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <TrendingUpIcon sx={{ color: 'success.main', fontSize: '1rem' }} />
                     <Typography variant="body2" color="success.main">
-                      +8.2% respecto al mes anterior
+                      +8.2% mes anterior
                     </Typography>
                   </Box>
                 </CardContent>
@@ -587,7 +326,7 @@ const Dashboard = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <TrendingDownIcon sx={{ color: 'warning.main', fontSize: '1rem' }} />
                     <Typography variant="body2" color="warning.main">
-                      {stats.facturasPendientes} productos bajos en stock
+                      {stats.productosBajoStock} bajo stock
                     </Typography>
                   </Box>
                 </CardContent>
@@ -596,59 +335,38 @@ const Dashboard = () => {
           </Grid>
         </Grid>
 
+        {/* Gráficos y Sección Principal */}
         <Grid container spacing={3} sx={{ my: 4 }}>
           <Grid item xs={12} md={6}>
             <motion.div variants={itemVariants}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                height: '100%'
-              }}>
+              <Paper sx={{ p: 3, borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.08)', height: '100%' }}>
                 <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <MoneyIcon color="primary" />
                   Ventas Mensuales
                 </Typography>
-                
-                <StatsBars 
-                  data={salesData}
-                  color="rgba(25, 118, 210, 0.7)"
-                />
+                <StatsBars data={salesData} color="rgba(25, 118, 210, 0.7)" />
               </Paper>
             </motion.div>
           </Grid>
           
           <Grid item xs={12} md={6}>
             <motion.div variants={itemVariants}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                height: '100%'
-              }}>
+              <Paper sx={{ p: 3, borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.08)', height: '100%' }}>
                 <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <InventoryIcon color="primary" />
                   Productos Más Vendidos
                 </Typography>
-                
-                <StatsBars 
-                  data={productsData}
-                  color="rgba(156, 39, 176, 0.7)"
-                />
+                <StatsBars data={productsData} color="rgba(156, 39, 176, 0.7)" />
               </Paper>
             </motion.div>
           </Grid>
         </Grid>
 
+        {/* Últimas Ventas y Accesos Rápidos */}
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <motion.div variants={itemVariants}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                mb: isMobile ? 3 : 0
-              }}>
+              <Paper sx={{ p: 3, borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.08)', mb: isMobile ? 3 : 0 }}>
                 <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <ShoppingCartIcon color="primary" />
                   Últimas Ventas
@@ -656,48 +374,27 @@ const Dashboard = () => {
                 
                 {stats.ultimasVentas.length === 0 ? (
                   <Typography variant="body1" sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
-                    No hay ventas recientes para mostrar
+                    No hay ventas recientes
                   </Typography>
                 ) : (
                   <Box sx={{ overflow: 'auto' }}>
                     <Grid container spacing={2}>
                       {stats.ultimasVentas.map((venta, index) => (
                         <Grid item xs={12} key={venta.id}>
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                          >
-                            <Card sx={{ 
-                              p: 2, 
-                              borderRadius: '12px', 
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                              '&:hover': {
-                                boxShadow: '0 6px 16px rgba(0,0,0,0.1)',
-                                bgcolor: 'rgba(0,0,0,0.01)'
-                              },
-                              transition: 'all 0.3s ease'
-                            }}>
+                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+                            <Card sx={{ p: 2, borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', '&:hover': { boxShadow: '0 6px 16px rgba(0,0,0,0.1)' }}}>
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Box>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                    {venta.cliente}
-                                  </Typography>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{venta.cliente}</Typography>
                                   <Typography variant="body2" color="text.secondary">
-                                    {new Date(venta.fecha).toLocaleDateString('es-ES', { 
-                                      year: 'numeric', 
-                                      month: 'short', 
-                                      day: 'numeric' 
-                                    })}
+                                    {new Date(venta.fecha).toLocaleDateString('es-ES')}
                                   </Typography>
                                 </Box>
-                                
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                   <StatusChip
                                     label={venta.estado === 'completada' ? 'Completada' : 'Pendiente'}
                                     color={venta.estado === 'completada' ? 'success' : 'warning'}
                                     size="small"
-                                    status={venta.estado}
                                   />
                                   <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                                     {formatCurrency(venta.total)}
@@ -706,118 +403,54 @@ const Dashboard = () => {
                               </Box>
                             </Card>
                           </motion.div>
-                          {index < stats.ultimasVentas.length - 1 && (
-                            <Box sx={{ my: 1 }}>
-                              <Divider />
-                            </Box>
-                          )}
+                          {index < stats.ultimasVentas.length - 1 && <Divider sx={{ my: 1 }} />}
                         </Grid>
                       ))}
                     </Grid>
                   </Box>
                 )}
-                
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button 
-                      variant="outlined" 
-                      onClick={() => navigate('/ventas/historial')}
-                      endIcon={<ArrowUpIcon />}
-                      sx={{ 
-                        borderRadius: '10px',
-                        textTransform: 'none'
-                      }}
-                    >
-                      Ver todas las ventas
-                    </Button>
-                  </motion.div>
-                </Box>
               </Paper>
             </motion.div>
           </Grid>
           
           <Grid item xs={12} md={4}>
             <motion.div variants={itemVariants}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
-              }}>
+              <Paper sx={{ p: 3, borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}>
                 <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <DashboardIcon color="primary" />
                   Accesos Rápidos
                 </Typography>
                 
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="contained"
-                        color="primary"
-                        startIcon={<ShoppingCartIcon />}
-                        onClick={() => navigate('/ventas')}
-                        sx={{ 
-                          mb: 2,
-                          background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                        }}
-                      >
-                        Nueva Venta
-                      </QuickLinkButton>
-                    </motion.div>
+                    <QuickLinkButton
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      startIcon={<ShoppingCartIcon />}
+                      onClick={() => navigate('/ventas')}
+                      sx={{ mb: 2, background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)' }}
+                    >
+                      Nueva Venta
+                    </QuickLinkButton>
                   </Grid>
                   
-                  <Grid item xs={6}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  {[
+                    { label: 'Inventario', icon: <InventoryIcon />, path: '/inventario' },
+                    { label: 'Clientes', icon: <PeopleIcon />, path: '/clientes' },
+                    { label: 'Finanzas', icon: <AttachMoneyIcon />, path: '/finanzas' },
+                    { label: 'Reportes', icon: <AssignmentIcon />, path: '/reportes' }
+                  ].map((boton, index) => (
+                    <Grid item xs={6} key={index}>
                       <QuickLinkButton
                         fullWidth
                         variant="outlined"
-                        startIcon={<InventoryIcon />}
-                        onClick={() => navigate('/inventario')}
+                        startIcon={boton.icon}
+                        onClick={() => navigate(boton.path)}
                       >
-                        Inventario
+                        {boton.label}
                       </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
-                  
-                  <Grid item xs={6}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<PeopleIcon />}
-                        onClick={() => navigate('/clientes')}
-                      >
-                        Clientes
-                      </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
-                  
-                  <Grid item xs={6}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<AttachMoneyIcon />}
-                        onClick={() => navigate('/finanzas')}
-                      >
-                        Finanzas
-                      </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
-                  
-                  <Grid item xs={6}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<AssignmentIcon />}
-                        onClick={() => navigate('/reportes')}
-                      >
-                        Reportes
-                      </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
+                    </Grid>
+                  ))}
                 </Grid>
               </Paper>
             </motion.div>
