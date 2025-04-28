@@ -89,7 +89,7 @@ const Login = () => {
 
     setRecoveryLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/update-password`, {
+      const response = await axios.post(`${API_URL}/auth/update-password`, {
         username,
         currentPassword,
         newPassword
