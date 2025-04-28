@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Container, Paper, Typography, TextField, Button, Grid, Link, Alert,
   InputAdornment, IconButton, CircularProgress, FormControlLabel, Checkbox,
-  Box, Slide, Fade
+  Box, Slide, Fade, Modal
 } from '@mui/material';
 import { 
   Lock as LockIcon,
@@ -50,6 +50,62 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  
+  // Estados para el modal de recuperación de contraseña
+  const [openRecovery, setOpenRecovery] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+
+  // Handler para abrir/cerrar el modal
+  const handleOpenRecovery = (e) => {
+    e.preventDefault();
+    setOpenRecovery(true);
+  };
+  
+  const handleCloseRecovery = () => {
+    setOpenRecovery(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+  };
+
+  // Handler para enviar el cambio de contraseña
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    
+    if (!username) {
+      toast.error('Por favor, ingresa tu nombre de usuario');
+      return;
+    }
+    
+    if (!currentPassword || !newPassword) {
+      toast.error('Por favor, completa todos los campos');
+      return;
+    }
+
+    setRecoveryLoading(true);
+    try {
+      const response = await axios.post(`${API_URL}/change-password`, {
+        username,
+        currentPassword,
+        newPassword
+      });
+      
+      if (response.data.success) {
+        toast.success('Contraseña actualizada correctamente');
+        handleCloseRecovery();
+      }
+    } catch (error) {
+      console.error('Error al cambiar contraseña:', error);
+      toast.error(error.response?.data?.message || 'Error al cambiar contraseña');
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,6 +152,196 @@ const Login = () => {
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  // Modal de recuperación
+  const recoveryModal = (
+    <Modal
+      open={openRecovery}
+      onClose={handleCloseRecovery}
+      aria-labelledby="recovery-modal"
+      aria-describedby="password-recovery"
+      sx={{ 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(3px)'
+      }}
+    >
+      <Fade in={openRecovery}>
+        <Paper sx={{ 
+          padding: '2rem',
+          borderRadius: '16px',
+          background: 'rgba(255, 255, 255, 0.15)',
+          color: 'white',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+          width: '400px',
+          maxWidth: '90%',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+        }}>
+          <Typography variant="h5" gutterBottom sx={{ 
+            textAlign: 'center', 
+            mb: 3,
+            fontWeight: 'bold',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            Cambiar Contraseña
+          </Typography>
+          
+          <form onSubmit={handlePasswordChange}>
+            <TextField
+              fullWidth
+              label="Contraseña Actual"
+              variant="outlined"
+              margin="normal"
+              type={showCurrentPassword ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon sx={{ color: 'rgba(255, 107, 53, 0.8)' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      edge="end"
+                    >
+                      {showCurrentPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+              sx={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                borderRadius: '12px',
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: 'transparent',
+                    transition: 'all 0.2s ease-in-out',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#FF6B35',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#FF6B35',
+                    borderWidth: '2px'
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(0, 0, 0, 0.7)'
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#FF6B35'
+                },
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-2px)'
+                }
+              }}
+              required
+            />
+
+            <TextField
+              fullWidth
+              label="Nueva Contraseña"
+              variant="outlined"
+              margin="normal"
+              type={showNewPassword ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon sx={{ color: 'rgba(255, 107, 53, 0.8)' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      edge="end"
+                    >
+                      {showNewPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+              sx={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                borderRadius: '12px',
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: 'transparent',
+                    transition: 'all 0.2s ease-in-out',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#FF6B35',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#FF6B35',
+                    borderWidth: '2px'
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(0, 0, 0, 0.7)'
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#FF6B35'
+                },
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-2px)'
+                }
+              }}
+              required
+            />
+
+            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+              <Button 
+                onClick={handleCloseRecovery}
+                variant="outlined"
+                sx={{ 
+                  color: 'white', 
+                  borderColor: 'rgba(255, 255, 255, 0.5)',
+                  '&:hover': {
+                    borderColor: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                  }
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                variant="contained"
+                disabled={recoveryLoading}
+                sx={{ 
+                  backgroundColor: '#FF6B35',
+                  '&:hover': { 
+                    backgroundColor: '#E65A2E',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(255, 107, 53, 0.4)'
+                  },
+                  boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {recoveryLoading ? 
+                  <CircularProgress size={24} color="inherit" /> : 
+                  'Cambiar Contraseña'
+                }
+              </Button>
+            </Box>
+          </form>
+        </Paper>
+      </Fade>
+    </Modal>
+  );
 
   return (
     <div style={{ 
@@ -382,6 +628,7 @@ const Login = () => {
                   <Link 
                     href="#" 
                     variant="body2" 
+                    onClick={handleOpenRecovery}
                     sx={{ 
                       color: '#FFD700',
                       fontWeight: 500,
@@ -407,6 +654,8 @@ const Login = () => {
           </Paper>
         </motion.div>
       </Container>
+      
+      {recoveryModal}
     </div>
   );
 };
