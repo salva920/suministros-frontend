@@ -18,7 +18,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion } from 'framer-motion';
 
-const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
+const API_URL = "https://suministros-backend.vercel.app/api"; // Ya incluye "/api"
 
 // Variantes para animaciones
 const containerVariants = {
@@ -89,7 +89,7 @@ const Login = () => {
 
     setRecoveryLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/change-password`, {
+      const response = await axios.put(`${API_URL}/update-password`, {
         username,
         currentPassword,
         newPassword
@@ -101,7 +101,17 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Error al cambiar contraseña:', error);
-      toast.error(error.response?.data?.message || 'Error al cambiar contraseña');
+      if (error.response) {
+        if (error.response.status === 404) {
+          toast.error('Usuario no encontrado');
+        } else if (error.response.status === 401) {
+          toast.error('Contraseña actual incorrecta');
+        } else {
+          toast.error(error.response.data.message || 'Error al cambiar contraseña');
+        }
+      } else {
+        toast.error('Error de conexión con el servidor');
+      }
     } finally {
       setRecoveryLoading(false);
     }
