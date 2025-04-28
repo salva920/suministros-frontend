@@ -89,7 +89,7 @@ const Login = () => {
 
     setRecoveryLoading(true);
     try {
-      const response = await axios.put(`${API_URL}/update-password`, {
+      const response = await axios.post(`${API_URL}/update-password`, {
         username,
         currentPassword,
         newPassword
@@ -103,11 +103,11 @@ const Login = () => {
       console.error('Error al cambiar contraseña:', error);
       if (error.response) {
         if (error.response.status === 404) {
-          toast.error('Usuario no encontrado');
+          toast.error('Ruta no encontrada - Contacta al administrador');
         } else if (error.response.status === 401) {
           toast.error('Contraseña actual incorrecta');
         } else {
-          toast.error(error.response.data.message || 'Error al cambiar contraseña');
+          toast.error(error.response.data?.message || 'Error al cambiar contraseña');
         }
       } else {
         toast.error('Error de conexión con el servidor');
