@@ -132,6 +132,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [pagina, setPagina] = useState(1);
   const [porPagina, setPorPagina] = useState(10);
   const [totalClientes, setTotalClientes] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
   const [cargando, setCargando] = useState(false);
   const [cliente, setCliente] = useState({
     _id: '',
@@ -171,19 +172,38 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
 
-  const cargarClientes = useCallback(async (page = pagina, limit = porPagina) => {
-    setCargando(true);
+  const cargarClientes = useCallback(async (page = 1, limit = porPagina) => {
     try {
-      const response = await axios.get(`${API_URL}/clientes?page=${page}&limit=${limit}`);
+      setCargando(true);
+      
+      // Construir parámetros de búsqueda con todos los filtros
+      const params = new URLSearchParams({
+        page, 
+        limit,
+        // Añadir parámetros de búsqueda solo si tienen valor
+        ...(busqueda && { search: busqueda }),
+        ...(filtroCategoria && { categoria: filtroCategoria }),
+        ...(filtroMunicipio && { municipio: filtroMunicipio })
+      });
+      
+      // Solicitud al backend con todos los parámetros
+      const response = await axios.get(`${API_URL}/clientes?${params}`);
+      
+      // Actualizar estado con los datos filtrados que vienen del backend
       setClientes(response.data.clientes);
+      
+      // Importante: Actualizar el total basado en resultados filtrados
       setTotalClientes(response.data.total);
+      
+      // Calcular total de páginas basado en resultados filtrados
+      setTotalPaginas(Math.ceil(response.data.total / limit));
     } catch (error) {
-      console.error(error);
-      toast.error('Error al cargar clientes');
+      console.error('Error al cargar clientes:', error);
+      toast.error('Error al cargar los clientes');
     } finally {
       setCargando(false);
     }
-  }, [pagina, porPagina]);
+  }, [busqueda, filtroCategoria, filtroMunicipio, porPagina]);
 
   useEffect(() => {
     cargarClientes(pagina, porPagina);
@@ -438,8 +458,23 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     }
   };
 
-  const manejarCambioPagina = (event, value) => {
-    setPagina(value);
+  const handleBusquedaChange = (valor) => {
+    setBusqueda(valor);
+    setPagina(1); // Resetear a primera página cuando cambia la búsqueda
+  };
+
+  const handleFiltroChange = (tipo, valor) => {
+    if (tipo === 'categoria') {
+      setFiltroCategoria(valor);
+    } else if (tipo === 'municipio') {
+      setFiltroMunicipio(valor);
+    }
+    setPagina(1); // Resetear a primera página cuando cambia cualquier filtro
+  };
+
+  const cambiarPagina = (nuevaPagina) => {
+    setPagina(nuevaPagina);
+    // No necesitamos llamar a cargarClientes aquí porque el useEffect lo hará
   };
 
   const manejarCambioPorPagina = (event) => {
@@ -543,7 +578,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       label="Buscar por nombre o RIF"
                       variant="outlined"
                       value={busqueda}
-                      onChange={(e) => setBusqueda(e.target.value)}
+                      onChange={(e) => handleBusquedaChange(e.target.value)}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -560,7 +595,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       <InputLabel>Filtrar por municipio</InputLabel>
                       <Select
                         value={filtroMunicipio}
-                        onChange={(e) => setFiltroMunicipio(e.target.value)}
+                        onChange={(e) => handleFiltroChange('municipio', e.target.value)}
                         label="Filtrar por municipio"
                         sx={{ borderRadius: '10px' }}
                       >
@@ -577,7 +612,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       <InputLabel>Filtrar por categoría</InputLabel>
                       <Select
                         value={filtroCategoria}
-                        onChange={(e) => setFiltroCategoria(e.target.value)}
+                        onChange={(e) => handleFiltroChange('categoria', e.target.value)}
                         label="Filtrar por categoría"
                         sx={{ borderRadius: '10px' }}
                       >
