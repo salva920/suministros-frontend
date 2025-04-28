@@ -147,7 +147,6 @@ const Login = () => {
     } catch (error) {
       console.error('Error en autenticación:', error);
       if (error.response) {
-        // Manejo de errores del servidor
         error.response.status === 401 
           ? toast.error('Credenciales inválidas')
           : toast.error('Error en el servidor');
