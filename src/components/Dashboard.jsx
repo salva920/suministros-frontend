@@ -35,7 +35,7 @@ const Dashboard = () => {
     { text: 'Ventas', icon: <PointOfSale />, path: '/ventas/procesar' },
     { text: 'Inventario', icon: <Inventory />, path: '/inventario' },
     { text: 'Clientes', icon: <People />, path: '/clientes/registrar' },
-    { text: 'Facturas', icon: <Receipt />, path: 'finanzas/facturas-pendientes' },
+    { text: 'Facturas', icon: <Receipt />, path: '/finanzas/facturas-pendientes' },
     { text: 'Finanzas', icon: <AttachMoney />, path: '/precios' },
   ];
 
@@ -147,7 +147,15 @@ const Dashboard = () => {
               src={logoRomero}
               alt="Logo Romero"
               style={{
-                height: '40px',
+                height: '60px',
+                width: '60px',
+                borderRadius: '50%',
+                border: '2px solid white',
+                objectFit: 'cover'
+              }}
+              onError={(e) => {
+                e.target.onerror = null; 
+                e.target.src = 'data:image/svg+xml;base64,...'; // Imagen de fallback
               }}
             />
             <Hidden smDown>
