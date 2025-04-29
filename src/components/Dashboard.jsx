@@ -15,7 +15,7 @@ import { logout } from '../services/authService';
 import { motion } from 'framer-motion';
 
 // Importar logo
-import logoRomero from '/logoRomero.png';
+import logoRomero from './logoRomero.png';
 
 const API_URL = "https://suministros-backend.vercel.app";
 
@@ -144,7 +144,7 @@ const Dashboard = () => {
             gap: 2
           }}>
             <img
-              src={`${process.env.PUBLIC_URL}/logoRomero.png`}
+              src={logoRomero}
               alt="Logo Romero"
               style={{
                 height: '40px',
