@@ -148,7 +148,8 @@ const Dashboard = () => {
               alt="Logo Romero"
               style={{
                 height: '60px',
-                width: '60px',
+                width: 'auto',
+                maxWidth: '100%',
                 borderRadius: '50%',
                 border: '2px solid white',
                 objectFit: 'cover'
