@@ -174,38 +174,57 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const cargarClientes = useCallback(async (page = pagina, limit = porPagina) => {
     setCargando(true);
     try {
-      const response = await axios.get(`${API_URL}/clientes?page=${page}&limit=${limit}`);
+      // Si hay filtros activos, intentamos cargar todos los registros para filtrar en el cliente
+      const hayFiltrosActivos = busqueda || filtroMunicipio || filtroCategoria;
+      
+      // URL de la API (usando un límite mayor si hay filtros activos)
+      const url = hayFiltrosActivos 
+        ? `${API_URL}/clientes?page=1&limit=1000` // Un límite grande para obtener todos los registros
+        : `${API_URL}/clientes?page=${page}&limit=${limit}`;
+      
+      const response = await axios.get(url);
       setClientes(response.data.clientes);
       setTotalClientes(response.data.total);
+      
+      // Siempre que cargamos datos con filtros, forzamos la página a 1
+      if (hayFiltrosActivos) {
+        setPagina(1);
+      }
     } catch (error) {
       console.error(error);
       toast.error('Error al cargar clientes');
     } finally {
       setCargando(false);
     }
-  }, [pagina, porPagina]);
+  }, [pagina, porPagina, busqueda, filtroMunicipio, filtroCategoria]);
 
   useEffect(() => {
     cargarClientes(pagina, porPagina);
-  }, [pagina, porPagina, cargarClientes]);
+  }, [cargarClientes, pagina, porPagina]);
+
+  useEffect(() => {
+    // Este efecto se ejecuta cuando cambian los filtros
+    setPagina(1); // Resetear a página 1
+    cargarClientes(1, porPagina); // Cargar clientes forzando página 1
+  }, [busqueda, filtroMunicipio, filtroCategoria]);
 
   const filtrarClientes = useCallback(() => {
-    if (busqueda || filtroCategoria || filtroMunicipio) {
-      setPagina(1);
-    }
-    
     return clientes.filter(cliente => {
+      // Comparación de búsqueda en nombre y RIF
       const busquedaMatch = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
                             cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
       
+      // Filtrado por categoría
       const categoriaMatch = filtroCategoria ? 
                              cliente.categorias?.includes(filtroCategoria) : 
                              true;
 
+      // Comparación case-insensitive para municipio
       const municipioMatch = filtroMunicipio ? 
                              cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase() : 
                              true;
 
+      // Retornar true si coincide con todos los filtros
       return busquedaMatch && categoriaMatch && municipioMatch;
     });
   }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
@@ -214,11 +233,6 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     const filtered = filtrarClientes();
     setClientesFiltrados(filtered);
   }, [filtrarClientes]);
-
-  useEffect(() => {
-    // Resetear a la página 1 cuando cambian los criterios de búsqueda
-    setPagina(1);
-  }, [busqueda, filtroCategoria, filtroMunicipio]);
 
   const handleChange = (e) => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
@@ -445,6 +459,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
 
   const manejarCambioPagina = (event, value) => {
     setPagina(value);
+    // No es necesario llamar a cargarClientes aquí, el efecto lo hará
   };
 
   const manejarCambioPorPagina = (event) => {
@@ -1119,18 +1134,19 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
               >
                 <MenuItem value={10}>10</MenuItem>
                 <MenuItem value={25}>25</MenuItem>
-                <MenuItem value={50} selected>50</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
               </Select>
             </FormControl>
 
             <Pagination
-              count={Math.ceil(totalClientes / porPagina)}
+              count={Math.ceil(clientesFiltrados.length / porPagina)}
               page={pagina}
               onChange={manejarCambioPagina}
               color="primary"
               shape="rounded"
               showFirstButton
               showLastButton
+              disabled={clientesFiltrados.length <= porPagina}
               sx={{ 
                 '& .MuiPaginationItem-root': {
                   borderRadius: '8px'
