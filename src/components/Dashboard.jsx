@@ -9,11 +9,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
   ExitToApp, PointOfSale, Inventory, People,
-  Settings, Receipt, Dashboard as DashboardIcon,
-  Menu, ShoppingCart, Assignment, AttachMoney
+  Receipt, AttachMoney, Menu
 } from '@mui/icons-material';
 import { logout } from '../services/authService';
 import { motion } from 'framer-motion';
+
+// Importar logo
+import logoRomero from '../public/logoRomero.png';
 
 const API_URL = "https://suministros-backend.vercel.app";
 
@@ -30,11 +32,11 @@ const Dashboard = () => {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const menuItems = [
-    { text: 'Nueva Venta', icon: <PointOfSale />, path: '/ventas/procesar' },
+    { text: 'Ventas', icon: <PointOfSale />, path: '/ventas' },
     { text: 'Inventario', icon: <Inventory />, path: '/inventario' },
-    { text: 'Clientes', icon: <People />, path: '/clientes/registrar' },
-    { text: 'Facturas', icon: <Assignment />, path: '/finanzas/facturas-pendientes' },
-    { text: 'Finanzas', icon: <AttachMoney />, path: '/precios' },
+    { text: 'Clientes', icon: <People />, path: '/clientes' },
+    { text: 'Facturas', icon: <Receipt />, path: '/facturas' },
+    { text: 'Finanzas', icon: <AttachMoney />, path: '/finanzas' },
   ];
 
   const fetchData = async () => {
@@ -62,6 +64,31 @@ const Dashboard = () => {
     navigate('/');
     toast.info('Sesión cerrada correctamente');
   };
+
+  const NavButtons = () => (
+    <Box sx={{ 
+      display: 'flex', 
+      gap: 1, 
+      ml: 3,
+      alignItems: 'center'
+    }}>
+      {menuItems.map((item) => (
+        <Button
+          key={item.text}
+          component={Link}
+          to={item.path}
+          color="inherit"
+          startIcon={item.icon}
+          sx={{ 
+            textTransform: 'none',
+            '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
+          }}
+        >
+          {item.text}
+        </Button>
+      ))}
+    </Box>
+  );
 
   const drawerContent = (
     <div>
@@ -96,7 +123,6 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      {/* Barra de navegación superior */}
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <Hidden mdUp>
@@ -109,37 +135,42 @@ const Dashboard = () => {
               <Menu />
             </IconButton>
           </Hidden>
-          
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-            Panel de Control
-          </Typography>
-          
+
+          {/* Logo y nombre */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            flexGrow: 1,
+            gap: 2
+          }}>
+            <img
+              src={logoRomero}
+              alt="Distribuciones Romero"
+              style={{
+                height: '40px',
+                filter: 'brightness(0) invert(1)'
+              }}
+            />
+            <Hidden smDown>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Panel de Control
+              </Typography>
+            </Hidden>
+          </Box>
+
+          {/* Botones de navegación */}
+          <Hidden mdDown>
+            <NavButtons />
+          </Hidden>
+
+          {/* Botón de logout */}
           <IconButton color="inherit" onClick={handleLogout}>
             <ExitToApp />
           </IconButton>
         </Toolbar>
       </AppBar>
 
-      {/* Menú lateral */}
-      <Hidden mdDown>
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: 240,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': { 
-              width: 240,
-              boxSizing: 'border-box',
-              borderRight: 'none',
-              backgroundColor: 'background.paper'
-            },
-          }}
-        >
-          <Toolbar /> {/* Espacio para la AppBar */}
-          {drawerContent}
-        </Drawer>
-      </Hidden>
-
+      {/* Menú lateral móvil */}
       <Hidden mdUp>
         <Drawer
           variant="temporary"
