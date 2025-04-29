@@ -187,7 +187,6 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         onProductoGuardado(response.data);
         resetForm();
         onClose();
-        agregarProductoAlEstado(response.data);
       }
     } catch (error) {
       // Manejo de errores específicos
