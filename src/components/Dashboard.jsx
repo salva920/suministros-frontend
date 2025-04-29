@@ -32,11 +32,11 @@ const Dashboard = () => {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const menuItems = [
-    { text: 'Ventas', icon: <PointOfSale />, path: '/ventas' },
+    { text: 'Ventas', icon: <PointOfSale />, path: '/ventas/procesar' },
     { text: 'Inventario', icon: <Inventory />, path: '/inventario' },
-    { text: 'Clientes', icon: <People />, path: '/clientes' },
-    { text: 'Facturas', icon: <Receipt />, path: '/facturas' },
-    { text: 'Finanzas', icon: <AttachMoney />, path: '/finanzas' },
+    { text: 'Clientes', icon: <People />, path: '/clientes/registrar' },
+    { text: 'Facturas', icon: <Receipt />, path: 'finanzas/facturas-pendientes' },
+    { text: 'Finanzas', icon: <AttachMoney />, path: '/precios' },
   ];
 
   const fetchData = async () => {
@@ -148,7 +148,6 @@ const Dashboard = () => {
               alt="Logo Romero"
               style={{
                 height: '40px',
-                filter: 'brightness(0) invert(1)'
               }}
             />
             <Hidden smDown>
