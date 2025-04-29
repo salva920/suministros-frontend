@@ -288,9 +288,6 @@ const GestionInventario = () => {
       // Reset estados para evitar problemas al agregar nuevos productos
       setProductoEditando(null);
       setMostrarFormulario(false);
-      
-      // Una sola notificación
-      toast.success(`Producto ${productoTransformado.codigo} actualizado correctamente`);
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
       toast.error('Error al actualizar el producto');
