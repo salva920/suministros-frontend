@@ -30,7 +30,7 @@ const Dashboard = () => {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const menuItems = [
-    { text: 'Nueva Venta', icon: <PointOfSale />, path: '/ventas' },
+    { text: 'Nueva Venta', icon: <PointOfSale />, path: '/ventas/procesar' },
     { text: 'Inventario', icon: <Inventory />, path: '/inventario' },
     { text: 'Clientes', icon: <People />, path: '/clientes/registrar' },
     { text: 'Facturas', icon: <Assignment />, path: '/finanzas/facturas-pendientes' },
