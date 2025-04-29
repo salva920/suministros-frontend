@@ -130,7 +130,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [clientes, setClientes] = useState([]);
   const [clientesFiltrados, setClientesFiltrados] = useState([]);
   const [pagina, setPagina] = useState(1);
-  const [porPagina, setPorPagina] = useState(50);
+  const [porPagina, setPorPagina] = useState(1000);
   const [totalClientes, setTotalClientes] = useState(0);
   const [cargando, setCargando] = useState(false);
   const [cliente, setCliente] = useState({
@@ -171,32 +171,28 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
 
-  const cargarClientes = useCallback(async (page = pagina, limit = porPagina) => {
+  const cargarClientes = useCallback(async (page = 1, limit = 1000) => {
     setCargando(true);
     try {
       // Si hay filtros activos, intentamos cargar todos los registros para filtrar en el cliente
       const hayFiltrosActivos = busqueda || filtroMunicipio || filtroCategoria;
       
-      // URL de la API (usando un límite mayor si hay filtros activos)
-      const url = hayFiltrosActivos 
-        ? `${API_URL}/clientes?page=1&limit=1000` // Un límite grande para obtener todos los registros
-        : `${API_URL}/clientes?page=${page}&limit=${limit}`;
+      // URL de la API (siempre usando un límite de 1000 para obtener todos los registros)
+      const url = `${API_URL}/clientes?page=1&limit=1000`;
       
       const response = await axios.get(url);
       setClientes(response.data.clientes);
       setTotalClientes(response.data.total);
       
-      // Siempre que cargamos datos con filtros, forzamos la página a 1
-      if (hayFiltrosActivos) {
-        setPagina(1);
-      }
+      // Siempre mantenemos la página en 1
+      setPagina(1);
     } catch (error) {
       console.error(error);
       toast.error('Error al cargar clientes');
     } finally {
       setCargando(false);
     }
-  }, [pagina, porPagina, busqueda, filtroMunicipio, filtroCategoria]);
+  }, [busqueda, filtroMunicipio, filtroCategoria]);
 
   useEffect(() => {
     cargarClientes(pagina, porPagina);
@@ -458,13 +454,16 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   };
 
   const manejarCambioPagina = (event, value) => {
-    setPagina(value);
-    // No es necesario llamar a cargarClientes aquí, el efecto lo hará
+    // No necesitamos cambiar la página ya que todos los registros están en la página 1
+    // Mantenemos esta función por compatibilidad con la interfaz
+    setPagina(1);
   };
 
   const manejarCambioPorPagina = (event) => {
-    setPorPagina(parseInt(event.target.value, 10));
-    setPagina(1); // Reiniciar a la primera página cuando cambia el tamaño
+    // No necesitamos cambiar el número de registros por página
+    // Mantenemos esta función por compatibilidad con la interfaz
+    setPorPagina(1000);
+    setPagina(1);
   };
 
   const municipiosDisponibles = [...new Set(clientes.map(c => c.municipio).filter(Boolean))];
