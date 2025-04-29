@@ -15,7 +15,7 @@ import { logout } from '../services/authService';
 import { motion } from 'framer-motion';
 
 // Importar logo
-import logoRomero from '../public/logoRomero.png';
+import logoRomero from '/logoRomero.png';
 
 const API_URL = "https://suministros-backend.vercel.app";
 
