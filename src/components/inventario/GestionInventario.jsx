@@ -301,9 +301,12 @@ const GestionInventario = () => {
   const handleProductoGuardado = (nuevoProducto) => {
     // Verificar si es una actualización o un nuevo producto
     const esActualizacion = nuevoProducto._id || nuevoProducto.id;
-    
+
     if (esActualizacion) {
+      // Actualizar el producto
       actualizarProducto(nuevoProducto);
+      // Agregar notificación para actualización
+      toast.success(`Producto ${nuevoProducto.codigo || ''} actualizado correctamente`);
     } else {
       // Es un nuevo producto
       try {
@@ -312,25 +315,21 @@ const GestionInventario = () => {
           toast.error('Error procesando el nuevo producto');
           return;
         }
-        
+
         // Agregar al estado
         setProductos(prevProductos => [productoTransformado, ...prevProductos]);
         
-        // Reset estados
-        setProductoEditando(null);
-        setMostrarFormulario(false);
-        
-        // Una sola notificación
+        // Notificación para nuevo producto
         toast.success('Producto agregado correctamente');
       } catch (error) {
         console.error('Error al procesar nuevo producto:', error);
         toast.error('Error al agregar el producto');
-        
-        // Resetear estados incluso si hay error
-        setProductoEditando(null);
-        setMostrarFormulario(false);
       }
     }
+
+    // Resetear estados
+    setProductoEditando(null);
+    setMostrarFormulario(false);
   };
 
   const eliminarProducto = async (id) => {
