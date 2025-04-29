@@ -144,8 +144,8 @@ const Dashboard = () => {
             gap: 2
           }}>
             <img
-              src={logoRomero}
-              alt="Distribuciones Romero"
+              src={`${process.env.PUBLIC_URL}/logoRomero.png`}
+              alt="Logo Romero"
               style={{
                 height: '40px',
                 filter: 'brightness(0) invert(1)'
