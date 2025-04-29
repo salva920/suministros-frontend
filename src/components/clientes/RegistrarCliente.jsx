@@ -215,6 +215,11 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     setClientesFiltrados(filtered);
   }, [filtrarClientes]);
 
+  useEffect(() => {
+    // Resetear a la página 1 cuando cambian los criterios de búsqueda
+    setPagina(1);
+  }, [busqueda, filtroCategoria, filtroMunicipio]);
+
   const handleChange = (e) => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
   };

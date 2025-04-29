@@ -36,7 +36,7 @@ const Dashboard = () => {
     { text: 'Inventario', icon: <Inventory />, path: '/inventario' },
     { text: 'Clientes', icon: <People />, path: '/clientes/registrar' },
     { text: 'Facturas', icon: <Receipt />, path: '/finanzas/facturas-pendientes' },
-    { text: 'Finanzas', icon: <AttachMoney />, path: '/precios' },
+    { text: 'Lista de precios', icon: <AttachMoney />, path: '/precios' },
   ];
 
   const fetchData = async () => {
