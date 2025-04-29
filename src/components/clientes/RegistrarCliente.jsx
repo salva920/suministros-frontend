@@ -130,7 +130,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [clientes, setClientes] = useState([]);
   const [clientesFiltrados, setClientesFiltrados] = useState([]);
   const [pagina, setPagina] = useState(1);
-  const [porPagina, setPorPagina] = useState(10);
+  const [porPagina, setPorPagina] = useState(50);
   const [totalClientes, setTotalClientes] = useState(0);
   const [cargando, setCargando] = useState(false);
   const [cliente, setCliente] = useState({
@@ -190,22 +190,22 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   }, [pagina, porPagina, cargarClientes]);
 
   const filtrarClientes = useCallback(() => {
+    if (busqueda || filtroCategoria || filtroMunicipio) {
+      setPagina(1);
+    }
+    
     return clientes.filter(cliente => {
-      // Comparación de búsqueda en nombre y RIF
       const busquedaMatch = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
                             cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
       
-      // Filtrado por categoría
       const categoriaMatch = filtroCategoria ? 
                              cliente.categorias?.includes(filtroCategoria) : 
                              true;
 
-      // Comparación case-insensitive para municipio
       const municipioMatch = filtroMunicipio ? 
                              cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase() : 
                              true;
 
-      // Retornar true si coincide con todos los filtros
       return busquedaMatch && categoriaMatch && municipioMatch;
     });
   }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
@@ -1119,7 +1119,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
               >
                 <MenuItem value={10}>10</MenuItem>
                 <MenuItem value={25}>25</MenuItem>
-                <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={50} selected>50</MenuItem>
               </Select>
             </FormControl>
 
