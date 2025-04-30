@@ -24,6 +24,8 @@ import Pagination from '@mui/material/Pagination';
 import RegistroClienteDialog from '../ventas/RegistroClienteDialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'react-toastify/dist/ReactToastify.css';
+import RegistroClienteDialog from './RegistroClienteDialog';
+
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL del backend en Vercel
 
@@ -161,13 +163,10 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [mostrarModalVentas, setMostrarModalVentas] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
-  const [ventasCliente, setVentasCliente] = useState([]);
+  const [mostrarRegistroDialog, setMostrarRegistroDialog] = useState(false);
   const [prefijoRif, setPrefijoRif] = useState('V');
   const [prefijoTelefono, setPrefijoTelefono] = useState('0412');
   const [colorMunicipio, setColorMunicipio] = useState('#ffffff');
-  const [mostrarDialogoVentas, setMostrarDialogoVentas] = useState(false);
-  const [deudaTotal, setDeudaTotal] = useState(0);
-  const [cargandoVentas, setCargandoVentas] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
 
@@ -404,50 +403,9 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     }
   };
 
-  const handleVerVentas = async (cliente) => {
-    setCargandoVentas(true);
+  const handleVerVentas = (cliente) => {
     setClienteSeleccionado(cliente);
-    try {
-      const response = await axios.get(`${API_URL}/ventas`, {
-        params: {
-          cliente: cliente._id,
-          limit: 1000
-        }
-      });
-  
-      // Asegurar que todas las ventas tengan los campos necesarios
-      const ventasConValoresPorDefecto = response.data.ventas?.map(venta => ({
-        ...venta,
-        total: venta.total || 0,
-        pagado: venta.pagado || 0,
-        saldoPendiente: venta.saldoPendiente || 0,
-        productos: venta.productos || []
-      })) || [];
-  
-      setVentasCliente(ventasConValoresPorDefecto);
-      
-      // Calcular deuda total
-      const deuda = ventasConValoresPorDefecto.reduce(
-        (sum, venta) => sum + (venta.saldoPendiente || 0), 
-        0
-      );
-      setDeudaTotal(deuda);
-      
-      setMostrarDialogoVentas(true);
-    } catch (error) {
-      console.error('Error al cargar ventas:', error);
-      toast.error('Error al cargar el historial de ventas');
-      setVentasCliente([]);
-      setDeudaTotal(0);
-    } finally {
-      setCargandoVentas(false);
-    }
-  };
-
-  const handleAbonarSaldo = () => {
-    // Lógica para registrar abono
-    navigate('/ventas', { state: { clienteId: clienteSeleccionado.id || clienteSeleccionado._id } });
-    setMostrarDialogoVentas(false);
+    setMostrarRegistroDialog(true);
   };
 
   const handleCheckboxChange = (e) => {
@@ -1103,10 +1061,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                             <Tooltip title="Ver Historial de Ventas">
                               <IconButton
                                 color="info"
-                                onClick={() => {
-                                  setClienteSeleccionado(cliente);
-                                  handleVerVentas(cliente);
-                                }}
+                                onClick={() => handleVerVentas(cliente)}
                                 sx={{ 
                                   backgroundColor: 'rgba(3, 169, 244, 0.1)',
                                   '&:hover': { backgroundColor: 'rgba(3, 169, 244, 0.2)' }
@@ -1168,187 +1123,15 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
         </Paper>
 
         <AnimatePresence>
-          {mostrarDialogoVentas && (
-            <Dialog
-              open={mostrarDialogoVentas}
-              onClose={() => setMostrarDialogoVentas(false)}
-              PaperComponent={motion.div}
-              PaperProps={{
-                initial: { opacity: 0, y: 20 },
-                animate: { opacity: 1, y: 0 },
-                exit: { opacity: 0, y: 20 },
-                transition: { duration: 0.3 },
-                sx: { 
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                  maxWidth: '800px',
-                  width: '100%'
-                }
+          {mostrarRegistroDialog && (
+            <RegistroClienteDialog
+              open={mostrarRegistroDialog}
+              onClose={() => setMostrarRegistroDialog(false)}
+              clienteSeleccionado={clienteSeleccionado}
+              onDataUpdated={() => {
+                cargarClientes(); // Refrescar la lista de clientes
               }}
-              maxWidth="md"
-              fullWidth
-            >
-              <DialogTitle sx={{ 
-                bgcolor: 'primary.main', 
-                color: 'white',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                py: 2,
-                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                fontWeight: 'bold'
-              }}>
-                Historial de Ventas del Cliente
-                <IconButton 
-                  size="small" 
-                  onClick={() => setMostrarDialogoVentas(false)}
-                  sx={{ color: 'white' }}
-                >
-                  <Close />
-                </IconButton>
-              </DialogTitle>
-              <DialogContent sx={{ bgcolor: '#ffffff', p: 3 }}>
-                {cargandoVentas ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
-                    <CircularProgress />
-                  </Box>
-                ) : (
-                  <Box>
-                    {clienteSeleccionado && (
-                      <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: 'rgba(33, 150, 243, 0.05)', borderRadius: '12px' }}>
-                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                          {clienteSeleccionado.nombre}
-                        </Typography>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="text.secondary">CI/RIF:</Typography>
-                            <Typography variant="body1">{clienteSeleccionado.rif}</Typography>
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="text.secondary">Teléfono:</Typography>
-                            <Typography variant="body1">{clienteSeleccionado.telefono || 'No registrado'}</Typography>
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="text.secondary">Municipio:</Typography>
-                            <Box
-                              sx={{
-                                backgroundColor: clienteSeleccionado.municipioColor || '#f0f0f0',
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                display: 'inline-block',
-                                color: theme.palette.getContrastText(clienteSeleccionado.municipioColor || '#f0f0f0')
-                              }}
-                            >
-                              {clienteSeleccionado.municipio || 'No registrado'}
-                            </Box>
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="text.secondary">Deuda Total:</Typography>
-                            <Typography 
-                              variant="body1" 
-                              color={deudaTotal > 0 ? 'error.main' : 'success.main'}
-                              fontWeight="bold"
-                            >
-                              Bs. {deudaTotal.toFixed(2)}
-                            </Typography>
-                          </Grid>
-                        </Grid>
-                      </Paper>
-                    )}
-
-                    {ventasCliente.length === 0 ? (
-                      <Alert severity="info" sx={{ borderRadius: '10px' }}>
-                        Este cliente no tiene ventas registradas.
-                      </Alert>
-                    ) : (
-                      <>
-                        <Typography variant="h6" gutterBottom fontWeight="bold">
-                          Ventas Realizadas
-                        </Typography>
-                        <TableContainer component={Paper} elevation={0} sx={{ borderRadius: '12px', mb: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                          <Table>
-                            <TableHead>
-                              <TableRow>
-                                <StyledTableCell>Fecha</StyledTableCell>
-                                <StyledTableCell>Productos</StyledTableCell>
-                                <StyledTableCell>Total</StyledTableCell>
-                                <StyledTableCell>Pagado</StyledTableCell>
-                                <StyledTableCell>Estado</StyledTableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              <AnimatePresence>
-                                {ventasCliente.map((venta) => (
-                                  <motion.tr
-                                    key={venta._id}
-                                    variants={itemVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                    exit={{ opacity: 0 }}
-                                    component={TableRow}
-                                    sx={{ 
-                                      '&:nth-of-type(even)': { backgroundColor: 'action.hover' },
-                                      transition: 'background-color 0.3s'
-                                    }}
-                                  >
-                                    <TableCell>{new Date(venta.fecha).toLocaleDateString()}</TableCell>
-                                    <TableCell>
-                                      {venta.productos && venta.productos.length > 0 ? 
-                                        venta.productos.map(p => p.nombre).join(', ') : 
-                                        'No disponible'}
-                                    </TableCell>
-                                    <TableCell>Bs. {venta.total.toFixed(2)}</TableCell>
-                                    <TableCell>Bs. {venta.pagado.toFixed(2)}</TableCell>
-                                    <TableCell>
-                                      <Chip 
-                                        label={venta.pagado >= venta.total ? 'Pagada' : 'Pendiente'} 
-                                        color={venta.pagado >= venta.total ? 'success' : 'warning'}
-                                        size="small"
-                                        sx={{ borderRadius: '8px' }}
-                                      />
-                                    </TableCell>
-                                  </motion.tr>
-                                ))}
-                              </AnimatePresence>
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </>
-                    )}
-                  </Box>
-                )}
-              </DialogContent>
-              <DialogActions sx={{ justifyContent: 'space-between', p: 2, bgcolor: '#ffffff' }}>
-                <Button 
-                  onClick={() => setMostrarDialogoVentas(false)}
-                  variant="outlined"
-                  sx={{ borderRadius: '10px', textTransform: 'none' }}
-                >
-                  Cerrar
-                </Button>
-                
-                {clienteSeleccionado && deudaTotal > 0 && (
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button 
-                      variant="contained"
-                      color="primary"
-                      onClick={() => handleAbonarSaldo(clienteSeleccionado)}
-                      sx={{ 
-                        borderRadius: '10px',
-                        background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                        boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
-                        textTransform: 'none',
-                        fontWeight: 'bold'
-                      }}
-                      startIcon={<MoneyIcon />}
-                    >
-                      Registrar Abono
-                    </Button>
-                  </motion.div>
-                )}
-              </DialogActions>
-            </Dialog>
+            />
           )}
         </AnimatePresence>
 
