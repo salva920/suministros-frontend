@@ -408,39 +408,37 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     setCargandoVentas(true);
     setClienteSeleccionado(cliente);
     try {
-      // Usar el endpoint correcto con parámetros de query
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: cliente._id, // Usar _id que es el estándar de MongoDB
+          cliente: cliente._id,
           limit: 1000
         }
       });
-      
-      setVentasCliente(response.data.ventas || []);
+  
+      // Asegurar que todas las ventas tengan los campos necesarios
+      const ventasConValoresPorDefecto = response.data.ventas?.map(venta => ({
+        ...venta,
+        total: venta.total || 0,
+        pagado: venta.pagado || 0,
+        saldoPendiente: venta.saldoPendiente || 0,
+        productos: venta.productos || []
+      })) || [];
+  
+      setVentasCliente(ventasConValoresPorDefecto);
       
       // Calcular deuda total
-      let deuda = 0;
-      if (response.data.ventas && response.data.ventas.length > 0) {
-        response.data.ventas.forEach(venta => {
-          if (venta.saldoPendiente > 0) { // Cambiar esta condición según tu modelo de datos
-            deuda += venta.saldoPendiente;
-          }
-        });
-      }
+      const deuda = ventasConValoresPorDefecto.reduce(
+        (sum, venta) => sum + (venta.saldoPendiente || 0), 
+        0
+      );
       setDeudaTotal(deuda);
       
       setMostrarDialogoVentas(true);
     } catch (error) {
       console.error('Error al cargar ventas:', error);
       toast.error('Error al cargar el historial de ventas');
-      // Mostrar un mensaje más específico basado en el error
-      if (error.response) {
-        if (error.response.status === 404) {
-          toast.error('No se encontraron ventas para este cliente');
-        } else {
-          toast.error(`Error del servidor: ${error.response.status}`);
-        }
-      }
+      setVentasCliente([]);
+      setDeudaTotal(0);
     } finally {
       setCargandoVentas(false);
     }
