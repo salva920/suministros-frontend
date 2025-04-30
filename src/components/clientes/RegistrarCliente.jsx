@@ -21,7 +21,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Pagination from '@mui/material/Pagination';
-import RegistroClienteDialog from '../ventas/RegistroClienteDialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'react-toastify/dist/ReactToastify.css';
 import RegistroClienteDialog from '../ventas/RegistroClienteDialog';
