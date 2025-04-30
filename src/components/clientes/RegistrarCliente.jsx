@@ -24,7 +24,7 @@ import Pagination from '@mui/material/Pagination';
 import RegistroClienteDialog from '../ventas/RegistroClienteDialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'react-toastify/dist/ReactToastify.css';
-import RegistroClienteDialog from './RegistroClienteDialog';
+import RegistroClienteDialog from '../ventas/RegistroClienteDialog';
 
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL del backend en Vercel
