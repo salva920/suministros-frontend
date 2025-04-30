@@ -73,7 +73,6 @@ const RegistroClienteDialog = ({
 
           if (response.data?.ventas) {
             setVentas(response.data.ventas);
-            inicializarMontosAbono(response.data.ventas);
           }
           
         } catch (error) {
@@ -88,14 +87,6 @@ const RegistroClienteDialog = ({
     if (open) cargarVentasPendientes();
   }, [open, clienteSeleccionado?.id]);
 
-  const inicializarMontosAbono = (ventas) => {
-    const iniciales = ventas.reduce((acc, venta) => ({
-      ...acc,
-      [venta.id]: 0
-    }), {});
-    setMontosAbono(iniciales);
-  };
-
   const calcularDeudaTotal = () => {
     return ventas.reduce((total, venta) => {
       if (venta.saldoPendiente > 0) {
@@ -105,10 +96,10 @@ const RegistroClienteDialog = ({
     }, 0);
   };
 
-  const handleMontoChange = (ventaId, monto) => {
+  const handleMontoChange = (ventaId, value) => {
     setMontosAbono(prev => ({
       ...prev,
-      [ventaId]: monto
+      [ventaId]: value
     }));
   };
 
@@ -219,7 +210,7 @@ const RegistroClienteDialog = ({
                             <TextField
                               type="number"
                               size="small"
-                              value={montosAbono[venta.id] || 0}
+                              value={montosAbono[venta.id] || ''}
                               onChange={(e) => handleMontoChange(venta.id, parseFloat(e.target.value))}
                               InputProps={{
                                 startAdornment: <InputAdornment position="start">$</InputAdornment>,
