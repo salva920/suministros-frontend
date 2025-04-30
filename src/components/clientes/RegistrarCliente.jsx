@@ -408,16 +408,22 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     setCargandoVentas(true);
     setClienteSeleccionado(cliente);
     try {
-      // Lógica para cargar las ventas del cliente
-      const response = await axios.get(`${API_URL}/ventas/cliente/${cliente.id || cliente._id}`);
+      // Usar el endpoint correcto con parámetros de query
+      const response = await axios.get(`${API_URL}/ventas`, {
+        params: {
+          cliente: cliente._id, // Usar _id que es el estándar de MongoDB
+          limit: 1000
+        }
+      });
+      
       setVentasCliente(response.data.ventas || []);
       
       // Calcular deuda total
       let deuda = 0;
       if (response.data.ventas && response.data.ventas.length > 0) {
         response.data.ventas.forEach(venta => {
-          if (venta.estado !== 'Pagada') {
-            deuda += venta.total - (venta.abono || 0);
+          if (venta.saldoPendiente > 0) { // Cambiar esta condición según tu modelo de datos
+            deuda += venta.saldoPendiente;
           }
         });
       }
@@ -427,6 +433,14 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     } catch (error) {
       console.error('Error al cargar ventas:', error);
       toast.error('Error al cargar el historial de ventas');
+      // Mostrar un mensaje más específico basado en el error
+      if (error.response) {
+        if (error.response.status === 404) {
+          toast.error('No se encontraron ventas para este cliente');
+        } else {
+          toast.error(`Error del servidor: ${error.response.status}`);
+        }
+      }
     } finally {
       setCargandoVentas(false);
     }
