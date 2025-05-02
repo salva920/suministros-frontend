@@ -537,27 +537,6 @@ const Dashboard = () => {
               <StatsCard>
                 <CardContent>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Ventas del Mes
-                  </Typography>
-                  <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {formatCurrency(stats.ventasMensuales)}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TrendingUpIcon sx={{ color: 'success.main', fontSize: '1rem' }} />
-                    <Typography variant="body2" color="success.main">
-                      +8.2% respecto al mes anterior
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </StatsCard>
-            </motion.div>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <motion.div variants={itemVariants}>
-              <StatsCard>
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Total de Clientes
                   </Typography>
                   <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
@@ -592,50 +571,6 @@ const Dashboard = () => {
                   </Box>
                 </CardContent>
               </StatsCard>
-            </motion.div>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={3} sx={{ my: 4 }}>
-          <Grid item xs={12} md={6}>
-            <motion.div variants={itemVariants}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                height: '100%'
-              }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <MoneyIcon color="primary" />
-                  Ventas Mensuales
-                </Typography>
-                
-                <StatsBars 
-                  data={salesData}
-                  color="rgba(25, 118, 210, 0.7)"
-                />
-              </Paper>
-            </motion.div>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <motion.div variants={itemVariants}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                height: '100%'
-              }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <InventoryIcon color="primary" />
-                  Productos Más Vendidos
-                </Typography>
-                
-                <StatsBars 
-                  data={productsData}
-                  color="rgba(156, 39, 176, 0.7)"
-                />
-              </Paper>
             </motion.div>
           </Grid>
         </Grid>
@@ -732,93 +667,6 @@ const Dashboard = () => {
                     </Button>
                   </motion.div>
                 </Box>
-              </Paper>
-            </motion.div>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <motion.div variants={itemVariants}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
-              }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <DashboardIcon color="primary" />
-                  Accesos Rápidos
-                </Typography>
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="contained"
-                        color="primary"
-                        startIcon={<ShoppingCartIcon />}
-                        onClick={() => navigate('/ventas')}
-                        sx={{ 
-                          mb: 2,
-                          background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                        }}
-                      >
-                        Nueva Venta
-                      </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
-                  
-                  <Grid item xs={6}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<InventoryIcon />}
-                        onClick={() => navigate('/inventario')}
-                      >
-                        Inventario
-                      </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
-                  
-                  <Grid item xs={6}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<PeopleIcon />}
-                        onClick={() => navigate('/clientes')}
-                      >
-                        Clientes
-                      </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
-                  
-                  <Grid item xs={6}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<AttachMoneyIcon />}
-                        onClick={() => navigate('/finanzas')}
-                      >
-                        Finanzas
-                      </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
-                  
-                  <Grid item xs={6}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                      <QuickLinkButton
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<AssignmentIcon />}
-                        onClick={() => navigate('/reportes')}
-                      >
-                        Reportes
-                      </QuickLinkButton>
-                    </motion.div>
-                  </Grid>
-                </Grid>
               </Paper>
             </motion.div>
           </Grid>
