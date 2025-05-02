@@ -27,11 +27,47 @@ function TabPanel(props) {
 
 const Administracion = () => {
   const [tabValue, setTabValue] = useState(0);
+  const [clave, setClave] = useState('');
+  const [autenticado, setAutenticado] = useState(false);
   const navigate = useNavigate();
 
   const handleChangeTab = (event, newValue) => {
     setTabValue(newValue);
   };
+
+  const handleSubmitClave = (e) => {
+    e.preventDefault();
+    if (clave === 'abril') {
+      setAutenticado(true);
+    } else {
+      alert('Clave incorrecta');
+      setClave('');
+    }
+  };
+
+  if (!autenticado) {
+    return (
+      <Container maxWidth="sm" sx={{ py: 8 }}>
+        <Paper elevation={3} sx={{ p: 4, backgroundColor: '#f8f9fa' }}>
+          <Typography variant="h5" gutterBottom>
+            Ingrese la clave para acceder
+          </Typography>
+          <form onSubmit={handleSubmitClave}>
+            <input
+              type="password"
+              value={clave}
+              onChange={e => setClave(e.target.value)}
+              placeholder="Clave"
+              style={{ padding: 8, width: '100%', marginBottom: 16 }}
+            />
+            <Button type="submit" variant="contained" color="primary" fullWidth>
+              Acceder
+            </Button>
+          </form>
+        </Paper>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
