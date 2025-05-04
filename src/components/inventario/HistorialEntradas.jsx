@@ -36,6 +36,18 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
+const formatearFechaSimple = (fechaString) => {
+  if (!fechaString) return 'No disponible';
+  try {
+    // Forzar a UTC y mostrar solo la fecha
+    const fecha = moment.utc(fechaString);
+    if (!fecha.isValid()) return 'Fecha inválida';
+    return fecha.format('DD/MM/YYYY');
+  } catch (error) {
+    return 'Error de formato';
+  }
+};
+
 const HistorialEntradas = () => {
   
   
@@ -383,7 +395,7 @@ const HistorialEntradas = () => {
                   {entrada.stockNuevo}
                 </StyledTableCell>
                 <StyledTableCell align="right">
-                  {moment.utc(entrada.fecha).format('DD/MM/YYYY HH:mm')}
+                  {formatearFechaSimple(entrada.fecha)}
                 </StyledTableCell>
                 <StyledTableCell align="center">
                   <Chip
