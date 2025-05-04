@@ -16,7 +16,6 @@ import ListadoHistorialVentas from './ListadoHistorialVentas';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
-const PIN_VALIDO = '1234';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -112,17 +111,26 @@ const ProcesarVenta = () => {
     return total + (producto.precioVenta * producto.cantidad);
   }, 0);
 
-  const handlePinSubmit = () => {
-    if (state.pinInput === PIN_VALIDO) {
-      setState(prev => ({
-        ...prev,
-        showPrecios: true,
-        pinDialog: false,
-        pinInput: ''
-      }));
-      toast.success('Campos desbloqueados');
-    } else {
-      toast.error('PIN incorrecto');
+  const handlePinSubmit = async () => {
+    try {
+      // Petición al backend para obtener la clave actual
+      const response = await axios.get(`${API_URL}/unlockKey`);
+      const claveActual = response.data.key;
+
+      if (state.pinInput === claveActual) {
+        setState(prev => ({
+          ...prev,
+          showPrecios: true,
+          pinDialog: false,
+          pinInput: ''
+        }));
+        toast.success('Campos desbloqueados');
+      } else {
+        toast.error('Clave incorrecta');
+        setState(prev => ({ ...prev, pinInput: '' }));
+      }
+    } catch (error) {
+      toast.error('Error al verificar la clave');
       setState(prev => ({ ...prev, pinInput: '' }));
     }
   };
