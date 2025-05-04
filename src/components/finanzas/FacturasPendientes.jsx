@@ -25,6 +25,7 @@ import { toast } from 'react-toastify';
 import { debounce } from 'lodash';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
+import moment from 'moment';
 
 // URL de la API
 const API_URL = "https://suministros-backend.vercel.app/api/facturaPendiente";
@@ -134,16 +135,10 @@ const FacturasPendientes = () => {
   // Función para formatear fecha de manera simple
   const formatearFechaSimple = (fechaString) => {
     if (!fechaString) return 'No disponible';
-    
     try {
-      const fecha = new Date(fechaString);
-      if (isNaN(fecha.getTime())) return 'Fecha inválida';
-      
-      const dia = fecha.getDate();
-      const mes = fecha.getMonth() + 1;
-      const anio = fecha.getFullYear();
-      
-      return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio}`;
+      const fecha = moment.utc(fechaString).local();
+      if (!fecha.isValid()) return 'Fecha inválida';
+      return fecha.format('DD/MM/YYYY');
     } catch (error) {
       return 'Error de formato';
     }
