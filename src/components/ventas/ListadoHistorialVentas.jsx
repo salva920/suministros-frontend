@@ -35,6 +35,24 @@ const ListadoHistorialVentas = () => {
   const [cargando, setCargando] = useState(false); // Estado de carga
   const timeoutId = useRef(null);
 
+  // Añade la función al inicio del componente
+  const formatearFechaSimple = (fechaString) => {
+    if (!fechaString) return 'No disponible';
+    try {
+      const fecha = new Date(fechaString);
+      if (isNaN(fecha.getTime())) return 'Fecha inválida';
+      const dia = fecha.getDate();
+      const mes = fecha.getMonth() + 1;
+      const anio = fecha.getFullYear();
+      const horas = fecha.getHours().toString().padStart(2, '0');
+      const minutos = fecha.getMinutes().toString().padStart(2, '0');
+      return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio} ${horas}:${minutos}`;
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return 'Error de formato';
+    }
+  };
+
   // Función para cargar ventas
   const cargarVentas = useCallback(async () => {
     setCargando(true); // Iniciar estado de carga
@@ -349,7 +367,7 @@ const ListadoHistorialVentas = () => {
                   ventas.map((venta) => (
                     <TableRow key={venta._id} hover>
                       <TableCell>
-                        {moment.utc(venta.fecha).local().format('DD/MM/YYYY HH:mm')}
+                        {formatearFechaSimple(venta.fecha)}
                       </TableCell>
                       <TableCell>
                         {venta.cliente ? (
