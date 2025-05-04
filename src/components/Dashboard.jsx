@@ -165,7 +165,8 @@ const Dashboard = () => {
     porcentajeCrecimiento: 0,
     productos: [],
     clientes: 0,
-    mesReferencia: null
+    mesReferencia: null,
+    facturasPendientes: 0
   });
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -226,7 +227,8 @@ const Dashboard = () => {
           ? result.data.productosBajoStock 
           : [],
         clientes: result.data.totalClientes || 0,
-        mesReferencia: result.data.mesReferencia || null
+        mesReferencia: result.data.mesReferencia || null,
+        facturasPendientes: result.data.totalFacturasPendientes || 0
       });
 
       setStats({
@@ -564,6 +566,27 @@ const Dashboard = () => {
                     <TrendingUpIcon sx={{ color: 'success.main', fontSize: '1rem' }} />
                     <Typography variant="body2" color="success.main">
                       +5 nuevos este mes
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </StatsCard>
+            </motion.div>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <motion.div variants={itemVariants}>
+              <StatsCard>
+                <CardContent>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Facturas Pendientes
+                  </Typography>
+                  <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {dashboardData.facturasPendientes}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Receipt sx={{ color: 'warning.main', fontSize: '1rem' }} />
+                    <Typography variant="body2" color="warning.main">
+                      Facturas con saldo pendiente
                     </Typography>
                   </Box>
                 </CardContent>
