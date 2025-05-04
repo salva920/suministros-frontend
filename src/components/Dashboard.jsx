@@ -140,6 +140,23 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
+const formatMesReferencia = (mesReferencia) => {
+  if (!mesReferencia) return "N/A";
+  // Si viene como "2025-01"
+  if (/^\d{4}-\d{2}$/.test(mesReferencia)) {
+    const [anio, mes] = mesReferencia.split("-");
+    const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    return `${meses[parseInt(mes, 10) - 1]} ${anio}`;
+  }
+  // Si viene como fecha completa
+  const fecha = new Date(mesReferencia);
+  if (!isNaN(fecha)) {
+    const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    return `${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
+  }
+  return mesReferencia;
+};
+
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState({
     ventas: 0,
@@ -147,7 +164,8 @@ const Dashboard = () => {
     ventasMesAnterior: 0,
     porcentajeCrecimiento: 0,
     productos: [],
-    clientes: 0
+    clientes: 0,
+    mesReferencia: null
   });
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -207,7 +225,8 @@ const Dashboard = () => {
         productos: Array.isArray(result.data.productosBajoStock) 
           ? result.data.productosBajoStock 
           : [],
-        clientes: result.data.totalClientes || 0
+        clientes: result.data.totalClientes || 0,
+        mesReferencia: result.data.mesReferencia || null
       });
 
       setStats({
@@ -517,7 +536,7 @@ const Dashboard = () => {
                   </Box>
                   <Box sx={{ mt: 1 }}>
                     <Typography variant="body2" color="text.secondary">
-                      Mes mostrado: {dashboardData.mesReferencia ? dashboardData.mesReferencia : "N/A"}
+                      Mes mostrado: {formatMesReferencia(dashboardData.mesReferencia)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Mes actual: {formatCurrency(dashboardData.ventasMesActual)}
