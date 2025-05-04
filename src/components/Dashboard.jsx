@@ -143,6 +143,9 @@ const formatCurrency = (amount) => {
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState({
     ventas: 0,
+    ventasMesActual: 0,
+    ventasMesAnterior: 0,
+    porcentajeCrecimiento: 0,
     productos: [],
     clientes: 0
   });
@@ -198,6 +201,9 @@ const Dashboard = () => {
       
       setDashboardData({
         ventas: result.data.ventasTotales || 0,
+        ventasMesActual: result.data.ventasMesActual || 0,
+        ventasMesAnterior: result.data.ventasMesAnterior || 0,
+        porcentajeCrecimiento: result.data.porcentajeCrecimiento || 0,
         productos: Array.isArray(result.data.productosBajoStock) 
           ? result.data.productosBajoStock 
           : [],
@@ -500,12 +506,21 @@ const Dashboard = () => {
                     Ventas Totales
                   </Typography>
                   <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {formatCurrency(stats.totalVentas)}
+                    {formatCurrency(dashboardData.ventas)}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TrendingUpIcon sx={{ color: 'success.main', fontSize: '1rem' }} />
-                    <Typography variant="body2" color="success.main">
-                      +12.5% respecto al mes anterior
+                    <TrendingUpIcon sx={{ color: dashboardData.porcentajeCrecimiento >= 0 ? 'success.main' : 'error.main', fontSize: '1rem' }} />
+                    <Typography variant="body2" color={dashboardData.porcentajeCrecimiento >= 0 ? "success.main" : "error.main"}>
+                      {dashboardData.porcentajeCrecimiento >= 0 ? "+" : ""}
+                      {dashboardData.porcentajeCrecimiento.toFixed(1)}% respecto al mes anterior
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Mes actual: {formatCurrency(dashboardData.ventasMesActual)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Mes anterior: {formatCurrency(dashboardData.ventasMesAnterior)}
                     </Typography>
                   </Box>
                 </CardContent>
