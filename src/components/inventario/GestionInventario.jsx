@@ -143,8 +143,6 @@ const GestionInventario = () => {
   const [productos, setProductos] = useState([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredData, setFilteredData] = useState([]);
   const [entradaStock, setEntradaStock] = useState({
     productoId: null,
     cantidad: '',
@@ -481,18 +479,6 @@ const GestionInventario = () => {
     setTabValue(newValue);
   };
 
-  const handleSearch = useCallback(() => {
-    const resultados = productos.filter(item =>
-      item.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.codigo.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredData(resultados);
-  }, [productos, searchTerm]);
-
-  useEffect(() => {
-    handleSearch();
-  }, [handleSearch]);
-
   const handleSort = useCallback((key) => {
     setSortConfig(prevConfig => ({
       key,
@@ -500,7 +486,7 @@ const GestionInventario = () => {
     }));
   }, []);
 
-  const sortedData = [...filteredData].sort((a, b) => {
+  const sortedData = [...productos].sort((a, b) => {
     if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
     if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
@@ -676,25 +662,6 @@ const GestionInventario = () => {
           >
             Vender Producto
           </Button>
-        </Box>
-
-        <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
-          <TextField
-            variant="outlined"
-            placeholder="Buscar por nombre o código..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <Search />,
-              endAdornment: searchTerm && (
-                <IconButton onClick={() => setSearchTerm('')} size="small">
-                  <Clear />
-                </IconButton>
-              ),
-              sx: { borderRadius: '25px' }
-            }}
-            sx={{ flexGrow: 1 }}
-          />
         </Box>
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
