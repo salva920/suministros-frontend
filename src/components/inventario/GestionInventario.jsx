@@ -818,7 +818,10 @@ const GestionInventario = () => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          <HistorialSalidas productos={productos} showFinancials={showFinancials} />
+          <HistorialSalidas
+            productos={productos}
+            showFinancials={showFinancials}
+          />
         </TabPanel>
       </Paper>
 

@@ -21,6 +21,7 @@ import axios from 'axios';
 // Estilos personalizados
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:hover': {
+    
     backgroundColor: theme.palette.action.hover,
     transition: 'background-color 0.2s ease',
   },
@@ -46,7 +47,7 @@ const HeaderTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-const HistorialSalidas = () => {
+const HistorialSalidas = ({ productos, showFinancials }) => {
   const theme = useTheme();
   const [historial, setHistorial] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,10 +57,6 @@ const HistorialSalidas = () => {
   const [sortConfig] = useState({ key: 'fechaHora', direction: 'desc' });
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [dateFilter, setDateFilter] = useState({ start: null, end: null });
-  const [showFinancials, setShowFinancials] = useState(false);
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [passwordError, setPasswordError] = useState(false);
   const openFilter = Boolean(filterAnchorEl);
 
   const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
@@ -173,18 +170,6 @@ const HistorialSalidas = () => {
     saveAs(blob, `historial_salidas_${moment().format('YYYYMMDD_HHmmss')}.csv`);
   };
 
-  // Manejo de contraseña
-  const handlePasswordSubmit = () => {
-    if (passwordInput === 'abril') {
-      setShowFinancials(true);
-      setPasswordDialogOpen(false);
-      toast.success('Acceso a detalles financieros concedido');
-    } else {
-      setPasswordError(true);
-      toast.error('Contraseña incorrecta');
-    }
-  };
-
   // Función para manejar el filtrado por fecha
   const handleDateFilter = (type, value) => {
     setDateFilter(prev => ({ ...prev, [type]: value }));
@@ -247,19 +232,6 @@ const HistorialSalidas = () => {
               <FilterIcon />
             </IconButton>
           </Tooltip>
-
-          {!showFinancials && (
-            <Tooltip title="Mostrar detalles financieros">
-              <Button
-                variant="outlined"
-                startIcon={<LockIcon />}
-                onClick={() => setPasswordDialogOpen(true)}
-                sx={{ borderRadius: '25px', px: 3 }}
-              >
-                Desbloquear Detalles
-              </Button>
-            </Tooltip>
-          )}
           
           <Button
             variant="contained"
@@ -271,32 +243,6 @@ const HistorialSalidas = () => {
           </Button>
         </Box>
       </Box>
-
-      {/* Diálogo para ingresar contraseña */}
-      <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)}>
-        <DialogTitle>Acceso a detalles financieros</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Ingrese la contraseña para ver los detalles financieros (precios y ganancias)
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Contraseña"
-            type="password"
-            fullWidth
-            variant="standard"
-            value={passwordInput}
-            onChange={(e) => setPasswordInput(e.target.value)}
-            error={passwordError}
-            helperText={passwordError ? "Contraseña incorrecta" : ""}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPasswordDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={handlePasswordSubmit} color="primary">Ingresar</Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Menú de filtro por fecha */}
       <Menu
