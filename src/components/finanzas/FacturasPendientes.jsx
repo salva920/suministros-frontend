@@ -136,6 +136,11 @@ const FacturasPendientes = () => {
   const formatearFechaSimple = (fechaString) => {
     if (!fechaString) return 'No disponible';
     try {
+      // Si la fecha viene como "YYYY-MM-DD", forzar a local
+      if (/^\d{4}-\d{2}-\d{2}$/.test(fechaString)) {
+        return moment(fechaString, 'YYYY-MM-DD').format('DD/MM/YYYY');
+      }
+      // Si viene con hora, usar UTC y luego local
       const fecha = moment.utc(fechaString).local();
       if (!fecha.isValid()) return 'Fecha inválida';
       return fecha.format('DD/MM/YYYY HH:mm');
