@@ -81,7 +81,7 @@ const HistorialSalidas = () => {
           
           // Datos generales de la venta
           fecha: new Date(venta.fecha),
-          fechaFormateada: moment(venta.fecha).utc().format('DD/MM/YYYY HH:mm'),
+          fechaFormateada: moment.utc(venta.fecha).format('DD/MM/YYYY'),
           cliente: venta.cliente?.nombre || 'Cliente no registrado',
           metodoPago: venta.metodoPago,
           nrFactura: venta.nrFactura,
