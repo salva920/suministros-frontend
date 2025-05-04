@@ -5,7 +5,7 @@ import {
   Select, MenuItem, Box, Chip, Tabs, Tab, InputAdornment, Alert, Snackbar
 } from '@mui/material';
 import { 
-  VpnKey, DashboardIcon
+  VpnKey, Dashboard
 } from '@mui/icons-material';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -292,7 +292,7 @@ const ProcesarVenta = () => {
         color="primary"
         onClick={() => navigate('/dashboard')}
         sx={{ mb: 2 }}
-        startIcon={<DashboardIcon />}
+        startIcon={<Dashboard />}
       >
         Ir al Dashboard
       </Button>
