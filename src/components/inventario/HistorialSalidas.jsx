@@ -126,8 +126,18 @@ const HistorialSalidas = ({ productos, showFinancials }) => {
   // Filtrado
   const filteredHistorial = sortedHistorial().filter(salida => {
     const matchesProduct = salida.producto.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-    const matchesDate = (!dateFilter.start || salida.fechaHora >= new Date(dateFilter.start).getTime()) &&
-                       (!dateFilter.end || salida.fechaHora <= new Date(dateFilter.end).getTime());
+
+    // Convertir fecha del input a UTC para comparar correctamente
+    const toUTCDate = (dateString) => {
+      if (!dateString) return null;
+      const [year, month, day] = dateString.split('-');
+      return new Date(Date.UTC(year, month - 1, day));
+    };
+
+    const matchesDate =
+      (!dateFilter.start || new Date(salida.fecha) >= toUTCDate(dateFilter.start)) &&
+      (!dateFilter.end || new Date(salida.fecha) <= toUTCDate(dateFilter.end));
+
     return matchesProduct && matchesDate;
   });
 
