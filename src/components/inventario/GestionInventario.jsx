@@ -21,6 +21,7 @@ import 'moment/locale/es';
 import axios from 'axios';
 import TasaCambio from '../TasaCambio';
 import { VpnKey } from '@mui/icons-material';
+import { Lock as LockIcon } from '@mui/icons-material';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -161,6 +162,10 @@ const GestionInventario = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [cargando, setCargando] = useState(false);
+  const [showFinancials, setShowFinancials] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -510,6 +515,20 @@ const GestionInventario = () => {
     setPin('');
   };
 
+  // Función para manejar el desbloqueo
+  const handlePasswordSubmit = () => {
+    if (passwordInput === 'abril') {
+      setShowFinancials(true);
+      setPasswordDialogOpen(false);
+      setPasswordInput('');
+      setPasswordError(false);
+      toast.success('Campos sensibles desbloqueados');
+    } else {
+      setPasswordError(true);
+      toast.error('Contraseña incorrecta');
+    }
+  };
+
   const transitionStyles = {
     transition: 'all 0.3s ease-in-out',
     overflow: 'hidden'
@@ -651,14 +670,16 @@ const GestionInventario = () => {
         </Box>
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <Button
-            variant="contained"
-            onClick={() => setPinDialogAbierto(true)}
-            sx={botonDesbloqueoStyles}
-            startIcon={camposDesbloqueados ? <LockOpen /> : <Lock />}
-          >
-            {camposDesbloqueados ? 'Campos Desbloqueados' : 'Desbloquear Campos'}
-          </Button>
+          {!showFinancials && (
+            <Button
+              variant="outlined"
+              startIcon={<LockIcon />}
+              onClick={() => setPasswordDialogOpen(true)}
+              sx={{ borderRadius: '25px', px: 3 }}
+            >
+              Desbloquear Detalles
+            </Button>
+          )}
         </Box>
 
         <TabPanel value={tabValue} index={0}>
@@ -671,7 +692,7 @@ const GestionInventario = () => {
                   </StyledTableCell>
                   <StyledTableCell align="right">Código</StyledTableCell>
                   <StyledTableCell align="right">Proveedor</StyledTableCell>
-                  {camposDesbloqueados && (
+                  {showFinancials && (
                     <>
                       <StyledTableCell align="right">Costo Inicial ($)</StyledTableCell>
                       <StyledTableCell align="right">Acarreo ($)</StyledTableCell>
@@ -679,7 +700,7 @@ const GestionInventario = () => {
                     </>
                   )}
                   <StyledTableCell align="right">Cantidad</StyledTableCell>
-                  {camposDesbloqueados && (
+                  {showFinancials && (
                     <StyledTableCell align="right">Costo Final ($)</StyledTableCell>
                   )}
                   <StyledTableCell align="right">Stock</StyledTableCell>
@@ -694,7 +715,7 @@ const GestionInventario = () => {
                     <StyledTableCell>{producto.nombre}</StyledTableCell>
                     <StyledTableCell align="right">{producto.codigo}</StyledTableCell>
                     <StyledTableCell align="right">{producto.proveedor}</StyledTableCell>
-                    {camposDesbloqueados && (
+                    {showFinancials && (
                       <>
                         <StyledTableCell align="right">
                           <CeldasSensibles producto={producto} />
@@ -704,7 +725,7 @@ const GestionInventario = () => {
                       </>
                     )}
                     <StyledTableCell align="right">{producto.cantidad}</StyledTableCell>
-                    {camposDesbloqueados && (
+                    {showFinancials && (
                       <StyledTableCell align="right">${producto.costoFinal.toFixed(2)}</StyledTableCell>
                     )}
                     <StyledTableCell align="right">
@@ -756,11 +777,11 @@ const GestionInventario = () => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <HistorialEntradas productos={productos} />
+          <HistorialEntradas productos={productos} showFinancials={showFinancials} />
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          <HistorialSalidas productos={productos} />
+          <HistorialSalidas productos={productos} showFinancials={showFinancials} />
         </TabPanel>
       </Paper>
 
@@ -814,47 +835,28 @@ const GestionInventario = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={pinDialogAbierto} onClose={() => setPinDialogAbierto(false)}>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Lock fontSize="small" sx={{ mr: 1 }} />
-          Desbloquear Campos Sensibles
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
+      <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)}>
+        <DialogTitle>Acceso a detalles financieros</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Ingrese la contraseña para ver los detalles financieros (precios y ganancias)
+          </DialogContentText>
           <TextField
             autoFocus
-            fullWidth
-            label="PIN de seguridad"
+            margin="dense"
+            label="Contraseña"
             type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton edge="end" disabled>
-                    <VpnKey />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{ mt: 2 }}
+            fullWidth
+            variant="standard"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            error={passwordError}
+            helperText={passwordError ? "Contraseña incorrecta" : ""}
           />
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button 
-            variant="outlined" 
-            onClick={() => setPinDialogAbierto(false)}
-            sx={{ mr: 1 }}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handlePinSubmit}
-            color="primary"
-            startIcon={<LockOpen />}
-          >
-            Desbloquear
-          </Button>
+        <DialogActions>
+          <Button onClick={() => setPasswordDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={handlePasswordSubmit} color="primary">Ingresar</Button>
         </DialogActions>
       </Dialog>
 
