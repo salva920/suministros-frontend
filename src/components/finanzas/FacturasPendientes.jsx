@@ -138,7 +138,7 @@ const FacturasPendientes = () => {
     try {
       const fecha = moment.utc(fechaString).local();
       if (!fecha.isValid()) return 'Fecha inválida';
-      return fecha.format('DD/MM/YYYY');
+      return fecha.format('DD/MM/YYYY HH:mm');
     } catch (error) {
       return 'Error de formato';
     }
