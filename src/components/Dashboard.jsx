@@ -517,6 +517,9 @@ const Dashboard = () => {
                   </Box>
                   <Box sx={{ mt: 1 }}>
                     <Typography variant="body2" color="text.secondary">
+                      Mes mostrado: {dashboardData.mesReferencia ? dashboardData.mesReferencia : "N/A"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
                       Mes actual: {formatCurrency(dashboardData.ventasMesActual)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
