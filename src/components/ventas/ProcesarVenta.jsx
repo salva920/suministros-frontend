@@ -5,7 +5,7 @@ import {
   Select, MenuItem, Box, Chip, Tabs, Tab, InputAdornment, Alert, Snackbar
 } from '@mui/material';
 import { 
-  VpnKey 
+  VpnKey, DashboardIcon
 } from '@mui/icons-material';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -13,6 +13,7 @@ import ConfirmarPagoModal from './ConfirmarPagoModal';
 import moment from 'moment';
 import axios from 'axios';
 import ListadoHistorialVentas from './ListadoHistorialVentas';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 const PIN_VALIDO = '1234';
@@ -67,6 +68,8 @@ const ProcesarVenta = () => {
   const [errorFecha, setErrorFecha] = useState('');
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  const navigate = useNavigate();
 
   const handleChangeTab = (event, newValue) => {
     setTabValue(newValue);
@@ -283,6 +286,17 @@ const ProcesarVenta = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Botón para ir al Dashboard */}
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/dashboard')}
+        sx={{ mb: 2 }}
+        startIcon={<DashboardIcon />}
+      >
+        Ir al Dashboard
+      </Button>
+
       <Paper elevation={3} sx={{ p: 3, backgroundColor: '#f8f9fa', mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ 
           color: 'primary.main',
