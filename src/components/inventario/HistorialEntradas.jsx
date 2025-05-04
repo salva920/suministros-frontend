@@ -80,7 +80,11 @@ const HistorialEntradas = () => {
         axios.get(`${API_URL}/productos`)
       ]);
       
-      const preciosMap = resProductos.data.reduce((acc, producto) => ({
+      const productosArray = Array.isArray(resProductos.data)
+        ? resProductos.data
+        : resProductos.data.productos || [];
+
+      const preciosMap = productosArray.reduce((acc, producto) => ({
         ...acc,
         [producto._id]: producto.precio
       }), {});
