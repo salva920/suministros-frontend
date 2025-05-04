@@ -446,6 +446,26 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
       transition={{ duration: 0.5 }}
     >
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        {/* === BOTÓN IR AL DASHBOARD === */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Dashboard />}
+            onClick={() => navigate('/dashboard')}
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 'bold',
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              boxShadow: '0 3px 5px rgba(33, 150, 243, .2)'
+            }}
+          >
+            Ir al Dashboard
+          </Button>
+        </Box>
+        {/* === FIN BOTÓN === */}
+
         <Paper 
           elevation={3} 
           sx={{ 
