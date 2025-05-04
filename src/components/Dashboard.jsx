@@ -373,26 +373,7 @@ const Dashboard = () => {
       </AppBar>
 
       <Container maxWidth="xl" sx={{ mt: 4, px: { xs: 2, sm: 3, md: 4 } }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={4}>
-            {renderCard('Ventas Totales', dashboardData.ventas, true, '#FFD700')}
-          </Grid>
-          
-          <Grid item xs={12} sm={4}>
-            {renderCard(
-              'Productos con Bajo Stock', 
-              lowStockProducts.length,
-              false,
-              lowStockProducts.length > 0 ? 'error.main' : null
-            )}
-          </Grid>
-          
-          <Grid item xs={12} sm={4}>
-            {renderCard('Clientes Registrados', dashboardData.clientes)}
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={3} sx={{ my: 4 }}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
             { 
               label: 'Procesar Venta', 
