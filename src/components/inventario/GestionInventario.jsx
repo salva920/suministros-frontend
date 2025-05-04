@@ -3,7 +3,8 @@ import {
   Container, Typography, Button, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, IconButton, Box, Paper, 
   Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab, 
-  TablePagination, TextField, Chip, InputAdornment
+  TablePagination, TextField, Chip, InputAdornment,
+  DialogContentText
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import { Delete, Edit, AddShoppingCart, Inventory, Clear, Search, ArrowUpward, ArrowDownward, Input as InputIcon, PointOfSale, Lock, LockOpen } from '@mui/icons-material';
