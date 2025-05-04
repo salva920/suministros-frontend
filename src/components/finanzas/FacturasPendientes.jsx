@@ -17,7 +17,8 @@ import {
   FileCopy as FileCopyIcon,
   Receipt as ReceiptIcon,
   FilterAlt as FilterAltIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Dashboard
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -26,6 +27,7 @@ import { debounce } from 'lodash';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import moment from 'moment';
+import { useNavigate } from 'react-router-dom';
 
 // URL de la API
 const API_URL = "https://suministros-backend.vercel.app/api/facturaPendiente";
@@ -100,6 +102,7 @@ const FacturasPendientes = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
   
   // Estados para manejar datos y UI
   const [facturas, setFacturas] = useState([]);
@@ -336,6 +339,24 @@ const FacturasPendientes = () => {
       variants={containerVariants}
     >
       <MainContainer maxWidth="lg">
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Dashboard />}
+            onClick={() => navigate('/dashboard')}
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 'bold',
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              boxShadow: '0 3px 5px rgba(33, 150, 243, .2)'
+            }}
+          >
+            Ir al Dashboard
+          </Button>
+        </Box>
+        
         <ToastContainer 
           position="top-right" 
           autoClose={3000}
@@ -1102,18 +1123,6 @@ const FacturasPendientes = () => {
             </Dialog>
           )}
         </AnimatePresence>
-        
-        <ToastContainer 
-          position="bottom-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
       </MainContainer>
     </motion.div>
   );

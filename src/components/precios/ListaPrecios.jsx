@@ -13,12 +13,14 @@ import {
   PriceChange as PriceChangeIcon,
   FilterAlt as FilterAltIcon,
   Search as SearchIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Dashboard
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -61,6 +63,7 @@ const ListaPrecios = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
   
   const [listasPrecios, setListasPrecios] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -194,6 +197,24 @@ const ListaPrecios = () => {
       variants={containerVariants}
     >
       <Container style={containerStyle} maxWidth="xl">
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Dashboard />}
+            onClick={() => navigate('/dashboard')}
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 'bold',
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              boxShadow: '0 3px 5px rgba(33, 150, 243, .2)'
+            }}
+          >
+            Ir al Dashboard
+          </Button>
+        </Box>
+
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <motion.div variants={itemVariants}>
             <Typography 
