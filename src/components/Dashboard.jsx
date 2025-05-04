@@ -533,27 +533,6 @@ const Dashboard = () => {
               </StatsCard>
             </motion.div>
           </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <motion.div variants={itemVariants}>
-              <StatsCard>
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Productos en Stock
-                  </Typography>
-                  <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {stats.productosStock}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TrendingDownIcon sx={{ color: 'warning.main', fontSize: '1rem' }} />
-                    <Typography variant="body2" color="warning.main">
-                      {stats.facturasPendientes} productos bajos en stock
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </StatsCard>
-            </motion.div>
-          </Grid>
         </Grid>
 
         <Grid container spacing={3}>
