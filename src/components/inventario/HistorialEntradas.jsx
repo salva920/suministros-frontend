@@ -176,12 +176,18 @@ const HistorialEntradas = () => {
   };
 
   // Cálculos derivados
+  const toUTCDate = (dateString) => {
+    if (!dateString) return null;
+    const [year, month, day] = dateString.split('-');
+    return new Date(Date.UTC(year, month - 1, day));
+  };
+
   const filteredHistorial = historial.filter(entrada => {
     const matchesSearch = busqueda === '' || 
       entrada.nombreProducto.toLowerCase().includes(busqueda.toLowerCase());
     
-    const matchesDate = (!dateFilter.start || entrada.fecha >= new Date(dateFilter.start)) &&
-      (!dateFilter.end || entrada.fecha <= new Date(dateFilter.end));
+    const matchesDate = (!dateFilter.start || new Date(entrada.fecha) >= toUTCDate(dateFilter.start)) &&
+      (!dateFilter.end || new Date(entrada.fecha) <= toUTCDate(dateFilter.end));
     
     return matchesSearch && matchesDate;
   });
