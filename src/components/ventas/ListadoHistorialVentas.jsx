@@ -39,11 +39,11 @@ const ListadoHistorialVentas = () => {
   const formatearFechaSimple = (fechaString) => {
     if (!fechaString) return 'No disponible';
     try {
-      const fecha = moment.utc(fechaString).local();
+      // Forzar a UTC y mostrar solo la fecha
+      const fecha = moment.utc(fechaString);
       if (!fecha.isValid()) return 'Fecha inválida';
-      return fecha.format('DD/MM/YYYY HH:mm');
+      return fecha.format('DD/MM/YYYY');
     } catch (error) {
-      console.error('Error al formatear fecha:', error);
       return 'Error de formato';
     }
   };
