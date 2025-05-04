@@ -167,6 +167,10 @@ const GestionInventario = () => {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
+  const [openChangeKey, setOpenChangeKey] = useState(false);
+  const [currentKey, setCurrentKey] = useState('');
+  const [newKey, setNewKey] = useState('');
+  const [loadingKey, setLoadingKey] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -561,6 +565,29 @@ const GestionInventario = () => {
     </>
   );
 
+  const handleChangeUnlockKey = async (e) => {
+    e.preventDefault();
+    setLoadingKey(true);
+    try {
+      const res = await axios.post(`${API_URL}/unlock-key/change`, {
+        currentKey,
+        newKey
+      });
+      if (res.data.success) {
+        toast.success('Clave cambiada correctamente');
+        setOpenChangeKey(false);
+        setCurrentKey('');
+        setNewKey('');
+      } else {
+        toast.error(res.data.message || 'Error al cambiar la clave');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error al cambiar la clave');
+    } finally {
+      setLoadingKey(false);
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Button
@@ -682,6 +709,15 @@ const GestionInventario = () => {
             </Button>
           )}
         </Box>
+
+        <Button
+          variant="text"
+          size="small"
+          onClick={() => setOpenChangeKey(true)}
+          sx={{ textTransform: 'none', color: 'primary.main', ml: 2 }}
+        >
+          Cambiar clave de desbloqueo
+        </Button>
 
         <TabPanel value={tabValue} index={0}>
           <TableContainer component={Paper} elevation={0}>
@@ -859,6 +895,38 @@ const GestionInventario = () => {
           <Button onClick={() => setPasswordDialogOpen(false)}>Cancelar</Button>
           <Button onClick={handlePasswordSubmit} color="primary">Ingresar</Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog open={openChangeKey} onClose={() => setOpenChangeKey(false)}>
+        <DialogTitle>Cambiar clave de desbloqueo</DialogTitle>
+        <DialogContent>
+          <form onSubmit={handleChangeUnlockKey}>
+            <TextField
+              label="Clave actual"
+              type="password"
+              fullWidth
+              margin="normal"
+              value={currentKey}
+              onChange={e => setCurrentKey(e.target.value)}
+              required
+            />
+            <TextField
+              label="Nueva clave"
+              type="password"
+              fullWidth
+              margin="normal"
+              value={newKey}
+              onChange={e => setNewKey(e.target.value)}
+              required
+            />
+            <DialogActions>
+              <Button onClick={() => setOpenChangeKey(false)}>Cancelar</Button>
+              <Button type="submit" color="primary" disabled={loadingKey}>
+                Cambiar clave
+              </Button>
+            </DialogActions>
+          </form>
+        </DialogContent>
       </Dialog>
 
       <ToastContainer />
