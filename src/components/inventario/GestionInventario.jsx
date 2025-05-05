@@ -147,7 +147,11 @@ const GestionInventario = () => {
     productoId: null,
     cantidad: '',
     proveedor: '',
-    fechaHora: ''
+    fechaHora: '',
+    costoInicial: '',
+    acarreo: '',
+    flete: '',
+    costoFinalEntrada: ''
   });
   const [modalEntradaAbierto, setModalEntradaAbierto] = useState(false);
   const [pinDialogAbierto, setPinDialogAbierto] = useState(false);
@@ -404,7 +408,11 @@ const GestionInventario = () => {
       productoId: producto.id,
       cantidad: '',
       proveedor: producto.proveedor,
-      fechaHora: ''
+      fechaHora: '',
+      costoInicial: producto.costoInicial || 0,
+      acarreo: producto.acarreo || 0,
+      flete: producto.flete || 0,
+      costoFinalEntrada: producto.costoFinal || 0
     });
     setModalEntradaAbierto(true);
   };
@@ -429,7 +437,11 @@ const GestionInventario = () => {
         `${API_URL}/productos/${productoActual.id}/entradas`,
         {
           cantidad: cantidadIngresada,
-          fechaHora: fechaUTC
+          fechaHora: fechaUTC,
+          costoUnitario: Number(entradaStock.costoInicial),
+          acarreo: Number(entradaStock.acarreo),
+          flete: Number(entradaStock.flete),
+          costoFinalEntrada: Number(entradaStock.costoFinalEntrada)
         }
       );
 
@@ -463,7 +475,11 @@ const GestionInventario = () => {
         productoId: null,
         cantidad: '',
         proveedor: '',
-        fechaHora: ''
+        fechaHora: '',
+        costoInicial: '',
+        acarreo: '',
+        flete: '',
+        costoFinalEntrada: ''
       });
 
     } catch (error) {
@@ -573,6 +589,24 @@ const GestionInventario = () => {
       setLoadingKey(false);
     }
   };
+
+  useEffect(() => {
+    const { costoInicial, acarreo, flete, cantidad } = entradaStock;
+    const cantidadNum = Number(cantidad) || 0;
+    const costoInicialNum = Number(costoInicial) || 0;
+    const acarreoNum = Number(acarreo) || 0;
+    const fleteNum = Number(flete) || 0;
+
+    let costoFinal = 0;
+    if (cantidadNum > 0) {
+      costoFinal = ((costoInicialNum * cantidadNum) + acarreoNum + fleteNum) / cantidadNum;
+    }
+    setEntradaStock(prev => ({
+      ...prev,
+      costoFinalEntrada: isNaN(costoFinal) ? 0 : Number(costoFinal.toFixed(2))
+    }));
+    // eslint-disable-next-line
+  }, [entradaStock.costoInicial, entradaStock.acarreo, entradaStock.flete, entradaStock.cantidad]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -830,6 +864,40 @@ const GestionInventario = () => {
             value={entradaStock.proveedor}
             onChange={(e) => setEntradaStock({ ...entradaStock, proveedor: e.target.value })}
             margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Costo Inicial"
+            type="number"
+            value={entradaStock.costoInicial}
+            onChange={(e) => setEntradaStock({ ...entradaStock, costoInicial: e.target.value })}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Acarreo"
+            type="number"
+            value={entradaStock.acarreo}
+            onChange={(e) => setEntradaStock({ ...entradaStock, acarreo: e.target.value })}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Flete"
+            type="number"
+            value={entradaStock.flete}
+            onChange={(e) => setEntradaStock({ ...entradaStock, flete: e.target.value })}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Costo Final de la Entrada"
+            type="number"
+            value={entradaStock.costoFinalEntrada}
+            margin="normal"
+            InputProps={{
+              readOnly: true,
+            }}
           />
         </DialogContent>
         <DialogActions sx={{ padding: 3 }}>
