@@ -113,8 +113,8 @@ const ProcesarVenta = () => {
 
   const handlePinSubmit = async () => {
     try {
-      // Petición al backend para obtener la clave actual
-      const response = await axios.get(`${API_URL}/unlockKey`);
+      // Petición al backend para obtener la clave actual (nombre de ruta corregido)
+      const response = await axios.get(`${API_URL}/unlock-key`);
       const claveActual = response.data.key;
 
       if (state.pinInput === claveActual) {
