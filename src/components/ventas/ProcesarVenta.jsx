@@ -516,7 +516,10 @@ const ProcesarVenta = () => {
           ) : (
             <>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Costo del lote más antiguo: <b>${lotesProducto[0]?.costoFinal?.toFixed(2) || 'N/A'}</b> (Stock disponible: {lotesProducto[0]?.stockLote})
+                Lote seleccionado: 
+                <b> {lotesProducto[0]?.fecha ? moment(lotesProducto[0].fecha).format('DD/MM/YYYY') : 'Sin fecha'} </b>
+                | Costo: <b>${lotesProducto[0]?.costoFinal?.toFixed(2) || 'N/A'}</b>
+                | Stock disponible: {lotesProducto[0]?.stockLote}
               </Typography>
               <Grid container spacing={2} sx={{ pt: 2 }}>
                 <Grid item xs={6}>
