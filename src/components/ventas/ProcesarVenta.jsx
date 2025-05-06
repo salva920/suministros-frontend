@@ -70,6 +70,9 @@ const ProcesarVenta = () => {
 
   const navigate = useNavigate();
 
+  const [lotesProducto, setLotesProducto] = useState([]);
+  const [loadingLotes, setLoadingLotes] = useState(false);
+
   const handleChangeTab = (event, newValue) => {
     setTabValue(newValue);
   };
@@ -135,58 +138,70 @@ const ProcesarVenta = () => {
     }
   };
 
+  const handleSeleccionarProducto = async (producto) => {
+    setLoadingLotes(true);
+    try {
+      const res = await axios.get(`${API_URL}/productos/${producto._id}/lotes`);
+      // Incluir también el lote de creación si no está en la respuesta
+      let lotes = res.data;
+      // Si la respuesta no incluye el lote de creación, puedes hacer otro fetch o modificar el backend
+      setLotesProducto(lotes);
+      setState(prev => ({
+        ...prev,
+        productoSeleccionado: producto,
+        cantidadInput: '',
+        precioVentaInput: ''
+      }));
+    } catch (err) {
+      toast.error('Error al cargar lotes del producto');
+      setLotesProducto([]);
+    } finally {
+      setLoadingLotes(false);
+    }
+  };
+
   const agregarProducto = async () => {
     if (!state.cantidadInput || state.cantidadInput < 1) {
       toast.error('Ingrese una cantidad válida');
       return;
     }
-    
-    // Asegurar conversión numérica del precio
-    const precioVenta = parseFloat(state.precioVentaInput);
-    
-    if (isNaN(precioVenta)) {
-      toast.error('Precio de venta inválido');
+    if (lotesProducto.length === 0) {
+      toast.error('No hay lotes disponibles');
       return;
     }
-
-    if (precioVenta < state.productoSeleccionado.costoFinal) {
-      toast.error('Precio de venta no puede ser menor al costo');
-      return;
-    }
-
     const cantidad = parseInt(state.cantidadInput);
+    let cantidadRestante = cantidad;
+    let productosPorLote = [];
+    let precioVenta = parseFloat(state.precioVentaInput);
 
-    if (cantidad > state.productoSeleccionado.stock) {
-      toast.error('Cantidad excede el stock disponible');
+    for (const lote of lotesProducto) {
+      if (cantidadRestante <= 0) break;
+      const cantidadDeEsteLote = Math.min(lote.stockLote, cantidadRestante);
+      productosPorLote.push({
+        ...state.productoSeleccionado,
+        cantidad: cantidadDeEsteLote,
+        precioVenta: precioVenta,
+        costoFinal: lote.costoFinal,
+        gananciaUnitaria: parseFloat((precioVenta - lote.costoFinal).toFixed(2)),
+        gananciaTotal: parseFloat(((precioVenta - lote.costoFinal) * cantidadDeEsteLote).toFixed(2)),
+        loteId: lote._id
+      });
+      cantidadRestante -= cantidadDeEsteLote;
+    }
+
+    if (cantidadRestante > 0) {
+      toast.error('No hay suficiente stock en los lotes');
       return;
     }
 
-    const existe = state.productosVenta.find(p => p._id === state.productoSeleccionado._id);
-    
-    // Calcular ganancias con precisión de dos decimales
-    const gananciaUnitaria = parseFloat((precioVenta - state.productoSeleccionado.costoFinal).toFixed(2));
-    const gananciaTotal = parseFloat((gananciaUnitaria * cantidad).toFixed(2));
-
-    const nuevosProductos = existe 
-      ? state.productosVenta.map(p => 
-          p._id === state.productoSeleccionado._id ? 
-          { ...p, cantidad, precioVenta, gananciaUnitaria, gananciaTotal } : p
-        )
-      : [...state.productosVenta, { 
-          ...state.productoSeleccionado, 
-          cantidad,
-          precioVenta: precioVenta, // Asegurar tipo numérico
-          gananciaUnitaria,
-          gananciaTotal
-        }];
-    
     setState(prev => ({
       ...prev,
-      productosVenta: nuevosProductos,
+      productosVenta: [...prev.productosVenta, ...productosPorLote],
       productoSeleccionado: null,
       cantidadInput: '',
       precioVentaInput: ''
     }));
+    setLotesProducto([]);
   };
 
   const finalizarVenta = async (formState) => {
@@ -405,12 +420,7 @@ const ProcesarVenta = () => {
                             <Button
                               variant="contained"
                               color="primary"
-                              onClick={() => setState(prev => ({
-                                ...prev,
-                                productoSeleccionado: producto,
-                                cantidadInput: '',
-                                precioVentaInput: ''
-                              }))}
+                              onClick={() => handleSeleccionarProducto(producto)}
                               disabled={producto.stock <= 0}
                             >
                               Agregar
@@ -492,51 +502,68 @@ const ProcesarVenta = () => {
       {/* Modal de Cantidad y Precio */}
       <Dialog
         open={!!state.productoSeleccionado}
-        onClose={() => setState(prev => ({ ...prev, productoSeleccionado: null }))}
+        onClose={() => {
+          setState(prev => ({ ...prev, productoSeleccionado: null }));
+          setLotesProducto([]);
+        }}
       >
         <DialogTitle>Agregar Producto</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ pt: 2 }}>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Cantidad"
-                type="number"
-                value={state.cantidadInput}
-                onChange={(e) => setState(prev => ({ ...prev, cantidadInput: e.target.value }))}
-                inputProps={{ 
-                  min: 1, 
-                  max: state.productoSeleccionado?.stock || 0 
-                }}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Precio de Venta"
-                type="number"
-                value={state.precioVentaInput}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (/^\d*\.?\d*$/.test(value)) { // Solo números y decimales
-                    setState(prev => ({ ...prev, precioVentaInput: value }));
-                  }
-                }}
-                inputProps={{ 
-                  min: state.productoSeleccionado?.costoFinal || 0,
-                  step: "0.01"
-                }}
-                error={state.precioVentaInput !== '' && isNaN(state.precioVentaInput)}
-                helperText={state.precioVentaInput !== '' && isNaN(state.precioVentaInput) 
-                  ? 'Ingrese un número válido' 
-                  : ''
-                }
-              />
-            </Grid>
-          </Grid>
+          {loadingLotes ? (
+            <Typography>Cargando lotes...</Typography>
+          ) : lotesProducto.length === 0 ? (
+            <Typography color="error">No hay lotes disponibles para este producto.</Typography>
+          ) : (
+            <>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Costo del lote más antiguo: <b>${lotesProducto[0]?.costoFinal?.toFixed(2) || 'N/A'}</b> (Stock disponible: {lotesProducto[0]?.stockLote})
+              </Typography>
+              <Grid container spacing={2} sx={{ pt: 2 }}>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Cantidad"
+                    type="number"
+                    value={state.cantidadInput}
+                    onChange={(e) => setState(prev => ({ ...prev, cantidadInput: e.target.value }))}
+                    inputProps={{ 
+                      min: 1, 
+                      max: state.productoSeleccionado?.stock || 0 
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Precio de Venta"
+                    type="number"
+                    value={state.precioVentaInput}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*\.?\d*$/.test(value)) {
+                        setState(prev => ({ ...prev, precioVentaInput: value }));
+                      }
+                    }}
+                    inputProps={{ 
+                      min: lotesProducto[0]?.costoFinal || 0,
+                      step: "0.01"
+                    }}
+                    error={state.precioVentaInput !== '' && isNaN(state.precioVentaInput)}
+                    helperText={state.precioVentaInput !== '' && isNaN(state.precioVentaInput) 
+                      ? 'Ingrese un número válido' 
+                      : ''
+                    }
+                  />
+                </Grid>
+              </Grid>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setState(prev => ({ ...prev, productoSeleccionado: null }))}>
+          <Button onClick={() => {
+            setState(prev => ({ ...prev, productoSeleccionado: null }));
+            setLotesProducto([]);
+          }}>
             Cancelar
           </Button>
           <Button onClick={agregarProducto} color="primary">
