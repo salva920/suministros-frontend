@@ -72,7 +72,7 @@ const HistorialSalidas = ({ productos, showFinancials }) => {
           producto: p.producto?.nombre || 'Producto no disponible',
           cantidad: p.cantidad,
           precioUnitario: p.precioUnitario || 0,
-          costoInicial: p.costoInicial || 0,
+          costoInicial: p.producto?.costoFinal || 0,
           gananciaUnitaria: p.gananciaUnitaria || 0,  // Valor por defecto
           gananciaTotal: p.gananciaTotal || 0,        // Valor por defecto
           
