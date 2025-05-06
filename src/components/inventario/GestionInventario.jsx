@@ -130,7 +130,7 @@ const transformarProducto = (producto) => {
       flete: parseNumber(producto.flete),
       cantidad: parseNumber(producto.cantidad),
       costoFinal: parseNumber(producto.costoFinal),
-      stock: parseNumber(producto.stock) || parseNumber(producto.cantidad),
+      stock: parseNumber(producto.stock),
       fechaIngreso: fechaIngreso,
     };
   } catch (error) {
