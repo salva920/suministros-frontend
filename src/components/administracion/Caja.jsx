@@ -5,10 +5,10 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, Chip, FormControl, InputLabel, Select, MenuItem,
   Box, LinearProgress, Dialog, DialogTitle, DialogContent,
-  DialogActions, TablePagination, Backdrop
+  DialogActions, TablePagination, Backdrop, IconButton
 } from '@mui/material';
 import { 
-   AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard 
+   AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
@@ -50,7 +50,7 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
   );
 };
 
-const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rowsPerPage, handleChangePage, handleChangeRowsPerPage, tasaActual }) => {
+const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rowsPerPage, handleChangePage, handleChangeRowsPerPage, tasaActual, onEdit, onDelete }) => {
   const filteredTransactions = transactions
     .filter(t => {
       const transactionDate = moment.utc(t.fecha).tz('America/Caracas');
@@ -69,7 +69,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
       <Table>
         <TableHead sx={{ bgcolor: 'background.default' }}>
           <TableRow>
-            {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo'].map(header => (
+            {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo', 'Acciones'].map(header => (
               <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
             ))}
           </TableRow>
@@ -97,6 +97,24 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
               </TableCell>
               <TableCell sx={{ fontWeight: 700 }}>
                 {t.saldo ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.saldo.toFixed(2)}` : '-'}
+              </TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <IconButton 
+                    size="small" 
+                    color="primary"
+                    onClick={() => onEdit(t)}
+                  >
+                    <Edit fontSize="small" />
+                  </IconButton>
+                  <IconButton 
+                    size="small" 
+                    color="error"
+                    onClick={() => onDelete(t._id)}
+                  >
+                    <Delete fontSize="small" />
+                  </IconButton>
+                </Box>
               </TableCell>
             </TableRow>
           ))}
@@ -157,7 +175,8 @@ const CajaInteractiva = () => {
       tipo: 'entrada',
       monto: '',
       tasaCambio: 0
-    }
+    },
+    editingTransaction: null
   });
 
   const navigate = useNavigate();
@@ -202,7 +221,14 @@ const CajaInteractiva = () => {
         tasaCambio: state.tasaCambio
       };
 
-      const res = await axios.post(`${API_URL}/caja/transacciones`, movimiento);
+      let res;
+      if (state.editingTransaction) {
+        res = await axios.put(`${API_URL}/caja/transacciones/${state.editingTransaction._id}`, movimiento);
+        toast.success('Movimiento actualizado exitosamente!');
+      } else {
+        res = await axios.post(`${API_URL}/caja/transacciones`, movimiento);
+        toast.success('Movimiento registrado exitosamente!');
+      }
 
       setState(prev => ({
         ...prev,
@@ -216,9 +242,9 @@ const CajaInteractiva = () => {
           tipo: 'entrada',
           monto: '',
           tasaCambio: state.tasaCambio
-        }
+        },
+        editingTransaction: null
       }));
-      toast.success('Movimiento registrado exitosamente!');
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
     }
@@ -243,6 +269,37 @@ const CajaInteractiva = () => {
     acc[t.moneda].salidas += t.salida;
     return acc;
   }, {});
+
+  const handleEditTransaction = (transaction) => {
+    setState(prev => ({
+      ...prev,
+      modalOpen: true,
+      nuevaTransaccion: {
+        fecha: moment(transaction.fecha).format('YYYY-MM-DD'),
+        concepto: transaction.concepto,
+        moneda: transaction.moneda,
+        tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
+        monto: transaction.entrada || transaction.salida,
+        tasaCambio: transaction.tasaCambio
+      }
+    }));
+  };
+
+  const handleDeleteTransaction = async (transactionId) => {
+    if (window.confirm('¿Está seguro de eliminar este movimiento?')) {
+      try {
+        const res = await axios.delete(`${API_URL}/caja/transacciones/${transactionId}`);
+        setState(prev => ({
+          ...prev,
+          transacciones: res.data.transacciones,
+          saldos: res.data.saldos
+        }));
+        toast.success('Movimiento eliminado exitosamente');
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Error al eliminar el movimiento');
+      }
+    }
+  };
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -402,6 +459,8 @@ const CajaInteractiva = () => {
                 }))
               }
               tasaActual={state.tasaCambio}
+              onEdit={handleEditTransaction}
+              onDelete={handleDeleteTransaction}
             />
           </Paper>
         </Grid>
