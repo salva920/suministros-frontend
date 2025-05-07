@@ -523,16 +523,25 @@ const GestionInventario = () => {
   };
 
   // Función para manejar el desbloqueo
-  const handlePasswordSubmit = () => {
-    if (passwordInput === 'abril') {
-      setShowFinancials(true);
-      setPasswordDialogOpen(false);
-      setPasswordInput('');
-      setPasswordError(false);
-      toast.success('Campos sensibles desbloqueados');
-    } else {
+  const handlePasswordSubmit = async () => {
+    try {
+      // Consultar la clave actual al backend
+      const response = await axios.get(`${API_URL}/unlock-key`);
+      const claveActual = response.data.key;
+
+      if (passwordInput === claveActual) {
+        setShowFinancials(true);
+        setPasswordDialogOpen(false);
+        setPasswordInput('');
+        setPasswordError(false);
+        toast.success('Campos sensibles desbloqueados');
+      } else {
+        setPasswordError(true);
+        toast.error('Contraseña incorrecta');
+      }
+    } catch (error) {
+      toast.error('Error al verificar la clave');
       setPasswordError(true);
-      toast.error('Contraseña incorrecta');
     }
   };
 
