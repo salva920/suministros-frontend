@@ -157,14 +157,11 @@ const CajaInteractiva = () => {
       tipo: 'entrada',
       monto: '',
       tasaCambio: 0
-    },
-    accesoAutorizado: false,
-    claveIngresada: ''
+    }
   });
 
   const navigate = useNavigate();
   const theme = useTheme();
-  const claveCorrecta = 'abril';
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -189,8 +186,8 @@ const CajaInteractiva = () => {
       }
     };
 
-    if (state.accesoAutorizado) fetchInitialData();
-  }, [state.accesoAutorizado]);
+    fetchInitialData();
+  }, []);
 
   const handleRegistrarMovimiento = async () => {
     try {
@@ -246,38 +243,6 @@ const CajaInteractiva = () => {
     acc[t.moneda].salidas += t.salida;
     return acc;
   }, {});
-
-  if (!state.accesoAutorizado) {
-    return (
-      <Backdrop open sx={{ backdropFilter: 'blur(8px)', zIndex: (theme) => theme.zIndex.modal - 1 }}>
-        <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
-          <Typography variant="h5" gutterBottom>Acceso Restringido</Typography>
-          <TextField
-            label="Clave de acceso"
-            type="password"
-            value={state.claveIngresada}
-            onChange={(e) => setState(prev => ({ ...prev, claveIngresada: e.target.value }))}
-            sx={{ mb: 2 }}
-            fullWidth
-          />
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (state.claveIngresada === claveCorrecta) {
-                setState(prev => ({ ...prev, accesoAutorizado: true }));
-                toast.success('Acceso autorizado');
-              } else {
-                toast.error('Clave incorrecta');
-              }
-            }}
-            fullWidth
-          >
-            Ingresar
-          </Button>
-        </Paper>
-      </Backdrop>
-    );
-  }
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
