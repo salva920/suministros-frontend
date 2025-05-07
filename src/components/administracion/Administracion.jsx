@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Container, Tabs, Tab, Box, Typography, Button, Paper } from '@mui/material';
+import { Container, Tabs, Tab, Box, Typography, Button, Paper, TextField, Backdrop } from '@mui/material';
 import { Dashboard } from '@mui/icons-material';
 import { useNavigate, Link, Outlet } from 'react-router-dom';
 import ControlFinanciero from './ControlFinanciero';
 import ReportesFinancieros from './ReportesFinancieros';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+const API_URL = "https://suministros-backend.vercel.app/api";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -35,37 +40,48 @@ const Administracion = () => {
     setTabValue(newValue);
   };
 
-  const handleSubmitClave = (e) => {
+  const handleSubmitClave = async (e) => {
     e.preventDefault();
-    if (clave === 'abril') {
-      setAutenticado(true);
-    } else {
-      alert('Clave incorrecta');
+    try {
+      const response = await axios.get(`${API_URL}/unlock-key`);
+      const claveActual = response.data.key;
+
+      if (clave === claveActual) {
+        setAutenticado(true);
+        toast.success('Acceso autorizado');
+      } else {
+        toast.error('Clave incorrecta');
+        setClave('');
+      }
+    } catch (error) {
+      console.error('Error al verificar la clave:', error);
+      toast.error('Error al verificar la clave');
       setClave('');
     }
   };
 
   if (!autenticado) {
     return (
-      <Container maxWidth="sm" sx={{ py: 8 }}>
-        <Paper elevation={3} sx={{ p: 4, backgroundColor: '#f8f9fa' }}>
-          <Typography variant="h5" gutterBottom>
-            Ingrese la clave para acceder
-          </Typography>
-          <form onSubmit={handleSubmitClave}>
-            <input
-              type="password"
-              value={clave}
-              onChange={e => setClave(e.target.value)}
-              placeholder="Clave"
-              style={{ padding: 8, width: '100%', marginBottom: 16 }}
-            />
-            <Button type="submit" variant="contained" color="primary" fullWidth>
-              Acceder
-            </Button>
-          </form>
+      <Backdrop open sx={{ backdropFilter: 'blur(8px)', zIndex: (theme) => theme.zIndex.modal - 1 }}>
+        <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
+          <Typography variant="h5" gutterBottom>Acceso Restringido</Typography>
+          <TextField
+            label="Clave de acceso"
+            type="password"
+            value={clave}
+            onChange={(e) => setClave(e.target.value)}
+            sx={{ mb: 2 }}
+            fullWidth
+          />
+          <Button
+            variant="contained"
+            onClick={handleSubmitClave}
+            fullWidth
+          >
+            Ingresar
+          </Button>
         </Paper>
-      </Container>
+      </Backdrop>
     );
   }
 
