@@ -215,11 +215,14 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
+      const fechaFormateada = formatearFechaSimple(state.nuevaTransaccion.fecha)
+        .split('/')
+        .reverse()
+        .join('-');
+
       const movimiento = {
         ...state.nuevaTransaccion,
-        fecha: moment(state.nuevaTransaccion.fecha)
-          .tz('America/Caracas')
-          .format('YYYY-MM-DD'),
+        fecha: fechaFormateada,
         monto: parseFloat(state.nuevaTransaccion.monto),
         entrada: state.nuevaTransaccion.tipo === 'entrada' ? parseFloat(state.nuevaTransaccion.monto) : 0,
         salida: state.nuevaTransaccion.tipo === 'salida' ? parseFloat(state.nuevaTransaccion.monto) : 0,
@@ -235,10 +238,13 @@ const CajaInteractiva = () => {
         toast.success('Movimiento registrado exitosamente!');
       }
 
+      // Obtener la lista actualizada de transacciones
+      const cajaRes = await axios.get(`${API_URL}/caja`);
+      
       setState(prev => ({
         ...prev,
-        transacciones: res.data.transacciones,
-        saldos: res.data.saldos,
+        transacciones: cajaRes.data.transacciones,
+        saldos: cajaRes.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
           fecha: new Date().toISOString().split('T')[0],
@@ -276,12 +282,18 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
+    // Convertir la fecha al formato correcto usando formatearFechaSimple
+    const fechaFormateada = formatearFechaSimple(transaction.fecha)
+      .split('/')
+      .reverse()
+      .join('-'); // Convertir de DD/MM/YYYY a YYYY-MM-DD para el input
+
     setState(prev => ({
       ...prev,
       modalOpen: true,
       editingTransaction: transaction,
       nuevaTransaccion: {
-        fecha: moment(transaction.fecha).format('YYYY-MM-DD'),
+        fecha: fechaFormateada,
         concepto: transaction.concepto,
         moneda: transaction.moneda,
         tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
