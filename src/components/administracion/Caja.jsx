@@ -51,13 +51,7 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
 };
 
 const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rowsPerPage, handleChangePage, handleChangeRowsPerPage, tasaActual, onEdit, onDelete }) => {
-  // Primero ordenamos las transacciones por fecha descendente
-  const sortedTransactions = [...transactions].sort((a, b) => 
-    new Date(b.fecha) - new Date(a.fecha)
-  );
-
-  // Luego aplicamos los filtros
-  const filteredTransactions = sortedTransactions
+  const filteredTransactions = transactions
     .filter(t => {
       const transactionDate = moment.utc(t.fecha).tz('America/Caracas');
       const start = dateFilter.start && moment.tz(dateFilter.start, 'America/Caracas');
@@ -76,14 +70,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
         <TableHead sx={{ bgcolor: 'background.default' }}>
           <TableRow>
             {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo', 'Acciones'].map(header => (
-              <TableCell key={header} sx={{ fontWeight: 'bold' }}>
-                {header}
-                {header === 'Fecha' && (
-                  <Box component="span" sx={{ ml: 1, color: 'primary.main' }}>
-                    ↓
-                  </Box>
-                )}
-              </TableCell>
+              <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
             ))}
           </TableRow>
         </TableHead>
@@ -203,14 +190,9 @@ const CajaInteractiva = () => {
           axios.get(`${API_URL}/tasa-cambio`)
         ]);
         
-        // Ordenar las transacciones por fecha descendente
-        const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones) 
-          ? cajaRes.data.transacciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-          : [];
-        
         setState(prev => ({
           ...prev,
-          transacciones: transaccionesOrdenadas,
+          transacciones: Array.isArray(cajaRes.data.transacciones) ? cajaRes.data.transacciones : [],
           saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
           tasaCambio: tasaRes.data.tasa,
           nuevaTransaccion: {
@@ -248,14 +230,9 @@ const CajaInteractiva = () => {
         toast.success('Movimiento registrado exitosamente!');
       }
 
-      // Ordenar las transacciones por fecha descendente
-      const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
-        new Date(b.fecha) - new Date(a.fecha)
-      );
-
       setState(prev => ({
         ...prev,
-        transacciones: transaccionesOrdenadas,
+        transacciones: res.data.transacciones,
         saldos: res.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
