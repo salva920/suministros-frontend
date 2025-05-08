@@ -28,6 +28,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
+import TasaCambio from '../TasaCambio';
 
 // URL de la API
 const API_URL = "https://suministros-backend.vercel.app/api/facturaPendiente";
@@ -135,6 +136,9 @@ const FacturasPendientes = () => {
     fecha: new Date().toISOString().split('T')[0]
   });
   
+  // Estados para tasa de cambio
+  const [tasaCambio, setTasaCambio] = useState(0);
+  
   // Función para formatear fecha de manera simple
   const formatearFechaSimple = (fechaString) => {
     if (!fechaString) return 'No disponible';
@@ -149,11 +153,17 @@ const FacturasPendientes = () => {
   };
   
   // Función para formatear moneda
-  const formatearMoneda = (valor) => {
-    return new Intl.NumberFormat('es-VE', {
+  const formatearMoneda = (valor, moneda = 'Bs') => {
+    const formateado = new Intl.NumberFormat('es-VE', {
       style: 'currency',
       currency: 'VES'
     }).format(valor);
+
+    if (moneda === 'Bs' && tasaCambio > 0) {
+      const equivalenteUSD = valor / tasaCambio;
+      return `${formateado} (Ref: $ ${equivalenteUSD.toFixed(2)})`;
+    }
+    return formateado;
   };
   
   // Cargar facturas pendientes con paginación
@@ -332,6 +342,26 @@ const FacturasPendientes = () => {
     }
   };
   
+  // Agregar useEffect para obtener la tasa de cambio inicial
+  useEffect(() => {
+    const obtenerTasaCambio = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/tasa-cambio`);
+        setTasaCambio(response.data.tasa);
+      } catch (error) {
+        console.error('Error al obtener la tasa de cambio:', error);
+        toast.error('Error al obtener la tasa de cambio');
+      }
+    };
+
+    obtenerTasaCambio();
+  }, []);
+
+  // Función para manejar cambios en la tasa de cambio
+  const handleTasaChange = (nuevaTasa) => {
+    setTasaCambio(nuevaTasa);
+  };
+  
   return (
     <motion.div
       initial="hidden"
@@ -419,6 +449,11 @@ const FacturasPendientes = () => {
             </motion.div>
           </Box>
         </motion.div>
+        
+        {/* Agregar el componente TasaCambio después del título */}
+        <Box sx={{ mb: 4 }}>
+          <TasaCambio onTasaChange={handleTasaChange} />
+        </Box>
         
         {/* Filtros */}
         <motion.div
@@ -557,9 +592,9 @@ const FacturasPendientes = () => {
                     <StyledTableCell>Concepto</StyledTableCell>
                     <StyledTableCell>Proveedor</StyledTableCell>
                     <StyledTableCell>N° Factura</StyledTableCell>
-                    <StyledTableCell align="right">Monto</StyledTableCell>
-                    <StyledTableCell align="right">Abonado</StyledTableCell>
-                    <StyledTableCell align="right">Saldo</StyledTableCell>
+                    <StyledTableCell align="right">Monto (Bs)</StyledTableCell>
+                    <StyledTableCell align="right">Abonado (Bs)</StyledTableCell>
+                    <StyledTableCell align="right">Saldo (Bs)</StyledTableCell>
                     <StyledTableCell align="center">Acciones</StyledTableCell>
                   </TableRow>
                 </TableHead>
