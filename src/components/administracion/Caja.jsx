@@ -235,14 +235,9 @@ const CajaInteractiva = () => {
         toast.success('Movimiento registrado exitosamente!');
       }
 
-      // Ordenar las transacciones por fecha descendente
-      const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
-        new Date(b.fecha) - new Date(a.fecha)
-      );
-
       setState(prev => ({
         ...prev,
-        transacciones: transaccionesOrdenadas,
+        transacciones: res.data.transacciones,
         saldos: res.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
@@ -284,6 +279,7 @@ const CajaInteractiva = () => {
     setState(prev => ({
       ...prev,
       modalOpen: true,
+      editingTransaction: transaction,
       nuevaTransaccion: {
         fecha: moment(transaction.fecha).format('YYYY-MM-DD'),
         concepto: transaction.concepto,
