@@ -588,7 +588,12 @@ const FacturasPendientes = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <StyledTableCell>Fecha</StyledTableCell>
+                    <StyledTableCell>
+                      Fecha
+                      <Box component="span" sx={{ ml: 1, color: 'primary.main' }}>
+                        ↓
+                      </Box>
+                    </StyledTableCell>
                     <StyledTableCell>Concepto</StyledTableCell>
                     <StyledTableCell>Proveedor</StyledTableCell>
                     <StyledTableCell>N° Factura</StyledTableCell>

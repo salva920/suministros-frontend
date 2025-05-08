@@ -70,7 +70,14 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
         <TableHead sx={{ bgcolor: 'background.default' }}>
           <TableRow>
             {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo', 'Acciones'].map(header => (
-              <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
+              <TableCell key={header} sx={{ fontWeight: 'bold' }}>
+                {header}
+                {header === 'Fecha' && (
+                  <Box component="span" sx={{ ml: 1, color: 'primary.main' }}>
+                    ↓
+                  </Box>
+                )}
+              </TableCell>
             ))}
           </TableRow>
         </TableHead>
