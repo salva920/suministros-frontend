@@ -215,14 +215,11 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      const fechaFormateada = formatearFechaSimple(state.nuevaTransaccion.fecha)
-        .split('/')
-        .reverse()
-        .join('-');
-
       const movimiento = {
         ...state.nuevaTransaccion,
-        fecha: fechaFormateada,
+        fecha: moment(state.nuevaTransaccion.fecha)
+          .tz('America/Caracas')
+          .format('YYYY-MM-DD'),
         monto: parseFloat(state.nuevaTransaccion.monto),
         entrada: state.nuevaTransaccion.tipo === 'entrada' ? parseFloat(state.nuevaTransaccion.monto) : 0,
         salida: state.nuevaTransaccion.tipo === 'salida' ? parseFloat(state.nuevaTransaccion.monto) : 0,
@@ -238,13 +235,10 @@ const CajaInteractiva = () => {
         toast.success('Movimiento registrado exitosamente!');
       }
 
-      // Obtener la lista actualizada de transacciones
-      const cajaRes = await axios.get(`${API_URL}/caja`);
-      
       setState(prev => ({
         ...prev,
-        transacciones: cajaRes.data.transacciones,
-        saldos: cajaRes.data.saldos,
+        transacciones: res.data.transacciones,
+        saldos: res.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
           fecha: new Date().toISOString().split('T')[0],
