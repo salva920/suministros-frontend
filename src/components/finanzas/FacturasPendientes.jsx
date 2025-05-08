@@ -31,7 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import TasaCambio from '../TasaCambio';
 
 // URL de la API
-const API_URL = "https://suministros-backend.vercel.app/api/facturaPendiente";
+const API_URL = "https://suministros-backend.vercel.app/api";
 
 // Variantes de animación para Framer Motion
 const containerVariants = {
@@ -181,7 +181,7 @@ const FacturasPendientes = () => {
       if (fechaDesde) params.append('fechaDesde', fechaDesde);
       if (fechaHasta) params.append('fechaHasta', fechaHasta);
       
-      const response = await axios.get(`${API_URL}?${params.toString()}`);
+      const response = await axios.get(`${API_URL}/facturaPendiente?${params.toString()}`);
       
       setFacturas(response.data.facturas);
       setTotalItems(response.data.totalDocs);
@@ -262,7 +262,7 @@ const FacturasPendientes = () => {
     
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/${facturaSeleccionada._id}/abonos`, {
+      await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, {
         monto: parseFloat(montoAbono)
       });
       
@@ -309,7 +309,7 @@ const FacturasPendientes = () => {
     
     setLoading(true);
     try {
-      await axios.post(API_URL, nuevaFactura);
+      await axios.post(API_URL + '/facturaPendiente', nuevaFactura);
       
       toast.success('Factura registrada correctamente');
       setOpenNuevaFacturaModal(false);
@@ -330,7 +330,7 @@ const FacturasPendientes = () => {
     
     setLoading(true);
     try {
-      await axios.delete(`${API_URL}/${facturaId}`);
+      await axios.delete(`${API_URL}/facturaPendiente/${facturaId}`);
       
       toast.success('Factura eliminada correctamente');
       cargarFacturas();
