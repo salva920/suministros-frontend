@@ -215,11 +215,14 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
+      // Usar moment para manejar la fecha consistentemente
+      const fechaFormateada = moment(state.nuevaTransaccion.fecha)
+        .tz('America/Caracas')
+        .format('YYYY-MM-DD');
+
       const movimiento = {
         ...state.nuevaTransaccion,
-        fecha: moment(state.nuevaTransaccion.fecha)
-          .tz('America/Caracas')
-          .format('YYYY-MM-DD'),
+        fecha: fechaFormateada,
         monto: parseFloat(state.nuevaTransaccion.monto),
         entrada: state.nuevaTransaccion.tipo === 'entrada' ? parseFloat(state.nuevaTransaccion.monto) : 0,
         salida: state.nuevaTransaccion.tipo === 'salida' ? parseFloat(state.nuevaTransaccion.monto) : 0,
@@ -235,10 +238,13 @@ const CajaInteractiva = () => {
         toast.success('Movimiento registrado exitosamente!');
       }
 
+      // Obtener la lista actualizada de transacciones
+      const cajaRes = await axios.get(`${API_URL}/caja`);
+      
       setState(prev => ({
         ...prev,
-        transacciones: res.data.transacciones,
-        saldos: res.data.saldos,
+        transacciones: cajaRes.data.transacciones,
+        saldos: cajaRes.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
           fecha: new Date().toISOString().split('T')[0],
@@ -276,11 +282,10 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    // Convertir la fecha al formato correcto usando formatearFechaSimple
-    const fechaFormateada = formatearFechaSimple(transaction.fecha)
-      .split('/')
-      .reverse()
-      .join('-'); // Convertir de DD/MM/YYYY a YYYY-MM-DD para el input
+    // Usar moment para manejar la fecha correctamente
+    const fechaFormateada = moment(transaction.fecha)
+      .tz('America/Caracas')
+      .format('YYYY-MM-DD');
 
     setState(prev => ({
       ...prev,
