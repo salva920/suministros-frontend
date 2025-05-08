@@ -282,9 +282,10 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    // Usar moment para manejar la fecha correctamente
+    // Asegurarnos de que la fecha se maneje correctamente
     const fechaFormateada = moment(transaction.fecha)
       .tz('America/Caracas')
+      .startOf('day')
       .format('YYYY-MM-DD');
 
     setState(prev => ({
