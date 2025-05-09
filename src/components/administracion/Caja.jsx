@@ -53,15 +53,15 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
 const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual, onEdit, onDelete }) => {
   const filteredTransactions = transactions
     .filter(t => {
-      const transactionDate = moment.utc(t.fecha).tz('America/Caracas');
-      const start = dateFilter.start && moment.tz(dateFilter.start, 'America/Caracas');
-      const end = dateFilter.end && moment.tz(dateFilter.end, 'America/Caracas');
+      const transactionDate = new Date(t.fecha);
+      const start = dateFilter.start && new Date(dateFilter.start);
+      const end = dateFilter.end && new Date(dateFilter.end);
       
       const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
       
       return matchesCurrency &&
-             (!start || transactionDate.isSameOrAfter(start, 'day')) &&
-             (!end || transactionDate.isSameOrBefore(end, 'day'));
+             (!start || transactionDate >= start) &&
+             (!end || transactionDate <= end);
     });
 
   return (
@@ -152,7 +152,11 @@ const CajaInteractiva = () => {
     },
     modalOpen: false,
     nuevaTransaccion: {
-      fecha: new Date().toISOString().split('T')[0],
+      fecha: new Date().toLocaleDateString('es-VE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }),
       concepto: '',
       moneda: 'USD',
       tipo: 'entrada',
@@ -198,9 +202,12 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      const fechaFormateada = moment(state.nuevaTransaccion.fecha)
-        .tz('America/Caracas')
-        .format('YYYY-MM-DD');
+      const fechaFormateada = new Date(state.nuevaTransaccion.fecha)
+        .toLocaleDateString('es-VE', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
 
       const movimiento = {
         ...state.nuevaTransaccion,
@@ -234,7 +241,11 @@ const CajaInteractiva = () => {
         saldos: cajaRes.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: new Date().toLocaleDateString('es-VE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          }),
           concepto: '',
           moneda: 'USD',
           tipo: 'entrada',
@@ -269,10 +280,12 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    // Primero interpretar la fecha como UTC y luego convertir a Caracas
-    const fechaFormateada = moment.utc(transaction.fecha)
-      .tz('America/Caracas')
-      .format('YYYY-MM-DD');
+    const fechaFormateada = new Date(transaction.fecha)
+      .toLocaleDateString('es-VE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
 
     setState(prev => ({
       ...prev,
