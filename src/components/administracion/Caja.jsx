@@ -138,16 +138,19 @@ const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
   
   try {
-    // Convertir la fecha a la zona horaria de Caracas y asegurar que sea al inicio del día
-    const fecha = moment.utc(fechaString)
-      .tz('America/Caracas')
-      .startOf('day');
+    // Crear una fecha a partir del string y ajustar a la zona horaria de Caracas
+    const fecha = moment(fechaString).tz('America/Caracas');
     
     // Verificar si la fecha es válida
     if (!fecha.isValid()) return 'Fecha inválida';
     
+    // Extraer día, mes y año
+    const dia = fecha.date();
+    const mes = fecha.month() + 1; // getMonth() devuelve 0-11
+    const anio = fecha.year();
+    
     // Formatear como DD/MM/YYYY
-    return fecha.format('DD/MM/YYYY');
+    return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio}`;
   } catch (error) {
     console.error('Error al formatear fecha:', error);
     return 'Error de formato';
@@ -212,9 +215,8 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      // Asegurar que la fecha se maneje en la zona horaria correcta
-      const fechaFormateada = moment.tz(state.nuevaTransaccion.fecha, 'America/Caracas')
-        .startOf('day')
+      const fechaFormateada = moment(state.nuevaTransaccion.fecha)
+        .tz('America/Caracas')
         .format('YYYY-MM-DD');
 
       const movimiento = {
@@ -284,10 +286,8 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    // Asegurar que la fecha se maneje en la zona horaria correcta
-    const fechaFormateada = moment.utc(transaction.fecha)
+    const fechaFormateada = moment(transaction.fecha)
       .tz('America/Caracas')
-      .startOf('day')
       .format('YYYY-MM-DD');
 
     setState(prev => ({
