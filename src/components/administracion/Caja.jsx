@@ -128,10 +128,12 @@ const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
   
   try {
-    // Forzar a UTC y mostrar solo la fecha
-    const fecha = moment.utc(fechaString);
-    if (!fecha.isValid()) return 'Fecha inválida';
-    return fecha.format('DD/MM/YYYY');
+    const fecha = new Date(fechaString);
+    return fecha.toLocaleDateString('es-VE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   } catch (error) {
     console.error('Error al formatear fecha:', error);
     return 'Error de formato';
@@ -149,7 +151,11 @@ const CajaInteractiva = () => {
     },
     modalOpen: false,
     nuevaTransaccion: {
-      fecha: '',
+      fecha: new Date().toLocaleDateString('es-VE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }),
       concepto: '',
       moneda: 'USD',
       tipo: 'entrada',
@@ -162,52 +168,6 @@ const CajaInteractiva = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  // Función para simular y verificar el cálculo de saldos
-  const simularCalculoSaldos = (transacciones) => {
-    console.group('Simulación de Cálculo de Saldos');
-    
-    // Calcular saldo USD
-    let saldoUSD = 0;
-    console.log('=== Cálculo de Saldo USD ===');
-    transacciones
-      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
-      .forEach(t => {
-        if (t.moneda === 'USD') {
-          saldoUSD += t.entrada - t.salida;
-          console.log(
-            `${moment.utc(t.fecha).format('YYYY-MM-DD HH:mm:ss')} | ` +
-            `${t.concepto} | ` +
-            `Entrada: ${t.entrada} | ` +
-            `Salida: ${t.salida} | ` +
-            `Saldo: ${saldoUSD}`
-          );
-        }
-      });
-    console.log('Saldo final USD:', saldoUSD);
-
-    // Calcular saldo Bs
-    let saldoBs = 0;
-    console.log('\n=== Cálculo de Saldo Bs ===');
-    transacciones
-      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
-      .forEach(t => {
-        if (t.moneda === 'Bs') {
-          saldoBs += t.entrada - t.salida;
-          console.log(
-            `${moment.utc(t.fecha).format('YYYY-MM-DD HH:mm:ss')} | ` +
-            `${t.concepto} | ` +
-            `Entrada: ${t.entrada} | ` +
-            `Salida: ${t.salida} | ` +
-            `Saldo: ${saldoBs}`
-          );
-        }
-      });
-    console.log('Saldo final Bs:', saldoBs);
-
-    console.groupEnd();
-    return { saldoUSD, saldoBs };
-  };
-
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -216,14 +176,10 @@ const CajaInteractiva = () => {
           axios.get(`${API_URL}/tasa-cambio`)
         ]);
         
-        // Ordenar por fecha descendente para visualización
-        const transaccionesOrdenadas = cajaRes.data.transacciones
-          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-        
-        // Simular cálculo de saldos para verificación
-        const saldosCalculados = simularCalculoSaldos(transaccionesOrdenadas);
-        console.log('Saldos del backend:', cajaRes.data.saldos);
-        console.log('Saldos calculados:', saldosCalculados);
+        // Ordenar las transacciones por fecha descendente
+        const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones) 
+          ? cajaRes.data.transacciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+          : [];
         
         setState(prev => ({
           ...prev,
@@ -245,8 +201,9 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      const fechaFormateada = moment.utc(state.nuevaTransaccion.fecha).format();
-      
+      // Asegurarnos de que la fecha se mantenga como está
+      const fechaFormateada = state.nuevaTransaccion.fecha;
+
       const movimiento = {
         ...state.nuevaTransaccion,
         fecha: fechaFormateada,
@@ -259,30 +216,39 @@ const CajaInteractiva = () => {
       let res;
       if (state.editingTransaction) {
         res = await axios.put(`${API_URL}/caja/transacciones/${state.editingTransaction._id}`, movimiento);
+        toast.success('Movimiento actualizado exitosamente!');
       } else {
         res = await axios.post(`${API_URL}/caja/transacciones`, movimiento);
+        toast.success('Movimiento registrado exitosamente!');
       }
 
-      // Actualizar estado con nuevo orden descendente
-      const transaccionesOrdenadas = res.data.transacciones
-        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-      // Simular cálculo de saldos después de la operación
-      const saldosCalculados = simularCalculoSaldos(transaccionesOrdenadas);
-      console.log('Saldos del backend después de la operación:', res.data.saldos);
-      console.log('Saldos calculados después de la operación:', saldosCalculados);
+      // Obtener la lista actualizada de transacciones
+      const cajaRes = await axios.get(`${API_URL}/caja`);
+      
+      // Ordenar las transacciones por fecha descendente
+      const transaccionesOrdenadas = cajaRes.data.transacciones.sort((a, b) => 
+        new Date(b.fecha) - new Date(a.fecha)
+      );
 
       setState(prev => ({
         ...prev,
         transacciones: transaccionesOrdenadas,
-        saldos: res.data.saldos,
+        saldos: cajaRes.data.saldos,
         modalOpen: false,
-        nuevaTransaccion: { ...prev.nuevaTransaccion, fecha: '', concepto: '', monto: '' },
+        nuevaTransaccion: {
+          fecha: new Date().toLocaleDateString('es-VE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          }),
+          concepto: '',
+          moneda: 'USD',
+          tipo: 'entrada',
+          monto: '',
+          tasaCambio: state.tasaCambio
+        },
         editingTransaction: null
       }));
-      
-      toast.success(state.editingTransaction ? 
-        'Movimiento actualizado!' : 'Movimiento registrado!');
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
     }
@@ -309,8 +275,9 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    const fechaObj = moment.utc(transaction.fecha);
-    const fechaFormateada = fechaObj.format('YYYY-MM-DD');
+    // Asegurarnos de que la fecha se maneje correctamente
+    const fechaObj = new Date(transaction.fecha);
+    const fechaFormateada = fechaObj.toISOString().split('T')[0];
 
     setState(prev => ({
       ...prev,
@@ -331,14 +298,9 @@ const CajaInteractiva = () => {
     if (window.confirm('¿Está seguro de eliminar este movimiento?')) {
       try {
         const res = await axios.delete(`${API_URL}/caja/transacciones/${transactionId}`);
-        
-        // Ordenar transacciones por fecha descendente
-        const transaccionesOrdenadas = res.data.transacciones
-          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
         setState(prev => ({
           ...prev,
-          transacciones: transaccionesOrdenadas,
+          transacciones: res.data.transacciones,
           saldos: res.data.saldos
         }));
         toast.success('Movimiento eliminado exitosamente');
@@ -367,30 +329,6 @@ const CajaInteractiva = () => {
       } catch (error) {
         toast.error('Error al corregir las fechas');
         console.error('Error:', error);
-      }
-    }
-  };
-
-  const validarSaldos = async () => {
-    if (window.confirm('¿Está seguro de validar y corregir los saldos? Esto recalculará todos los saldos basándose en el orden cronológico de las transacciones.')) {
-      try {
-        const res = await axios.post(`${API_URL}/caja/validar-saldos`);
-        
-        // Actualizar estado con los nuevos datos
-        setState(prev => ({
-          ...prev,
-          transacciones: res.data.transacciones,
-          saldos: res.data.saldosNuevos
-        }));
-
-        // Mostrar resumen de cambios
-        toast.info(
-          `Validación completada. ` +
-          `USD: ${res.data.saldosAnteriores.USD} → ${res.data.saldosNuevos.USD} | ` +
-          `Bs: ${res.data.saldosAnteriores.Bs} → ${res.data.saldosNuevos.Bs}`
-        );
-      } catch (error) {
-        toast.error('Error al validar saldos: ' + (error.response?.data?.message || error.message));
       }
     }
   };
@@ -527,14 +465,6 @@ const CajaInteractiva = () => {
                   sx={{ mr: 2 }}
                 >
                   Corregir Fechas
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  color="info"
-                  onClick={validarSaldos}
-                  sx={{ mr: 2 }}
-                >
-                  Validar Saldos
                 </Button>
                 <Button 
                   variant="contained" 
