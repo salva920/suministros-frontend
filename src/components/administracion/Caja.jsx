@@ -128,7 +128,6 @@ const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
   
   try {
-    // Convertir la fecha a objeto Date y usar toLocaleDateString
     const fecha = new Date(fechaString);
     return fecha.toLocaleDateString('es-VE', {
       day: '2-digit',
@@ -202,12 +201,8 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      const fechaFormateada = new Date(state.nuevaTransaccion.fecha)
-        .toLocaleDateString('es-VE', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
+      // Asegurarnos de que la fecha se mantenga como está
+      const fechaFormateada = state.nuevaTransaccion.fecha;
 
       const movimiento = {
         ...state.nuevaTransaccion,
@@ -280,12 +275,9 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    const fechaFormateada = new Date(transaction.fecha)
-      .toLocaleDateString('es-VE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
+    // Asegurarnos de que la fecha se maneje correctamente
+    const fechaObj = new Date(transaction.fecha);
+    const fechaFormateada = fechaObj.toISOString().split('T')[0];
 
     setState(prev => ({
       ...prev,
@@ -515,10 +507,16 @@ const CajaInteractiva = () => {
                   type="date"
                   fullWidth
                   value={state.nuevaTransaccion.fecha}
-                  onChange={(e) => setState(prev => ({ 
-                    ...prev, 
-                    nuevaTransaccion: { ...prev.nuevaTransaccion, fecha: e.target.value } 
-                  }))}
+                  onChange={(e) => {
+                    const fechaSeleccionada = e.target.value;
+                    setState(prev => ({ 
+                      ...prev, 
+                      nuevaTransaccion: { 
+                        ...prev.nuevaTransaccion, 
+                        fecha: fechaSeleccionada 
+                      } 
+                    }));
+                  }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
