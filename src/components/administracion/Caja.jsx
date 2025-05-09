@@ -215,7 +215,6 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      // Usar moment para manejar la fecha consistentemente
       const fechaFormateada = moment(state.nuevaTransaccion.fecha)
         .tz('America/Caracas')
         .format('YYYY-MM-DD');
@@ -241,9 +240,14 @@ const CajaInteractiva = () => {
       // Obtener la lista actualizada de transacciones
       const cajaRes = await axios.get(`${API_URL}/caja`);
       
+      // Ordenar las transacciones por fecha descendente
+      const transaccionesOrdenadas = cajaRes.data.transacciones.sort((a, b) => 
+        new Date(b.fecha) - new Date(a.fecha)
+      );
+
       setState(prev => ({
         ...prev,
-        transacciones: cajaRes.data.transacciones,
+        transacciones: transaccionesOrdenadas,
         saldos: cajaRes.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
