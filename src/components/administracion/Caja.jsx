@@ -128,12 +128,9 @@ const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
   
   try {
-    const fecha = new Date(fechaString);
-    return fecha.toLocaleDateString('es-VE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    const fecha = moment.utc(fechaString);
+    if (!fecha.isValid()) return 'Fecha inválida';
+    return fecha.format('DD/MM/YYYY');
   } catch (error) {
     console.error('Error al formatear fecha:', error);
     return 'Error de formato';
@@ -151,11 +148,7 @@ const CajaInteractiva = () => {
     },
     modalOpen: false,
     nuevaTransaccion: {
-      fecha: new Date().toLocaleDateString('es-VE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }),
+      fecha: moment.utc().format('YYYY-MM-DD'),
       concepto: '',
       moneda: 'USD',
       tipo: 'entrada',
@@ -176,9 +169,11 @@ const CajaInteractiva = () => {
           axios.get(`${API_URL}/tasa-cambio`)
         ]);
         
-        // Ordenar las transacciones por fecha descendente
+        // Ordenar las transacciones por fecha descendente usando moment.utc
         const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones) 
-          ? cajaRes.data.transacciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+          ? cajaRes.data.transacciones.sort((a, b) => 
+              moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
+            )
           : [];
         
         setState(prev => ({
@@ -201,8 +196,7 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      // Asegurarnos de que la fecha se mantenga como está
-      const fechaFormateada = state.nuevaTransaccion.fecha;
+      const fechaFormateada = moment.utc(state.nuevaTransaccion.fecha).format('YYYY-MM-DD');
 
       const movimiento = {
         ...state.nuevaTransaccion,
@@ -225,9 +219,9 @@ const CajaInteractiva = () => {
       // Obtener la lista actualizada de transacciones
       const cajaRes = await axios.get(`${API_URL}/caja`);
       
-      // Ordenar las transacciones por fecha descendente
+      // Ordenar las transacciones por fecha descendente usando moment.utc
       const transaccionesOrdenadas = cajaRes.data.transacciones.sort((a, b) => 
-        new Date(b.fecha) - new Date(a.fecha)
+        moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
       );
 
       setState(prev => ({
@@ -236,11 +230,7 @@ const CajaInteractiva = () => {
         saldos: cajaRes.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
-          fecha: new Date().toLocaleDateString('es-VE', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          }),
+          fecha: moment.utc().format('YYYY-MM-DD'),
           concepto: '',
           moneda: 'USD',
           tipo: 'entrada',
@@ -275,9 +265,8 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    // Asegurarnos de que la fecha se maneje correctamente
-    const fechaObj = new Date(transaction.fecha);
-    const fechaFormateada = fechaObj.toISOString().split('T')[0];
+    const fechaObj = moment.utc(transaction.fecha);
+    const fechaFormateada = fechaObj.format('YYYY-MM-DD');
 
     setState(prev => ({
       ...prev,
