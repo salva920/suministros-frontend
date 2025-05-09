@@ -286,14 +286,16 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
+    const fechaFormateada = moment(transaction.fecha)
+      .tz('America/Caracas')
+      .format('YYYY-MM-DD');
+
     setState(prev => ({
       ...prev,
       modalOpen: true,
       editingTransaction: transaction,
       nuevaTransaccion: {
-        fecha: moment(transaction.fecha)
-          .tz('America/Caracas')
-          .format('YYYY-MM-DD'),
+        fecha: fechaFormateada,
         concepto: transaction.concepto,
         moneda: transaction.moneda,
         tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
