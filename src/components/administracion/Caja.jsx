@@ -128,14 +128,13 @@ const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
   
   try {
-    // Primero interpretar la fecha como UTC y luego convertir a Caracas
-    const fecha = moment.utc(fechaString).tz('America/Caracas');
-    
-    // Verificar si la fecha es válida
-    if (!fecha.isValid()) return 'Fecha inválida';
-    
-    // Formatear como DD/MM/YYYY
-    return fecha.format('DD/MM/YYYY');
+    // Convertir la fecha a objeto Date y usar toLocaleDateString
+    const fecha = new Date(fechaString);
+    return fecha.toLocaleDateString('es-VE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   } catch (error) {
     console.error('Error al formatear fecha:', error);
     return 'Error de formato';
