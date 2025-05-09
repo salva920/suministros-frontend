@@ -151,11 +151,7 @@ const CajaInteractiva = () => {
     },
     modalOpen: false,
     nuevaTransaccion: {
-      fecha: new Date().toLocaleDateString('es-VE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }),
+      fecha: '',
       concepto: '',
       moneda: 'USD',
       tipo: 'entrada',
@@ -236,11 +232,7 @@ const CajaInteractiva = () => {
         saldos: cajaRes.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
-          fecha: new Date().toLocaleDateString('es-VE', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          }),
+          fecha: '',
           concepto: '',
           moneda: 'USD',
           tipo: 'entrada',
