@@ -309,9 +309,15 @@ const CajaInteractiva = () => {
     if (window.confirm('¿Está seguro de eliminar este movimiento?')) {
       try {
         const res = await axios.delete(`${API_URL}/caja/transacciones/${transactionId}`);
+        
+        // Ordenar las transacciones por fecha descendente
+        const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
+          new Date(b.fecha) - new Date(a.fecha)
+        );
+
         setState(prev => ({
           ...prev,
-          transacciones: res.data.transacciones,
+          transacciones: transaccionesOrdenadas,
           saldos: res.data.saldos
         }));
         toast.success('Movimiento eliminado exitosamente');
