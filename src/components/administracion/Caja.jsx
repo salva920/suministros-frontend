@@ -313,17 +313,25 @@ const CajaInteractiva = () => {
   };
 
   const corregirFechas = async () => {
-    try {
-      const res = await axios.post(`${API_URL}/caja/corregir-fechas`);
-      toast.success('Fechas corregidas exitosamente');
-      
-      // Actualizar el estado con las fechas corregidas
-      setState(prev => ({
-        ...prev,
-        transacciones: res.data.transacciones
-      }));
-    } catch (error) {
-      toast.error('Error al corregir las fechas');
+    if (window.confirm('¿Está seguro de corregir las fechas? Se sumarán 4 días a todas las fechas.')) {
+      try {
+        const res = await axios.post(`${API_URL}/caja/corregir-fechas`);
+        
+        // Ordenar las transacciones por fecha descendente
+        const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
+          new Date(b.fecha) - new Date(a.fecha)
+        );
+        
+        setState(prev => ({
+          ...prev,
+          transacciones: transaccionesOrdenadas
+        }));
+        
+        toast.success('Fechas corregidas exitosamente');
+      } catch (error) {
+        toast.error('Error al corregir las fechas');
+        console.error('Error:', error);
+      }
     }
   };
 
@@ -451,13 +459,23 @@ const CajaInteractiva = () => {
           <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6">Movimientos Recientes</Typography>
-              <Button 
-                variant="contained" 
-                startIcon={<Add />}
-                onClick={() => setState(prev => ({ ...prev, modalOpen: true }))}
-              >
-                Nuevo Movimiento
-              </Button>
+              <Box>
+                <Button 
+                  variant="outlined" 
+                  color="warning"
+                  onClick={corregirFechas}
+                  sx={{ mr: 2 }}
+                >
+                  Corregir Fechas
+                </Button>
+                <Button 
+                  variant="contained" 
+                  startIcon={<Add />}
+                  onClick={() => setState(prev => ({ ...prev, modalOpen: true }))}
+                >
+                  Nuevo Movimiento
+                </Button>
+              </Box>
             </Box>
             
             <TransactionTable 
