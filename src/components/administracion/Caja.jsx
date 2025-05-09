@@ -121,7 +121,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
         </TableBody>
       </Table>
       <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
+        rowsPerPageOptions={[50, 100, 200, 500]}
         component="div"
         count={filteredTransactions.length}
         rowsPerPage={rowsPerPage}
@@ -161,7 +161,10 @@ const CajaInteractiva = () => {
       moneda: 'TODAS',
       fecha: { start: null, end: null }
     },
-    pagination: { page: 0, rowsPerPage: 10 },
+    pagination: { 
+      page: 0, 
+      rowsPerPage: 100  // Cambiado de 10 a 100 para mostrar más registros
+    },
     modalOpen: false,
     nuevaTransaccion: {
       fecha: new Date().toISOString().split('T')[0],
