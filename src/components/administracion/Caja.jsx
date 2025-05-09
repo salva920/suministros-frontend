@@ -277,7 +277,8 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    const fechaFormateada = moment(transaction.fecha)
+    // Primero interpretar la fecha como UTC y luego convertir a Caracas
+    const fechaFormateada = moment.utc(transaction.fecha)
       .tz('America/Caracas')
       .format('YYYY-MM-DD');
 
