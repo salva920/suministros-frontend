@@ -170,12 +170,9 @@ const CajaInteractiva = () => {
           axios.get(`${API_URL}/tasa-cambio`)
         ]);
         
-        // Ordenar las transacciones por fecha descendente usando moment.utc
-        const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones) 
-          ? cajaRes.data.transacciones.sort((a, b) => 
-              moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
-            )
-          : [];
+        // Ordenar por fecha descendente para visualización
+        const transaccionesOrdenadas = cajaRes.data.transacciones
+          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         
         setState(prev => ({
           ...prev,
@@ -197,9 +194,8 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      // Asegurarnos de que la fecha se mantenga en UTC
       const fechaFormateada = moment.utc(state.nuevaTransaccion.fecha).format();
-
+      
       const movimiento = {
         ...state.nuevaTransaccion,
         fecha: fechaFormateada,
@@ -212,35 +208,25 @@ const CajaInteractiva = () => {
       let res;
       if (state.editingTransaction) {
         res = await axios.put(`${API_URL}/caja/transacciones/${state.editingTransaction._id}`, movimiento);
-        toast.success('Movimiento actualizado exitosamente!');
       } else {
         res = await axios.post(`${API_URL}/caja/transacciones`, movimiento);
-        toast.success('Movimiento registrado exitosamente!');
       }
 
-      // Obtener la lista actualizada de transacciones
-      const cajaRes = await axios.get(`${API_URL}/caja`);
-      
-      // Ordenar las transacciones por fecha descendente usando moment.utc
-      const transaccionesOrdenadas = cajaRes.data.transacciones.sort((a, b) => 
-        moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
-      );
+      // Actualizar estado con nuevo orden descendente
+      const transaccionesOrdenadas = res.data.transacciones
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
       setState(prev => ({
         ...prev,
         transacciones: transaccionesOrdenadas,
-        saldos: cajaRes.data.saldos,
+        saldos: res.data.saldos,
         modalOpen: false,
-        nuevaTransaccion: {
-          fecha: '',
-          concepto: '',
-          moneda: 'USD',
-          tipo: 'entrada',
-          monto: '',
-          tasaCambio: state.tasaCambio
-        },
+        nuevaTransaccion: { ...prev.nuevaTransaccion, fecha: '', concepto: '', monto: '' },
         editingTransaction: null
       }));
+      
+      toast.success(state.editingTransaction ? 
+        'Movimiento actualizado!' : 'Movimiento registrado!');
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
     }
@@ -267,7 +253,6 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    // Asegurarnos de que la fecha se maneje correctamente en UTC
     const fechaObj = moment.utc(transaction.fecha);
     const fechaFormateada = fechaObj.format('YYYY-MM-DD');
 
@@ -290,9 +275,14 @@ const CajaInteractiva = () => {
     if (window.confirm('¿Está seguro de eliminar este movimiento?')) {
       try {
         const res = await axios.delete(`${API_URL}/caja/transacciones/${transactionId}`);
+        
+        // Ordenar transacciones por fecha descendente
+        const transaccionesOrdenadas = res.data.transacciones
+          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
         setState(prev => ({
           ...prev,
-          transacciones: res.data.transacciones,
+          transacciones: transaccionesOrdenadas,
           saldos: res.data.saldos
         }));
         toast.success('Movimiento eliminado exitosamente');
