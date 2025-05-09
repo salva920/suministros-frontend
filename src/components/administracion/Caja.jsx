@@ -5,7 +5,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, Chip, FormControl, InputLabel, Select, MenuItem,
   Box, LinearProgress, Dialog, DialogTitle, DialogContent,
-  DialogActions, TablePagination, Backdrop, IconButton
+  DialogActions, IconButton
 } from '@mui/material';
 import { 
    AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete
@@ -50,7 +50,7 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
   );
 };
 
-const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rowsPerPage, handleChangePage, handleChangeRowsPerPage, tasaActual, onEdit, onDelete }) => {
+const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual, onEdit, onDelete }) => {
   const filteredTransactions = transactions
     .filter(t => {
       const transactionDate = moment.utc(t.fecha).tz('America/Caracas');
@@ -75,7 +75,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
           </TableRow>
         </TableHead>
         <TableBody>
-          {filteredTransactions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((t) => (
+          {filteredTransactions.map((t) => (
             <TableRow key={t._id} hover>
               <TableCell>
                 {formatearFechaSimple(t.fecha)}
@@ -120,15 +120,6 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, page, rows
           ))}
         </TableBody>
       </Table>
-      <TablePagination
-        rowsPerPageOptions={[50, 100, 200, 500]}
-        component="div"
-        count={filteredTransactions.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
     </TableContainer>
   );
 };
@@ -160,10 +151,6 @@ const CajaInteractiva = () => {
     filtros: {
       moneda: 'TODAS',
       fecha: { start: null, end: null }
-    },
-    pagination: { 
-      page: 0, 
-      rowsPerPage: 100  // Cambiado de 10 a 100 para mostrar más registros
     },
     modalOpen: false,
     nuevaTransaccion: {
@@ -456,26 +443,6 @@ const CajaInteractiva = () => {
               transactions={state.transacciones} 
               currencyFilter={state.filtros.moneda} 
               dateFilter={state.filtros.fecha} 
-              page={state.pagination.page}
-              rowsPerPage={state.pagination.rowsPerPage}
-              handleChangePage={(e, newPage) => 
-                setState(prev => ({ 
-                  ...prev, 
-                  pagination: { 
-                    ...prev.pagination, 
-                    page: newPage 
-                  } 
-                }))
-              }
-              handleChangeRowsPerPage={(e) => 
-                setState(prev => ({ 
-                  ...prev, 
-                  pagination: { 
-                    page: 0, 
-                    rowsPerPage: parseInt(e.target.value, 10) 
-                  } 
-                }))
-              }
               tasaActual={state.tasaCambio}
               onEdit={handleEditTransaction}
               onDelete={handleDeleteTransaction}
