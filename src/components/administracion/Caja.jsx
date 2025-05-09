@@ -312,6 +312,21 @@ const CajaInteractiva = () => {
     }
   };
 
+  const corregirFechas = async () => {
+    try {
+      const res = await axios.post(`${API_URL}/caja/corregir-fechas`);
+      toast.success('Fechas corregidas exitosamente');
+      
+      // Actualizar el estado con las fechas corregidas
+      setState(prev => ({
+        ...prev,
+        transacciones: res.data.transacciones
+      }));
+    } catch (error) {
+      toast.error('Error al corregir las fechas');
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Button variant="contained" color="primary" onClick={() => navigate('/dashboard')} sx={{ mb: 2 }}>
