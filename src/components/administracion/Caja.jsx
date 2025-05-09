@@ -162,6 +162,52 @@ const CajaInteractiva = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
+  // Función para simular y verificar el cálculo de saldos
+  const simularCalculoSaldos = (transacciones) => {
+    console.group('Simulación de Cálculo de Saldos');
+    
+    // Calcular saldo USD
+    let saldoUSD = 0;
+    console.log('=== Cálculo de Saldo USD ===');
+    transacciones
+      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+      .forEach(t => {
+        if (t.moneda === 'USD') {
+          saldoUSD += t.entrada - t.salida;
+          console.log(
+            `${moment.utc(t.fecha).format('YYYY-MM-DD HH:mm:ss')} | ` +
+            `${t.concepto} | ` +
+            `Entrada: ${t.entrada} | ` +
+            `Salida: ${t.salida} | ` +
+            `Saldo: ${saldoUSD}`
+          );
+        }
+      });
+    console.log('Saldo final USD:', saldoUSD);
+
+    // Calcular saldo Bs
+    let saldoBs = 0;
+    console.log('\n=== Cálculo de Saldo Bs ===');
+    transacciones
+      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+      .forEach(t => {
+        if (t.moneda === 'Bs') {
+          saldoBs += t.entrada - t.salida;
+          console.log(
+            `${moment.utc(t.fecha).format('YYYY-MM-DD HH:mm:ss')} | ` +
+            `${t.concepto} | ` +
+            `Entrada: ${t.entrada} | ` +
+            `Salida: ${t.salida} | ` +
+            `Saldo: ${saldoBs}`
+          );
+        }
+      });
+    console.log('Saldo final Bs:', saldoBs);
+
+    console.groupEnd();
+    return { saldoUSD, saldoBs };
+  };
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -173,6 +219,11 @@ const CajaInteractiva = () => {
         // Ordenar por fecha descendente para visualización
         const transaccionesOrdenadas = cajaRes.data.transacciones
           .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        // Simular cálculo de saldos para verificación
+        const saldosCalculados = simularCalculoSaldos(transaccionesOrdenadas);
+        console.log('Saldos del backend:', cajaRes.data.saldos);
+        console.log('Saldos calculados:', saldosCalculados);
         
         setState(prev => ({
           ...prev,
@@ -215,6 +266,11 @@ const CajaInteractiva = () => {
       // Actualizar estado con nuevo orden descendente
       const transaccionesOrdenadas = res.data.transacciones
         .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+      // Simular cálculo de saldos después de la operación
+      const saldosCalculados = simularCalculoSaldos(transaccionesOrdenadas);
+      console.log('Saldos del backend después de la operación:', res.data.saldos);
+      console.log('Saldos calculados después de la operación:', saldosCalculados);
 
       setState(prev => ({
         ...prev,
@@ -311,6 +367,30 @@ const CajaInteractiva = () => {
       } catch (error) {
         toast.error('Error al corregir las fechas');
         console.error('Error:', error);
+      }
+    }
+  };
+
+  const validarSaldos = async () => {
+    if (window.confirm('¿Está seguro de validar y corregir los saldos? Esto recalculará todos los saldos basándose en el orden cronológico de las transacciones.')) {
+      try {
+        const res = await axios.post(`${API_URL}/caja/validar-saldos`);
+        
+        // Actualizar estado con los nuevos datos
+        setState(prev => ({
+          ...prev,
+          transacciones: res.data.transacciones,
+          saldos: res.data.saldosNuevos
+        }));
+
+        // Mostrar resumen de cambios
+        toast.info(
+          `Validación completada. ` +
+          `USD: ${res.data.saldosAnteriores.USD} → ${res.data.saldosNuevos.USD} | ` +
+          `Bs: ${res.data.saldosAnteriores.Bs} → ${res.data.saldosNuevos.Bs}`
+        );
+      } catch (error) {
+        toast.error('Error al validar saldos: ' + (error.response?.data?.message || error.message));
       }
     }
   };
@@ -447,6 +527,14 @@ const CajaInteractiva = () => {
                   sx={{ mr: 2 }}
                 >
                   Corregir Fechas
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  color="info"
+                  onClick={validarSaldos}
+                  sx={{ mr: 2 }}
+                >
+                  Validar Saldos
                 </Button>
                 <Button 
                   variant="contained" 
