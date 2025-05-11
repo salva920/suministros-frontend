@@ -344,7 +344,6 @@ const CajaInteractiva = () => {
       });
 
       if (res.data.transacciones && res.data.transacciones.length > 0) {
-        // Ordenar las transacciones por fecha descendente
         const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
           moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
         );
@@ -358,10 +357,12 @@ const CajaInteractiva = () => {
 
         toast.success('Datos importados correctamente');
       } else {
+        console.error('Respuesta del servidor:', res.data);
         toast.error('No se encontraron transacciones válidas en el archivo');
       }
     } catch (error) {
-      console.error('Error al importar:', error);
+      console.error('Error completo:', error);
+      console.error('Respuesta del servidor:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al importar el archivo');
     }
   };
