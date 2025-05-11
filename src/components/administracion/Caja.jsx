@@ -53,15 +53,15 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
 const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual, onEdit, onDelete }) => {
   const filteredTransactions = transactions
     .filter(t => {
-      const transactionDate = moment.utc(t.fecha).tz('America/Caracas');
-      const start = dateFilter.start && moment.utc(dateFilter.start).tz('America/Caracas');
-      const end = dateFilter.end && moment.utc(dateFilter.end).tz('America/Caracas');
+      const transactionDate = new Date(t.fecha);
+      const start = dateFilter.start && new Date(dateFilter.start);
+      const end = dateFilter.end && new Date(dateFilter.end);
       
       const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
       
       return matchesCurrency &&
-             (!start || transactionDate.isSameOrAfter(start, 'day')) &&
-             (!end || transactionDate.isSameOrBefore(end, 'day'));
+             (!start || transactionDate >= start) &&
+             (!end || transactionDate <= end);
     });
 
   return (
@@ -128,9 +128,12 @@ const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
   
   try {
-    const fecha = moment.utc(fechaString).tz('America/Caracas');
-    if (!fecha.isValid()) return 'Fecha inválida';
-    return fecha.format('DD/MM/YYYY');
+    const fecha = new Date(fechaString);
+    return fecha.toLocaleDateString('es-VE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   } catch (error) {
     console.error('Error al formatear fecha:', error);
     return 'Error de formato';
