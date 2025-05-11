@@ -126,7 +126,6 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
 
 const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
-  
   try {
     return moment.utc(fechaString).format('DD/MM/YYYY');
   } catch (error) {
@@ -171,13 +170,19 @@ const CajaInteractiva = () => {
         // Ordenar las transacciones por fecha ascendente usando moment.utc
         const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones) 
           ? cajaRes.data.transacciones.sort((a, b) => 
-              moment.utc(a.fecha).valueOf() - moment.utc(b.fecha).valueOf()
+              new Date(a.fecha) - new Date(b.fecha)
             )
           : [];
         
+        let currentSaldo = 0;
+        const transaccionesConSaldo = transaccionesOrdenadas.map(t => {
+          currentSaldo += t.entrada - t.salida;
+          return { ...t, saldo: currentSaldo };
+        });
+        
         setState(prev => ({
           ...prev,
-          transacciones: transaccionesOrdenadas,
+          transacciones: transaccionesConSaldo,
           saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
           tasaCambio: tasaRes.data.tasa,
           nuevaTransaccion: {
@@ -219,13 +224,21 @@ const CajaInteractiva = () => {
       const cajaRes = await axios.get(`${API_URL}/caja`);
       
       // Ordenar las transacciones por fecha ascendente usando moment.utc
-      const transaccionesOrdenadas = cajaRes.data.transacciones.sort((a, b) => 
-        moment.utc(a.fecha).valueOf() - moment.utc(b.fecha).valueOf()
-      );
+      const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones)
+        ? cajaRes.data.transacciones.sort((a, b) =>
+            new Date(a.fecha) - new Date(b.fecha)
+          )
+        : [];
+
+      let currentSaldo = 0;
+      const transaccionesConSaldo = transaccionesOrdenadas.map(t => {
+        currentSaldo += t.entrada - t.salida;
+        return { ...t, saldo: currentSaldo };
+      });
 
       setState(prev => ({
         ...prev,
-        transacciones: transaccionesOrdenadas,
+        transacciones: transaccionesConSaldo,
         saldos: cajaRes.data.saldos,
         modalOpen: false,
         nuevaTransaccion: {
@@ -308,9 +321,15 @@ const CajaInteractiva = () => {
           new Date(a.fecha) - new Date(b.fecha)
         );
         
+        let currentSaldo = 0;
+        const transaccionesConSaldo = transaccionesOrdenadas.map(t => {
+          currentSaldo += t.entrada - t.salida;
+          return { ...t, saldo: currentSaldo };
+        });
+
         setState(prev => ({
           ...prev,
-          transacciones: transaccionesOrdenadas
+          transacciones: transaccionesConSaldo
         }));
         
         toast.success('Fechas corregidas exitosamente');
@@ -339,20 +358,15 @@ const CajaInteractiva = () => {
       });
 
       if (res.data.transacciones && res.data.transacciones.length > 0) {
-        // Ordenar las transacciones por fecha ascendente
-        const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => {
-          const fechaA = moment.utc(a.fecha);
-          const fechaB = moment.utc(b.fecha);
-          return fechaA.valueOf() - fechaB.valueOf();
-        });
-
+        const transaccionesOrdenadas = res.data.transacciones.sort((a, b) =>
+          new Date(a.fecha) - new Date(b.fecha)
+        );
         setState(prev => ({
           ...prev,
           transacciones: transaccionesOrdenadas,
           saldos: res.data.saldos,
           excelFile: null
         }));
-
         toast.success('Datos importados correctamente');
       } else {
         console.error('Respuesta del servidor:', res.data);
