@@ -158,7 +158,8 @@ const CajaInteractiva = () => {
       monto: '',
       tasaCambio: 0
     },
-    editingTransaction: null
+    editingTransaction: null,
+    excelFile: null
   });
 
   const navigate = useNavigate();
@@ -325,6 +326,48 @@ const CajaInteractiva = () => {
     }
   };
 
+  const handleImportarExcel = async () => {
+    if (!state.excelFile) {
+      toast.error('Por favor seleccione un archivo Excel');
+      return;
+    }
+
+    // Validar el tipo de archivo
+    if (!state.excelFile.name.match(/\.(xlsx|xls)$/)) {
+      toast.error('Por favor seleccione un archivo Excel válido (.xlsx o .xls)');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', state.excelFile);
+
+    try {
+      toast.info('Importando datos...');
+      const res = await axios.post(`${API_URL}/caja/importar-excel`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Ordenar las transacciones por fecha descendente
+      const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
+        moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
+      );
+
+      setState(prev => ({
+        ...prev,
+        transacciones: transaccionesOrdenadas,
+        saldos: res.data.saldos,
+        excelFile: null // Limpiar el archivo después de importar
+      }));
+
+      toast.success('Datos importados correctamente');
+    } catch (error) {
+      console.error('Error al importar:', error);
+      toast.error(error.response?.data?.message || 'Error al importar el archivo');
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Button variant="contained" color="primary" onClick={() => navigate('/dashboard')} sx={{ mb: 2 }}>
@@ -450,13 +493,30 @@ const CajaInteractiva = () => {
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6">Movimientos Recientes</Typography>
               <Box>
-                <Button 
-                  variant="outlined" 
-                  color="warning"
-                  onClick={corregirFechas}
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => setState(prev => ({ ...prev, excelFile: e.target.files[0] }))}
+                  style={{ display: 'none' }}
+                  id="excel-file"
+                />
+                <label htmlFor="excel-file">
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    component="span"
+                    sx={{ mr: 2 }}
+                  >
+                    Seleccionar Excel
+                  </Button>
+                </label>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleImportarExcel}
                   sx={{ mr: 2 }}
                 >
-                  Corregir Fechas
+                  Importar Excel
                 </Button>
                 <Button 
                   variant="contained" 
