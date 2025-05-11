@@ -332,12 +332,6 @@ const CajaInteractiva = () => {
       return;
     }
 
-    // Validar el tipo de archivo
-    if (!state.excelFile.name.match(/\.(xlsx|xls)$/)) {
-      toast.error('Por favor seleccione un archivo Excel válido (.xlsx o .xls)');
-      return;
-    }
-
     const formData = new FormData();
     formData.append('file', state.excelFile);
 
@@ -349,19 +343,23 @@ const CajaInteractiva = () => {
         }
       });
 
-      // Ordenar las transacciones por fecha descendente
-      const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
-        moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
-      );
+      if (res.data.transacciones && res.data.transacciones.length > 0) {
+        // Ordenar las transacciones por fecha descendente
+        const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
+          moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
+        );
 
-      setState(prev => ({
-        ...prev,
-        transacciones: transaccionesOrdenadas,
-        saldos: res.data.saldos,
-        excelFile: null // Limpiar el archivo después de importar
-      }));
+        setState(prev => ({
+          ...prev,
+          transacciones: transaccionesOrdenadas,
+          saldos: res.data.saldos,
+          excelFile: null
+        }));
 
-      toast.success('Datos importados correctamente');
+        toast.success('Datos importados correctamente');
+      } else {
+        toast.error('No se encontraron transacciones válidas en el archivo');
+      }
     } catch (error) {
       console.error('Error al importar:', error);
       toast.error(error.response?.data?.message || 'Error al importar el archivo');
