@@ -128,12 +128,7 @@ const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
   
   try {
-    const fecha = new Date(fechaString);
-    return fecha.toLocaleDateString('es-VE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return moment.utc(fechaString).format('DD/MM/YYYY');
   } catch (error) {
     console.error('Error al formatear fecha:', error);
     return 'Error de formato';
@@ -173,10 +168,10 @@ const CajaInteractiva = () => {
           axios.get(`${API_URL}/tasa-cambio`)
         ]);
         
-        // Ordenar las transacciones por fecha descendente usando moment.utc
+        // Ordenar las transacciones por fecha ascendente usando moment.utc
         const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones) 
           ? cajaRes.data.transacciones.sort((a, b) => 
-              moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
+              moment.utc(a.fecha).valueOf() - moment.utc(b.fecha).valueOf()
             )
           : [];
         
@@ -223,9 +218,9 @@ const CajaInteractiva = () => {
       // Obtener la lista actualizada de transacciones
       const cajaRes = await axios.get(`${API_URL}/caja`);
       
-      // Ordenar las transacciones por fecha descendente usando moment.utc
+      // Ordenar las transacciones por fecha ascendente usando moment.utc
       const transaccionesOrdenadas = cajaRes.data.transacciones.sort((a, b) => 
-        moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
+        moment.utc(a.fecha).valueOf() - moment.utc(b.fecha).valueOf()
       );
 
       setState(prev => ({
@@ -308,9 +303,9 @@ const CajaInteractiva = () => {
       try {
         const res = await axios.post(`${API_URL}/caja/corregir-fechas`);
         
-        // Ordenar las transacciones por fecha descendente
+        // Ordenar las transacciones por fecha ascendente
         const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
-          new Date(b.fecha) - new Date(a.fecha)
+          new Date(a.fecha) - new Date(b.fecha)
         );
         
         setState(prev => ({
@@ -345,7 +340,7 @@ const CajaInteractiva = () => {
 
       if (res.data.transacciones && res.data.transacciones.length > 0) {
         const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
-          moment.utc(b.fecha).valueOf() - moment.utc(a.fecha).valueOf()
+          moment.utc(a.fecha).valueOf() - moment.utc(b.fecha).valueOf()
         );
 
         setState(prev => ({
