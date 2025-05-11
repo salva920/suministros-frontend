@@ -53,15 +53,15 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
 const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual, onEdit, onDelete }) => {
   const filteredTransactions = transactions
     .filter(t => {
-      const transactionDate = new Date(t.fecha);
-      const start = dateFilter.start && new Date(dateFilter.start);
-      const end = dateFilter.end && new Date(dateFilter.end);
+      const transactionDate = moment.utc(t.fecha).tz('America/Caracas');
+      const start = dateFilter.start && moment.utc(dateFilter.start).tz('America/Caracas');
+      const end = dateFilter.end && moment.utc(dateFilter.end).tz('America/Caracas');
       
       const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
       
       return matchesCurrency &&
-             (!start || transactionDate >= start) &&
-             (!end || transactionDate <= end);
+             (!start || transactionDate.isSameOrAfter(start, 'day')) &&
+             (!end || transactionDate.isSameOrBefore(end, 'day'));
     });
 
   return (
@@ -128,7 +128,7 @@ const formatearFechaSimple = (fechaString) => {
   if (!fechaString) return 'No disponible';
   
   try {
-    const fecha = moment.utc(fechaString);
+    const fecha = moment.utc(fechaString).tz('America/Caracas');
     if (!fecha.isValid()) return 'Fecha inválida';
     return fecha.format('DD/MM/YYYY');
   } catch (error) {
