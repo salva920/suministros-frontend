@@ -339,9 +339,12 @@ const CajaInteractiva = () => {
       });
 
       if (res.data.transacciones && res.data.transacciones.length > 0) {
-        const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => 
-          moment.utc(a.fecha).valueOf() - moment.utc(b.fecha).valueOf()
-        );
+        // Ordenar las transacciones por fecha ascendente
+        const transaccionesOrdenadas = res.data.transacciones.sort((a, b) => {
+          const fechaA = moment.utc(a.fecha);
+          const fechaB = moment.utc(b.fecha);
+          return fechaA.valueOf() - fechaB.valueOf();
+        });
 
         setState(prev => ({
           ...prev,
