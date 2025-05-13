@@ -8,7 +8,7 @@ import {
   DialogActions, IconButton
 } from '@mui/material';
 import { 
-   AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete
+   AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, Visibility
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
@@ -75,6 +75,9 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
 };
 
 const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual, onEdit, onDelete }) => {
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+
   const filteredTransactions = transactions
     .filter(t => {
       const transactionDate = new Date(t.fecha);
@@ -88,63 +91,198 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
              (!end || transactionDate <= end);
     });
 
+  const handleViewTransaction = async (id) => {
+    if (!id) {
+      toast.error('ID de transacción no válido');
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API_URL}/caja/transacciones/${id}`);
+      setSelectedTransaction(response.data.transaccion);
+      setViewModalOpen(true);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error al cargar transacción');
+      console.error('Error:', error);
+    }
+  };
+
   return (
-    <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2 }}>
-      <Table>
-        <TableHead sx={{ bgcolor: 'background.default' }}>
-          <TableRow>
-            {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo', 'Acciones'].map(header => (
-              <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {filteredTransactions.map((t) => (
-            <TableRow key={t._id} hover>
-              <TableCell>
-                {dateUtils.formatForDisplay(t.fecha)}
-              </TableCell>
-              <TableCell>{t.concepto}</TableCell>
-              <TableCell>
-                <Chip label={t.moneda} color={t.moneda === 'USD' ? 'primary' : 'secondary'} variant="outlined" />
-              </TableCell>
-              <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
-                {t.entrada ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.entrada.toFixed(2)}` : '-'}
-              </TableCell>
-              <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
-                {t.salida ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.salida.toFixed(2)}` : '-'}
-              </TableCell>
-              <TableCell>
-                {t.moneda === 'USD' 
-                  ? `Bs ${((t.entrada || t.salida) * tasaActual).toFixed(2)}` 
-                  : `$ ${((t.entrada || t.salida) / tasaActual).toFixed(2)}`}
-              </TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>
-                {t.saldo ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.saldo.toFixed(2)}` : '-'}
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <IconButton 
-                    size="small" 
-                    color="primary"
-                    onClick={() => onEdit(t)}
-                  >
-                    <Edit fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    size="small" 
-                    color="error"
-                    onClick={() => onDelete(t._id)}
-                  >
-                    <Delete fontSize="small" />
-                  </IconButton>
-                </Box>
-              </TableCell>
+    <>
+      <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2 }}>
+        <Table>
+          <TableHead sx={{ bgcolor: 'background.default' }}>
+            <TableRow>
+              {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo', 'Acciones'].map(header => (
+                <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
+              ))}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+          </TableHead>
+          <TableBody>
+            {filteredTransactions.map((t) => (
+              <TableRow key={t._id} hover>
+                <TableCell>
+                  {dateUtils.formatForDisplay(t.fecha)}
+                </TableCell>
+                <TableCell>{t.concepto}</TableCell>
+                <TableCell>
+                  <Chip label={t.moneda} color={t.moneda === 'USD' ? 'primary' : 'secondary'} variant="outlined" />
+                </TableCell>
+                <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
+                  {t.entrada ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.entrada.toFixed(2)}` : '-'}
+                </TableCell>
+                <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
+                  {t.salida ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.salida.toFixed(2)}` : '-'}
+                </TableCell>
+                <TableCell>
+                  {t.moneda === 'USD' 
+                    ? `Bs ${((t.entrada || t.salida) * tasaActual).toFixed(2)}` 
+                    : `$ ${((t.entrada || t.salida) / tasaActual).toFixed(2)}`}
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>
+                  {t.saldo ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.saldo.toFixed(2)}` : '-'}
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <IconButton 
+                      size="small" 
+                      color="info"
+                      onClick={() => handleViewTransaction(t._id)}
+                      title="Ver detalles"
+                    >
+                      <Visibility fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="small" 
+                      color="primary"
+                      onClick={() => {
+                        if (!t._id) {
+                          toast.error('Esta transacción no tiene ID válido');
+                          return;
+                        }
+                        onEdit(t);
+                      }}
+                      title="Editar"
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => {
+                        if (!t._id) {
+                          toast.error('Esta transacción no tiene ID válido');
+                          return;
+                        }
+                        onDelete(t._id);
+                      }}
+                      title="Eliminar"
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Dialog 
+        open={viewModalOpen} 
+        onClose={() => setViewModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Detalles de la Transacción
+        </DialogTitle>
+        <DialogContent>
+          {selectedTransaction && (
+            <Box sx={{ mt: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Fecha
+                  </Typography>
+                  <Typography variant="body1">
+                    {dateUtils.formatForDisplay(selectedTransaction.fecha)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Concepto
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedTransaction.concepto}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Moneda
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedTransaction.moneda}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Tasa de Cambio
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedTransaction.tasaCambio.toFixed(2)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Entrada
+                  </Typography>
+                  <Typography variant="body1" color="success.main">
+                    {selectedTransaction.entrada 
+                      ? `${selectedTransaction.moneda === 'USD' ? '$' : 'Bs'} ${selectedTransaction.entrada.toFixed(2)}`
+                      : '-'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Salida
+                  </Typography>
+                  <Typography variant="body1" color="error.main">
+                    {selectedTransaction.salida 
+                      ? `${selectedTransaction.moneda === 'USD' ? '$' : 'Bs'} ${selectedTransaction.salida.toFixed(2)}`
+                      : '-'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Saldo
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                    {`${selectedTransaction.moneda === 'USD' ? '$' : 'Bs'} ${selectedTransaction.saldo.toFixed(2)}`}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewModalOpen(false)}>
+            Cerrar
+          </Button>
+          {selectedTransaction && (
+            <Button 
+              color="primary" 
+              onClick={() => {
+                setViewModalOpen(false);
+                onEdit(selectedTransaction);
+              }}
+            >
+              Editar
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
@@ -285,6 +423,11 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
+    if (!transaction || !transaction._id) {
+      toast.error('Transacción no válida');
+      return;
+    }
+
     setState(prev => ({
       ...prev,
       modalOpen: true,
