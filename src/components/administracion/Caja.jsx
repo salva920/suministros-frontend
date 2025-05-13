@@ -21,6 +21,30 @@ import 'moment-timezone';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
+const dateUtils = {
+  // Convertir a UTC para enviar al backend
+  toUTC: (fecha) => {
+    if (!fecha) return null;
+    return moment.utc(fecha).format('YYYY-MM-DD');
+  },
+
+  // Formatear para mostrar en la UI
+  formatForDisplay: (fecha) => {
+    if (!fecha) return 'No disponible';
+    try {
+      return moment.utc(fecha).format('DD/MM/YYYY');
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return 'Error de formato';
+    }
+  },
+
+  // Comparar fechas en UTC
+  compareDates: (fecha1, fecha2) => {
+    return moment.utc(fecha1).valueOf() - moment.utc(fecha2).valueOf();
+  }
+};
+
 const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) => {
   const theme = useTheme();
   
@@ -78,7 +102,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
           {filteredTransactions.map((t) => (
             <TableRow key={t._id} hover>
               <TableCell>
-                {formatearFechaSimple(t.fecha)}
+                {dateUtils.formatForDisplay(t.fecha)}
               </TableCell>
               <TableCell>{t.concepto}</TableCell>
               <TableCell>
@@ -124,16 +148,6 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
   );
 };
 
-const formatearFechaSimple = (fechaString) => {
-  if (!fechaString) return 'No disponible';
-  try {
-    return moment.utc(fechaString).format('DD/MM/YYYY');
-  } catch (error) {
-    console.error('Error al formatear fecha:', error);
-    return 'Error de formato';
-  }
-};
-
 const CajaInteractiva = () => {
   const [state, setState] = useState({
     transacciones: [],
@@ -167,10 +181,10 @@ const CajaInteractiva = () => {
           axios.get(`${API_URL}/tasa-cambio`)
         ]);
         
-        // Ordenar las transacciones por fecha ascendente usando moment.utc
+        // Ordenar las transacciones por fecha usando UTC
         const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones) 
           ? cajaRes.data.transacciones.sort((a, b) => 
-              new Date(a.fecha) - new Date(b.fecha)
+              dateUtils.compareDates(a.fecha, b.fecha)
             )
           : [];
         
@@ -200,11 +214,9 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      const fechaFormateada = moment.utc(state.nuevaTransaccion.fecha).format('YYYY-MM-DD');
-
       const movimiento = {
         ...state.nuevaTransaccion,
-        fecha: fechaFormateada,
+        fecha: dateUtils.toUTC(state.nuevaTransaccion.fecha),
         monto: parseFloat(state.nuevaTransaccion.monto),
         entrada: state.nuevaTransaccion.tipo === 'entrada' ? parseFloat(state.nuevaTransaccion.monto) : 0,
         salida: state.nuevaTransaccion.tipo === 'salida' ? parseFloat(state.nuevaTransaccion.monto) : 0,
@@ -220,14 +232,10 @@ const CajaInteractiva = () => {
         toast.success('Movimiento registrado exitosamente!');
       }
 
-      // Obtener la lista actualizada de transacciones
+      // Obtener y ordenar transacciones actualizadas
       const cajaRes = await axios.get(`${API_URL}/caja`);
-      
-      // Ordenar las transacciones por fecha ascendente usando moment.utc
       const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones)
-        ? cajaRes.data.transacciones.sort((a, b) =>
-            new Date(a.fecha) - new Date(b.fecha)
-          )
+        ? cajaRes.data.transacciones.sort((a, b) => dateUtils.compareDates(a.fecha, b.fecha))
         : [];
 
       let currentSaldo = 0;
@@ -277,15 +285,12 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    const fechaObj = moment.utc(transaction.fecha);
-    const fechaFormateada = fechaObj.format('YYYY-MM-DD');
-
     setState(prev => ({
       ...prev,
       modalOpen: true,
       editingTransaction: transaction,
       nuevaTransaccion: {
-        fecha: fechaFormateada,
+        fecha: dateUtils.toUTC(transaction.fecha),
         concepto: transaction.concepto,
         moneda: transaction.moneda,
         tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
@@ -377,6 +382,10 @@ const CajaInteractiva = () => {
       console.error('Respuesta del servidor:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al importar el archivo');
     }
+  };
+
+  const formatearFechaSimple = (fechaString) => {
+    return dateUtils.formatForDisplay(fechaString);
   };
 
   return (
