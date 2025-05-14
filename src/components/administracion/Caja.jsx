@@ -21,14 +21,12 @@ import 'moment-timezone';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
+// Funciones de utilidad
 const dateUtils = {
-  // Convertir a UTC para enviar al backend
   toUTC: (fecha) => {
     if (!fecha) return null;
     return moment.utc(fecha).format('YYYY-MM-DD');
   },
-
-  // Formatear para mostrar en la UI
   formatForDisplay: (fecha) => {
     if (!fecha) return 'No disponible';
     try {
@@ -38,11 +36,39 @@ const dateUtils = {
       return 'Error de formato';
     }
   },
-
-  // Comparar fechas en UTC
   compareDates: (fecha1, fecha2) => {
     return moment.utc(fecha1).valueOf() - moment.utc(fecha2).valueOf();
   }
+};
+
+const formatMonetaryValue = (value, currency) => {
+  if (value === undefined || value === null) return '-';
+  const numValue = parseFloat(value);
+  if (isNaN(numValue)) return '-';
+  return `${currency === 'USD' ? '$' : 'Bs'} ${numValue.toFixed(2)}`;
+};
+
+const formatEquivalentValue = (value, moneda, tasa) => {
+  if (value === undefined || value === null || !tasa) return '-';
+  const numValue = parseFloat(value);
+  if (isNaN(numValue)) return '-';
+  const equivalent = moneda === 'USD' ? numValue * tasa : numValue / tasa;
+  return `${moneda === 'USD' ? 'Bs' : '$'} ${equivalent.toFixed(2)}`;
+};
+
+const normalizarTransaccion = (transaccion) => {
+  if (!transaccion) return null;
+
+  return {
+    _id: transaccion._id || transaccion.id, // Normalizar el ID
+    fecha: transaccion.fecha,
+    concepto: transaccion.concepto,
+    moneda: transaccion.moneda,
+    entrada: parseFloat(transaccion.entrada) || 0,
+    salida: parseFloat(transaccion.salida) || 0,
+    saldo: parseFloat(transaccion.saldo) || 0,
+    tasaCambio: parseFloat(transaccion.tasaCambio) || 1
+  };
 };
 
 const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) => {
@@ -329,39 +355,6 @@ const CajaInteractiva = () => {
 
   const navigate = useNavigate();
   const theme = useTheme();
-
-  // Función para normalizar la respuesta del servidor
-  const normalizarTransaccion = (transaccion) => {
-    if (!transaccion) return null;
-
-    return {
-      _id: transaccion._id || transaccion.id, // Normalizar el ID
-      fecha: transaccion.fecha,
-      concepto: transaccion.concepto,
-      moneda: transaccion.moneda,
-      entrada: parseFloat(transaccion.entrada) || 0,
-      salida: parseFloat(transaccion.salida) || 0,
-      saldo: parseFloat(transaccion.saldo) || 0,
-      tasaCambio: parseFloat(transaccion.tasaCambio) || 1
-    };
-  };
-
-  // Función para formatear valores monetarios
-  const formatMonetaryValue = (value, currency) => {
-    if (value === undefined || value === null) return '-';
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return '-';
-    return `${currency === 'USD' ? '$' : 'Bs'} ${numValue.toFixed(2)}`;
-  };
-
-  // Función para formatear valores equivalentes
-  const formatEquivalentValue = (value, moneda, tasa) => {
-    if (value === undefined || value === null || !tasa) return '-';
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return '-';
-    const equivalent = moneda === 'USD' ? numValue * tasa : numValue / tasa;
-    return `${moneda === 'USD' ? 'Bs' : '$'} ${equivalent.toFixed(2)}`;
-  };
 
   // Función para validar y procesar las transacciones
   const procesarTransacciones = (transacciones) => {
