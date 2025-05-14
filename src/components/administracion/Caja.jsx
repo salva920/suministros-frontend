@@ -119,71 +119,74 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredTransactions.map((t) => (
-              <TableRow key={t._id} hover>
-                <TableCell>
-                  {dateUtils.formatForDisplay(t.fecha)}
-                </TableCell>
-                <TableCell>{t.concepto}</TableCell>
-                <TableCell>
-                  <Chip label={t.moneda} color={t.moneda === 'USD' ? 'primary' : 'secondary'} variant="outlined" />
-                </TableCell>
-                <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
-                  {t.entrada ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.entrada.toFixed(2)}` : '-'}
-                </TableCell>
-                <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
-                  {t.salida ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.salida.toFixed(2)}` : '-'}
-                </TableCell>
-                <TableCell>
-                  {t.moneda === 'USD' 
-                    ? `Bs ${((t.entrada || t.salida) * tasaActual).toFixed(2)}` 
-                    : `$ ${((t.entrada || t.salida) / tasaActual).toFixed(2)}`}
-                </TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>
-                  {t.saldo ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.saldo.toFixed(2)}` : '-'}
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton 
-                      size="small" 
-                      color="info"
-                      onClick={() => handleViewTransaction(t._id)}
-                      title="Ver detalles"
-                    >
-                      <Visibility fontSize="small" />
-                    </IconButton>
-                    <IconButton 
-                      size="small" 
-                      color="primary"
-                      onClick={() => {
-                        if (!t._id) {
-                          toast.error('Esta transacción no tiene ID válido');
-                          return;
-                        }
-                        onEdit(t);
-                      }}
-                      title="Editar"
-                    >
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => {
-                        if (!t._id) {
-                          toast.error('Esta transacción no tiene ID válido');
-                          return;
-                        }
-                        onDelete(t._id);
-                      }}
-                      title="Eliminar"
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
+            {filteredTransactions.map((t) => {
+              const id = t._id || t.id;
+              return (
+                <TableRow key={id} hover>
+                  <TableCell>
+                    {dateUtils.formatForDisplay(t.fecha)}
+                  </TableCell>
+                  <TableCell>{t.concepto}</TableCell>
+                  <TableCell>
+                    <Chip label={t.moneda} color={t.moneda === 'USD' ? 'primary' : 'secondary'} variant="outlined" />
+                  </TableCell>
+                  <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
+                    {t.entrada ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.entrada.toFixed(2)}` : '-'}
+                  </TableCell>
+                  <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
+                    {t.salida ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.salida.toFixed(2)}` : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {t.moneda === 'USD' 
+                      ? `Bs ${((t.entrada || t.salida) * tasaActual).toFixed(2)}` 
+                      : `$ ${((t.entrada || t.salida) / tasaActual).toFixed(2)}`}
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    {t.saldo ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.saldo.toFixed(2)}` : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton 
+                        size="small" 
+                        color="info"
+                        onClick={() => handleViewTransaction(id)}
+                        title="Ver detalles"
+                      >
+                        <Visibility fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small" 
+                        color="primary"
+                        onClick={() => {
+                          if (!id) {
+                            toast.error('Esta transacción no tiene ID válido');
+                            return;
+                          }
+                          onEdit(t);
+                        }}
+                        title="Editar"
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small" 
+                        color="error"
+                        onClick={() => {
+                          if (!id) {
+                            toast.error('Esta transacción no tiene ID válido');
+                            return;
+                          }
+                          onDelete(id);
+                        }}
+                        title="Eliminar"
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
@@ -321,8 +324,11 @@ const CajaInteractiva = () => {
     }
 
     return transacciones.map(t => {
+      // Normalizar el ID (algunas transacciones usan _id, otras id)
+      const id = t._id || t.id;
+      
       // Validar campos requeridos
-      if (!t._id || !t.fecha || !t.concepto || !t.moneda) {
+      if (!id || !t.fecha || !t.concepto || !t.moneda) {
         console.warn('Transacción con datos incompletos:', t);
         return null;
       }
@@ -330,6 +336,7 @@ const CajaInteractiva = () => {
       // Asegurar que los valores numéricos sean números
       return {
         ...t,
+        _id: id, // Normalizar a _id
         entrada: parseFloat(t.entrada) || 0,
         salida: parseFloat(t.salida) || 0,
         saldo: parseFloat(t.saldo) || 0,
@@ -457,7 +464,9 @@ const CajaInteractiva = () => {
 
   // Función para manejar la edición de transacciones
   const handleEditTransaction = (transaction) => {
-    if (!transaction || !transaction._id) {
+    const id = transaction._id || transaction.id;
+    
+    if (!transaction || !id) {
       toast.error('Transacción no válida');
       return;
     }
@@ -472,7 +481,7 @@ const CajaInteractiva = () => {
       setState(prev => ({
         ...prev,
         modalOpen: true,
-        editingTransaction: transaction,
+        editingTransaction: { ...transaction, _id: id }, // Normalizar a _id
         nuevaTransaccion: {
           fecha: dateUtils.toUTC(transaction.fecha),
           concepto: transaction.concepto || '',
