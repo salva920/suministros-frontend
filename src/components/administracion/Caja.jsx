@@ -269,8 +269,6 @@ const CajaInteractiva = () => {
         ...state.nuevaTransaccion,
         fecha: dateUtils.toUTC(state.nuevaTransaccion.fecha),
         monto: parseFloat(state.nuevaTransaccion.monto),
-        entrada: state.nuevaTransaccion.tipo === 'entrada' ? parseFloat(state.nuevaTransaccion.monto) : 0,
-        salida: state.nuevaTransaccion.tipo === 'salida' ? parseFloat(state.nuevaTransaccion.monto) : 0,
         tasaCambio: state.tasaCambio
       };
 
@@ -283,35 +281,26 @@ const CajaInteractiva = () => {
         toast.success('Movimiento registrado exitosamente!');
       }
 
-      // Obtener y ordenar transacciones actualizadas
-      const cajaRes = await axios.get(`${API_URL}/caja`);
-      const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones)
-        ? cajaRes.data.transacciones.sort((a, b) => dateUtils.compareDates(a.fecha, b.fecha))
-        : [];
-
-      let currentSaldo = 0;
-      const transaccionesConSaldo = transaccionesOrdenadas.map(t => {
-        currentSaldo += t.entrada - t.salida;
-        return { ...t, saldo: currentSaldo };
-      });
-
-      setState(prev => ({
-        ...prev,
-        transacciones: transaccionesConSaldo,
-        saldos: cajaRes.data.saldos,
-        modalOpen: false,
-        nuevaTransaccion: {
-          fecha: moment.utc().format('YYYY-MM-DD'),
-          concepto: '',
-          moneda: 'USD',
-          tipo: 'entrada',
-          monto: '',
-          tasaCambio: state.tasaCambio
-        },
-        editingTransaction: null
-      }));
+      if (res.data && res.data.success) {
+        setState(prev => ({
+          ...prev,
+          transacciones: res.data.transacciones,
+          saldos: res.data.saldos,
+          modalOpen: false,
+          nuevaTransaccion: {
+            fecha: moment.utc().format('YYYY-MM-DD'),
+            concepto: '',
+            moneda: 'USD',
+            tipo: 'entrada',
+            monto: '',
+            tasaCambio: state.tasaCambio
+          },
+          editingTransaction: null
+        }));
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message);
+      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'Error al procesar la transacción');
     }
   };
 
