@@ -5,7 +5,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, Chip, FormControl, InputLabel, Select, MenuItem,
   Box, LinearProgress, Dialog, DialogTitle, DialogContent,
-  DialogActions, IconButton
+  DialogActions, IconButton, CircularProgress
 } from '@mui/material';
 import { 
    AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, Visibility
@@ -308,45 +308,78 @@ const CajaInteractiva = () => {
     excelFile: null
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const navigate = useNavigate();
   const theme = useTheme();
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [cajaRes, tasaRes] = await Promise.all([
-          axios.get(`${API_URL}/caja`),
-          axios.get(`${API_URL}/tasa-cambio`)
-        ]);
-        
-        // Ordenar las transacciones por fecha usando UTC
-        const transaccionesOrdenadas = Array.isArray(cajaRes.data.transacciones) 
-          ? cajaRes.data.transacciones.sort((a, b) => 
-              dateUtils.compareDates(a.fecha, b.fecha)
-            )
-          : [];
-        
-        let currentSaldo = 0;
-        const transaccionesConSaldo = transaccionesOrdenadas.map(t => {
-          currentSaldo += t.entrada - t.salida;
-          return { ...t, saldo: currentSaldo };
-        });
-        
-        setState(prev => ({
-          ...prev,
-          transacciones: transaccionesConSaldo,
-          saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
-          tasaCambio: tasaRes.data.tasa,
-          nuevaTransaccion: {
-            ...prev.nuevaTransaccion,
-            tasaCambio: tasaRes.data.tasa
-          }
-        }));
-      } catch (error) {
-        toast.error(error.response?.data?.message || 'Error cargando datos iniciales');
-      }
-    };
+  // Función para validar y procesar las transacciones
+  const procesarTransacciones = (transacciones) => {
+    if (!Array.isArray(transacciones)) {
+      throw new Error('Formato de transacciones inválido');
+    }
 
+    return transacciones.map(t => {
+      // Validar campos requeridos
+      if (!t._id || !t.fecha || !t.concepto || !t.moneda) {
+        console.warn('Transacción con datos incompletos:', t);
+        return null;
+      }
+
+      // Asegurar que los valores numéricos sean números
+      return {
+        ...t,
+        entrada: parseFloat(t.entrada) || 0,
+        salida: parseFloat(t.salida) || 0,
+        saldo: parseFloat(t.saldo) || 0,
+        fecha: new Date(t.fecha).toISOString()
+      };
+    }).filter(t => t !== null);
+  };
+
+  // Función para cargar datos iniciales
+  const fetchInitialData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [cajaRes, tasaRes] = await Promise.all([
+        axios.get(`${API_URL}/caja`),
+        axios.get(`${API_URL}/tasa-cambio`)
+      ]);
+      
+      if (!cajaRes.data || !Array.isArray(cajaRes.data.transacciones)) {
+        throw new Error('Formato de respuesta inválido');
+      }
+
+      const transaccionesProcesadas = procesarTransacciones(cajaRes.data.transacciones);
+      
+      // Ordenar por fecha descendente
+      const transaccionesOrdenadas = transaccionesProcesadas.sort((a, b) => 
+        new Date(b.fecha) - new Date(a.fecha)
+      );
+      
+      setState(prev => ({
+        ...prev,
+        transacciones: transaccionesOrdenadas,
+        saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
+        tasaCambio: tasaRes.data.tasa,
+        nuevaTransaccion: {
+          ...prev.nuevaTransaccion,
+          tasaCambio: tasaRes.data.tasa
+        }
+      }));
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+      setError(error.response?.data?.message || 'Error al cargar los datos');
+      toast.error('Error al cargar los datos. Por favor, intente nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchInitialData();
   }, []);
 
@@ -422,40 +455,72 @@ const CajaInteractiva = () => {
     return acc;
   }, {});
 
+  // Función para manejar la edición de transacciones
   const handleEditTransaction = (transaction) => {
     if (!transaction || !transaction._id) {
       toast.error('Transacción no válida');
       return;
     }
 
-    setState(prev => ({
-      ...prev,
-      modalOpen: true,
-      editingTransaction: transaction,
-      nuevaTransaccion: {
-        fecha: dateUtils.toUTC(transaction.fecha),
-        concepto: transaction.concepto,
-        moneda: transaction.moneda,
-        tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
-        monto: transaction.entrada || transaction.salida,
-        tasaCambio: transaction.tasaCambio
+    try {
+      // Validar y formatear la fecha
+      const fecha = new Date(transaction.fecha);
+      if (isNaN(fecha.getTime())) {
+        throw new Error('Fecha inválida');
       }
-    }));
+
+      setState(prev => ({
+        ...prev,
+        modalOpen: true,
+        editingTransaction: transaction,
+        nuevaTransaccion: {
+          fecha: dateUtils.toUTC(transaction.fecha),
+          concepto: transaction.concepto || '',
+          moneda: transaction.moneda || 'USD',
+          tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
+          monto: (transaction.entrada || transaction.salida || 0).toString(),
+          tasaCambio: transaction.tasaCambio || prev.tasaCambio
+        }
+      }));
+    } catch (error) {
+      console.error('Error al preparar edición:', error);
+      toast.error('Error al preparar la edición de la transacción');
+    }
   };
 
+  // Función para manejar la eliminación de transacciones
   const handleDeleteTransaction = async (transactionId) => {
-    if (window.confirm('¿Está seguro de eliminar este movimiento?')) {
-      try {
-        const res = await axios.delete(`${API_URL}/caja/transacciones/${transactionId}`);
-        setState(prev => ({
-          ...prev,
-          transacciones: res.data.transacciones,
-          saldos: res.data.saldos
-        }));
-        toast.success('Movimiento eliminado exitosamente');
-      } catch (error) {
-        toast.error(error.response?.data?.message || 'Error al eliminar el movimiento');
+    if (!transactionId) {
+      toast.error('ID de transacción no válido');
+      return;
+    }
+
+    if (!window.confirm('¿Está seguro de eliminar este movimiento?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await axios.delete(`${API_URL}/caja/transacciones/${transactionId}`);
+      
+      if (!res.data || !Array.isArray(res.data.transacciones)) {
+        throw new Error('Respuesta del servidor inválida');
       }
+
+      const transaccionesProcesadas = procesarTransacciones(res.data.transacciones);
+      
+      setState(prev => ({
+        ...prev,
+        transacciones: transaccionesProcesadas,
+        saldos: res.data.saldos
+      }));
+      
+      toast.success('Movimiento eliminado exitosamente');
+    } catch (error) {
+      console.error('Error al eliminar:', error);
+      toast.error(error.response?.data?.message || 'Error al eliminar el movimiento');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -530,6 +595,32 @@ const CajaInteractiva = () => {
   const formatearFechaSimple = (fechaString) => {
     return dateUtils.formatForDisplay(fechaString);
   };
+
+  // Renderizado condicional para mostrar estado de carga o error
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography color="error" variant="h6">
+          {error}
+        </Typography>
+        <Button 
+          variant="contained" 
+          onClick={fetchInitialData}
+          sx={{ mt: 2 }}
+        >
+          Reintentar
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
