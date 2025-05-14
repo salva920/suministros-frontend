@@ -59,10 +59,36 @@ const formatEquivalentValue = (value, moneda, tasa) => {
 const normalizarTransaccion = (transaccion) => {
   if (!transaccion) return null;
 
+  // Asegurarse de que tenemos un ID válido
+  const id = transaccion._id || transaccion.id;
+  if (!id) {
+    console.warn('Transacción sin ID:', transaccion);
+    return null;
+  }
+
+  // Validar y normalizar la fecha
+  let fecha;
+  try {
+    fecha = new Date(transaccion.fecha);
+    if (isNaN(fecha.getTime())) {
+      console.warn('Fecha inválida:', transaccion.fecha);
+      return null;
+    }
+  } catch (error) {
+    console.warn('Error al procesar fecha:', error);
+    return null;
+  }
+
+  // Validar campos requeridos
+  if (!transaccion.concepto || !transaccion.moneda) {
+    console.warn('Campos requeridos faltantes:', transaccion);
+    return null;
+  }
+
   return {
-    _id: transaccion._id || transaccion.id, // Normalizar el ID
-    fecha: transaccion.fecha,
-    concepto: transaccion.concepto,
+    _id: id,
+    fecha: fecha.toISOString(),
+    concepto: transaccion.concepto.trim(),
     moneda: transaccion.moneda,
     entrada: parseFloat(transaccion.entrada) || 0,
     salida: parseFloat(transaccion.salida) || 0,
@@ -104,30 +130,6 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
 
-  const handleAction = (action, transaction) => {
-    const id = transaction._id || transaction.id;
-    if (!id) {
-      toast.error('ID de transacción no válido');
-      return;
-    }
-    action(transaction);
-  };
-
-  const filteredTransactions = transactions
-    .filter(t => {
-      const transactionDate = new Date(t.fecha);
-      const start = dateFilter.start && new Date(dateFilter.start);
-      const end = dateFilter.end && new Date(dateFilter.end);
-      
-      const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
-      
-      return matchesCurrency &&
-             (!start || transactionDate >= start) &&
-             (!end || transactionDate <= end);
-    })
-    .map(t => normalizarTransaccion(t))
-    .filter(t => t !== null);
-
   const handleViewTransaction = async (id) => {
     if (!id) {
       toast.error('ID de transacción no válido');
@@ -154,6 +156,30 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
       toast.error(error.response?.data?.message || 'Error al cargar la transacción');
     }
   };
+
+  const handleAction = (action, transaction) => {
+    const id = transaction._id || transaction.id;
+    if (!id) {
+      toast.error('ID de transacción no válido');
+      return;
+    }
+    action(transaction);
+  };
+
+  const filteredTransactions = transactions
+    .map(t => normalizarTransaccion(t))
+    .filter(t => t !== null)
+    .filter(t => {
+      const transactionDate = new Date(t.fecha);
+      const start = dateFilter.start && new Date(dateFilter.start);
+      const end = dateFilter.end && new Date(dateFilter.end);
+      
+      const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
+      
+      return matchesCurrency &&
+             (!start || transactionDate >= start) &&
+             (!end || transactionDate <= end);
+    });
 
   return (
     <>
@@ -280,7 +306,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                     Entrada
                   </Typography>
                   <Typography variant="body1" color="success.main">
-                    {selectedTransaction.entrada 
+                    {selectedTransaction.entrada > 0 
                       ? formatMonetaryValue(selectedTransaction.entrada, selectedTransaction.moneda)
                       : '-'}
                   </Typography>
@@ -290,7 +316,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                     Salida
                   </Typography>
                   <Typography variant="body1" color="error.main">
-                    {selectedTransaction.salida 
+                    {selectedTransaction.salida > 0 
                       ? formatMonetaryValue(selectedTransaction.salida, selectedTransaction.moneda)
                       : '-'}
                   </Typography>
