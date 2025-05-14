@@ -107,6 +107,15 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
     }
   };
 
+  const handleAction = (action, transaction) => {
+    const id = transaction._id || transaction.id;
+    if (!id) {
+      toast.error('ID de transacción no válido');
+      return;
+    }
+    action(transaction);
+  };
+
   return (
     <>
       <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2 }}>
@@ -149,7 +158,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                       <IconButton 
                         size="small" 
                         color="info"
-                        onClick={() => handleViewTransaction(id)}
+                        onClick={() => handleAction(handleViewTransaction, t)}
                         title="Ver detalles"
                       >
                         <Visibility fontSize="small" />
@@ -157,13 +166,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                       <IconButton 
                         size="small" 
                         color="primary"
-                        onClick={() => {
-                          if (!id) {
-                            toast.error('Esta transacción no tiene ID válido');
-                            return;
-                          }
-                          onEdit(t);
-                        }}
+                        onClick={() => handleAction(onEdit, t)}
                         title="Editar"
                       >
                         <Edit fontSize="small" />
@@ -171,13 +174,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                       <IconButton 
                         size="small" 
                         color="error"
-                        onClick={() => {
-                          if (!id) {
-                            toast.error('Esta transacción no tiene ID válido');
-                            return;
-                          }
-                          onDelete(id);
-                        }}
+                        onClick={() => handleAction(onDelete, t)}
                         title="Eliminar"
                       >
                         <Delete fontSize="small" />
@@ -320,28 +317,57 @@ const CajaInteractiva = () => {
   // Función para validar y procesar las transacciones
   const procesarTransacciones = (transacciones) => {
     if (!Array.isArray(transacciones)) {
-      throw new Error('Formato de transacciones inválido');
+      console.error('Las transacciones no son un array:', transacciones);
+      return [];
     }
 
     return transacciones.map(t => {
-      // Normalizar el ID (algunas transacciones usan _id, otras id)
-      const id = t._id || t.id;
-      
-      // Validar campos requeridos
-      if (!id || !t.fecha || !t.concepto || !t.moneda) {
-        console.warn('Transacción con datos incompletos:', t);
+      try {
+        // Validar y normalizar el ID
+        const id = t._id || t.id;
+        if (!id) {
+          console.warn('Transacción sin ID:', t);
+          return null;
+        }
+
+        // Validar y normalizar la fecha
+        let fecha;
+        try {
+          fecha = new Date(t.fecha);
+          if (isNaN(fecha.getTime())) {
+            console.warn('Fecha inválida:', t.fecha);
+            return null;
+          }
+        } catch (error) {
+          console.warn('Error al procesar fecha:', error);
+          return null;
+        }
+
+        // Validar otros campos requeridos
+        if (!t.concepto || !t.moneda) {
+          console.warn('Campos requeridos faltantes:', t);
+          return null;
+        }
+
+        // Normalizar valores numéricos
+        const entrada = parseFloat(t.entrada) || 0;
+        const salida = parseFloat(t.salida) || 0;
+        const saldo = parseFloat(t.saldo) || 0;
+
+        return {
+          _id: id,
+          fecha: fecha.toISOString(),
+          concepto: t.concepto.trim(),
+          moneda: t.moneda,
+          entrada,
+          salida,
+          saldo,
+          tasaCambio: parseFloat(t.tasaCambio) || 1
+        };
+      } catch (error) {
+        console.error('Error al procesar transacción:', error, t);
         return null;
       }
-
-      // Asegurar que los valores numéricos sean números
-      return {
-        ...t,
-        _id: id, // Normalizar a _id
-        entrada: parseFloat(t.entrada) || 0,
-        salida: parseFloat(t.salida) || 0,
-        saldo: parseFloat(t.saldo) || 0,
-        fecha: new Date(t.fecha).toISOString()
-      };
     }).filter(t => t !== null);
   };
 
@@ -356,12 +382,16 @@ const CajaInteractiva = () => {
         axios.get(`${API_URL}/tasa-cambio`)
       ]);
       
-      if (!cajaRes.data || !Array.isArray(cajaRes.data.transacciones)) {
-        throw new Error('Formato de respuesta inválido');
+      if (!cajaRes.data) {
+        throw new Error('Respuesta del servidor inválida');
       }
 
-      const transaccionesProcesadas = procesarTransacciones(cajaRes.data.transacciones);
+      const transaccionesProcesadas = procesarTransacciones(cajaRes.data.transacciones || []);
       
+      if (transaccionesProcesadas.length === 0) {
+        console.warn('No se encontraron transacciones válidas');
+      }
+
       // Ordenar por fecha descendente
       const transaccionesOrdenadas = transaccionesProcesadas.sort((a, b) => 
         new Date(b.fecha) - new Date(a.fecha)
@@ -371,16 +401,17 @@ const CajaInteractiva = () => {
         ...prev,
         transacciones: transaccionesOrdenadas,
         saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
-        tasaCambio: tasaRes.data.tasa,
+        tasaCambio: tasaRes.data.tasa || 1,
         nuevaTransaccion: {
           ...prev.nuevaTransaccion,
-          tasaCambio: tasaRes.data.tasa
+          tasaCambio: tasaRes.data.tasa || 1
         }
       }));
     } catch (error) {
       console.error('Error al cargar datos:', error);
-      setError(error.response?.data?.message || 'Error al cargar los datos');
-      toast.error('Error al cargar los datos. Por favor, intente nuevamente.');
+      const errorMessage = error.response?.data?.message || 'Error al cargar los datos';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -464,28 +495,31 @@ const CajaInteractiva = () => {
 
   // Función para manejar la edición de transacciones
   const handleEditTransaction = (transaction) => {
-    const id = transaction._id || transaction.id;
-    
-    if (!transaction || !id) {
-      toast.error('Transacción no válida');
-      return;
-    }
-
     try {
+      const id = transaction._id || transaction.id;
+      if (!id) {
+        throw new Error('ID de transacción no válido');
+      }
+
       // Validar y formatear la fecha
       const fecha = new Date(transaction.fecha);
       if (isNaN(fecha.getTime())) {
         throw new Error('Fecha inválida');
       }
 
+      // Validar otros campos
+      if (!transaction.concepto || !transaction.moneda) {
+        throw new Error('Campos requeridos faltantes');
+      }
+
       setState(prev => ({
         ...prev,
         modalOpen: true,
-        editingTransaction: { ...transaction, _id: id }, // Normalizar a _id
+        editingTransaction: { ...transaction, _id: id },
         nuevaTransaccion: {
           fecha: dateUtils.toUTC(transaction.fecha),
-          concepto: transaction.concepto || '',
-          moneda: transaction.moneda || 'USD',
+          concepto: transaction.concepto.trim(),
+          moneda: transaction.moneda,
           tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
           monto: (transaction.entrada || transaction.salida || 0).toString(),
           tasaCambio: transaction.tasaCambio || prev.tasaCambio
@@ -493,7 +527,7 @@ const CajaInteractiva = () => {
       }));
     } catch (error) {
       console.error('Error al preparar edición:', error);
-      toast.error('Error al preparar la edición de la transacción');
+      toast.error(error.message || 'Error al preparar la edición de la transacción');
     }
   };
 
@@ -512,16 +546,16 @@ const CajaInteractiva = () => {
     try {
       const res = await axios.delete(`${API_URL}/caja/transacciones/${transactionId}`);
       
-      if (!res.data || !Array.isArray(res.data.transacciones)) {
+      if (!res.data) {
         throw new Error('Respuesta del servidor inválida');
       }
 
-      const transaccionesProcesadas = procesarTransacciones(res.data.transacciones);
+      const transaccionesProcesadas = procesarTransacciones(res.data.transacciones || []);
       
       setState(prev => ({
         ...prev,
         transacciones: transaccionesProcesadas,
-        saldos: res.data.saldos
+        saldos: res.data.saldos || prev.saldos
       }));
       
       toast.success('Movimiento eliminado exitosamente');
