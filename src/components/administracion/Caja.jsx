@@ -35,9 +35,6 @@ const dateUtils = {
       console.error('Error al formatear fecha:', error);
       return 'Error de formato';
     }
-  },
-  compareDates: (fecha1, fecha2) => {
-    return moment.utc(fecha1).valueOf() - moment.utc(fecha2).valueOf();
   }
 };
 
@@ -127,230 +124,86 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
 };
 
 const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual, onEdit, onDelete }) => {
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-
-  const handleViewTransaction = async (id) => {
-    if (!id) {
-      toast.error('ID de transacción no válido');
-      return;
-    }
-
-    try {
-      const response = await axios.get(`${API_URL}/caja/transacciones/${id}`);
-      
-      if (!response.data || !response.data.transaccion) {
-        throw new Error('Respuesta del servidor inválida');
-      }
-
-      const transaccionNormalizada = normalizarTransaccion(response.data.transaccion);
-      
-      if (!transaccionNormalizada) {
-        throw new Error('Error al procesar la transacción');
-      }
-
-      setSelectedTransaction(transaccionNormalizada);
-      setViewModalOpen(true);
-    } catch (error) {
-      console.error('Error al cargar transacción:', error);
-      toast.error(error.response?.data?.message || 'Error al cargar la transacción');
-    }
-  };
-
-  const handleAction = (action, transaction) => {
-    const id = transaction._id || transaction.id;
-    if (!id) {
-      toast.error('ID de transacción no válido');
-      return;
-    }
-    action(transaction);
-  };
-
-  const filteredTransactions = transactions
-    .map(t => normalizarTransaccion(t))
-    .filter(t => t !== null)
-    .filter(t => {
-      const transactionDate = new Date(t.fecha);
-      const start = dateFilter.start && new Date(dateFilter.start);
-      const end = dateFilter.end && new Date(dateFilter.end);
-      
-      const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
-      
-      return matchesCurrency &&
-             (!start || transactionDate >= start) &&
-             (!end || transactionDate <= end);
-    });
+  const filteredTransactions = transactions.filter(t => {
+    const transactionDate = new Date(t.fecha);
+    const start = dateFilter.start && new Date(dateFilter.start);
+    const end = dateFilter.end && new Date(dateFilter.end);
+    
+    const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
+    
+    return matchesCurrency &&
+           (!start || transactionDate >= start) &&
+           (!end || transactionDate <= end);
+  });
 
   return (
-    <>
-      <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2 }}>
-        <Table>
-          <TableHead sx={{ bgcolor: 'background.default' }}>
-            <TableRow>
-              {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo', 'Acciones'].map(header => (
-                <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredTransactions.map((t) => (
-              <TableRow key={t._id} hover>
-                <TableCell>
-                  {dateUtils.formatForDisplay(t.fecha)}
-                </TableCell>
-                <TableCell>{t.concepto}</TableCell>
-                <TableCell>
-                  <Chip 
-                    label={t.moneda} 
-                    color={t.moneda === 'USD' ? 'primary' : 'secondary'} 
-                    variant="outlined" 
-                  />
-                </TableCell>
-                <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
-                  {t.entrada > 0 ? formatMonetaryValue(t.entrada, t.moneda) : '-'}
-                </TableCell>
-                <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
-                  {t.salida > 0 ? formatMonetaryValue(t.salida, t.moneda) : '-'}
-                </TableCell>
-                <TableCell>
-                  {formatEquivalentValue(
-                    t.entrada || t.salida,
-                    t.moneda,
-                    tasaActual
-                  )}
-                </TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>
-                  {formatMonetaryValue(t.saldo, t.moneda)}
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton 
-                      size="small" 
-                      color="info"
-                      onClick={() => handleAction(handleViewTransaction, t)}
-                      title="Ver detalles"
-                    >
-                      <Visibility fontSize="small" />
-                    </IconButton>
-                    <IconButton 
-                      size="small" 
-                      color="primary"
-                      onClick={() => handleAction(onEdit, t)}
-                      title="Editar"
-                    >
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => handleAction(onDelete, t)}
-                      title="Eliminar"
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-              </TableRow>
+    <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2 }}>
+      <Table>
+        <TableHead sx={{ bgcolor: 'background.default' }}>
+          <TableRow>
+            {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo', 'Acciones'].map(header => (
+              <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Dialog 
-        open={viewModalOpen} 
-        onClose={() => setViewModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Detalles de la Transacción
-        </DialogTitle>
-        <DialogContent>
-          {selectedTransaction && (
-            <Box sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Fecha
-                  </Typography>
-                  <Typography variant="body1">
-                    {dateUtils.formatForDisplay(selectedTransaction.fecha)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Concepto
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedTransaction.concepto}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Moneda
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedTransaction.moneda}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Tasa de Cambio
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedTransaction.tasaCambio.toFixed(2)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Entrada
-                  </Typography>
-                  <Typography variant="body1" color="success.main">
-                    {selectedTransaction.entrada > 0 
-                      ? formatMonetaryValue(selectedTransaction.entrada, selectedTransaction.moneda)
-                      : '-'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Salida
-                  </Typography>
-                  <Typography variant="body1" color="error.main">
-                    {selectedTransaction.salida > 0 
-                      ? formatMonetaryValue(selectedTransaction.salida, selectedTransaction.moneda)
-                      : '-'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Saldo
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                    {formatMonetaryValue(selectedTransaction.saldo, selectedTransaction.moneda)}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewModalOpen(false)}>
-            Cerrar
-          </Button>
-          {selectedTransaction && (
-            <Button 
-              color="primary" 
-              onClick={() => {
-                setViewModalOpen(false);
-                onEdit(selectedTransaction);
-              }}
-            >
-              Editar
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
-    </>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {filteredTransactions.map((t) => (
+            <TableRow key={t._id} hover>
+              <TableCell>
+                {dateUtils.formatForDisplay(t.fecha)}
+              </TableCell>
+              <TableCell>{t.concepto}</TableCell>
+              <TableCell>
+                <Chip 
+                  label={t.moneda} 
+                  color={t.moneda === 'USD' ? 'primary' : 'secondary'} 
+                  variant="outlined" 
+                />
+              </TableCell>
+              <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
+                {t.entrada > 0 ? formatMonetaryValue(t.entrada, t.moneda) : '-'}
+              </TableCell>
+              <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
+                {t.salida > 0 ? formatMonetaryValue(t.salida, t.moneda) : '-'}
+              </TableCell>
+              <TableCell>
+                {t.entrada || t.salida ? 
+                  formatMonetaryValue(
+                    t.moneda === 'USD' ? 
+                      (t.entrada || t.salida) * tasaActual : 
+                      (t.entrada || t.salida) / tasaActual,
+                    t.moneda === 'USD' ? 'Bs' : 'USD'
+                  ) 
+                  : '-'}
+              </TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>
+                {formatMonetaryValue(t.saldo, t.moneda)}
+              </TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <IconButton 
+                    size="small" 
+                    color="primary"
+                    onClick={() => onEdit(t)}
+                    title="Editar"
+                  >
+                    <Edit fontSize="small" />
+                  </IconButton>
+                  <IconButton 
+                    size="small" 
+                    color="error"
+                    onClick={() => onDelete(t._id)}
+                    title="Eliminar"
+                  >
+                    <Delete fontSize="small" />
+                  </IconButton>
+                </Box>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 
@@ -372,8 +225,7 @@ const CajaInteractiva = () => {
       monto: '',
       tasaCambio: 0
     },
-    editingTransaction: null,
-    excelFile: null
+    editingTransaction: null
   });
 
   const [loading, setLoading] = useState(false);
@@ -382,110 +234,32 @@ const CajaInteractiva = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  // Función para validar y procesar las transacciones
-  const procesarTransacciones = (transacciones) => {
-    if (!Array.isArray(transacciones)) {
-      console.error('Las transacciones no son un array:', transacciones);
-      return [];
-    }
-
-    return transacciones.map(t => {
-      try {
-        // Validar y normalizar el ID
-        const id = t._id || t.id;
-        if (!id) {
-          console.warn('Transacción sin ID:', t);
-          return null;
-        }
-
-        // Validar y normalizar la fecha
-        let fecha;
-        try {
-          fecha = new Date(t.fecha);
-          if (isNaN(fecha.getTime())) {
-            console.warn('Fecha inválida:', t.fecha);
-            return null;
-          }
-        } catch (error) {
-          console.warn('Error al procesar fecha:', error);
-          return null;
-        }
-
-        // Validar otros campos requeridos
-        if (!t.concepto || !t.moneda) {
-          console.warn('Campos requeridos faltantes:', t);
-          return null;
-        }
-
-        // Normalizar valores numéricos
-        const entrada = parseFloat(t.entrada) || 0;
-        const salida = parseFloat(t.salida) || 0;
-        const saldo = parseFloat(t.saldo) || 0;
-
-        return {
-          _id: id,
-          fecha: fecha.toISOString(),
-          concepto: t.concepto.trim(),
-          moneda: t.moneda,
-          entrada,
-          salida,
-          saldo,
-          tasaCambio: parseFloat(t.tasaCambio) || 1
-        };
-      } catch (error) {
-        console.error('Error al procesar transacción:', error, t);
-        return null;
-      }
-    }).filter(t => t !== null);
-  };
-
-  // Función para cargar datos iniciales
-  const fetchInitialData = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const [cajaRes, tasaRes] = await Promise.all([
-        axios.get(`${API_URL}/caja`),
-        axios.get(`${API_URL}/tasa-cambio`)
-      ]);
-      
-      if (!cajaRes.data) {
-        throw new Error('Respuesta del servidor inválida');
-      }
-
-      const transaccionesProcesadas = procesarTransacciones(cajaRes.data.transacciones || []);
-      
-      if (transaccionesProcesadas.length === 0) {
-        console.warn('No se encontraron transacciones válidas');
-      }
-
-      // Ordenar por fecha descendente
-      const transaccionesOrdenadas = transaccionesProcesadas.sort((a, b) => 
-        new Date(b.fecha) - new Date(a.fecha)
-      );
-      
-      setState(prev => ({
-        ...prev,
-        transacciones: transaccionesOrdenadas,
-        saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
-        tasaCambio: tasaRes.data.tasa || 1,
-        nuevaTransaccion: {
-          ...prev.nuevaTransaccion,
-          tasaCambio: tasaRes.data.tasa || 1
-        }
-      }));
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-      const errorMessage = error.response?.data?.message || 'Error al cargar los datos';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [cajaRes, tasaRes] = await Promise.all([
+          axios.get(`${API_URL}/caja`),
+          axios.get(`${API_URL}/tasa-cambio`)
+        ]);
+        
+        if (cajaRes.data && Array.isArray(cajaRes.data.transacciones)) {
+          setState(prev => ({
+            ...prev,
+            transacciones: cajaRes.data.transacciones,
+            saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
+            tasaCambio: tasaRes.data.tasa,
+            nuevaTransaccion: {
+              ...prev.nuevaTransaccion,
+              tasaCambio: tasaRes.data.tasa
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error al cargar datos:', error);
+        toast.error('Error al cargar los datos');
+      }
+    };
+
     fetchInitialData();
   }, []);
 
@@ -561,32 +335,24 @@ const CajaInteractiva = () => {
     return acc;
   }, {});
 
-  // Función para manejar la edición de transacciones
   const handleEditTransaction = (transaction) => {
-    const transaccionNormalizada = normalizarTransaccion(transaction);
-    if (!transaccionNormalizada) {
-      toast.error('Transacción no válida');
-      return;
-    }
-
     setState(prev => ({
       ...prev,
       modalOpen: true,
-      editingTransaction: transaccionNormalizada,
+      editingTransaction: transaction,
       nuevaTransaccion: {
-        fecha: dateUtils.toUTC(transaccionNormalizada.fecha),
-        concepto: transaccionNormalizada.concepto,
-        moneda: transaccionNormalizada.moneda,
-        tipo: transaccionNormalizada.entrada > 0 ? 'entrada' : 'salida',
-        monto: (transaccionNormalizada.entrada || transaccionNormalizada.salida).toString(),
-        tasaCambio: transaccionNormalizada.tasaCambio
+        fecha: dateUtils.toUTC(transaction.fecha),
+        concepto: transaction.concepto,
+        moneda: transaction.moneda,
+        tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
+        monto: (transaction.entrada || transaction.salida).toString(),
+        tasaCambio: state.tasaCambio
       }
     }));
   };
 
-  // Función para manejar la eliminación de transacciones
-  const handleDeleteTransaction = async (transactionId) => {
-    if (!transactionId) {
+  const handleDeleteTransaction = async (id) => {
+    if (!id) {
       toast.error('ID de transacción no válido');
       return;
     }
@@ -595,28 +361,19 @@ const CajaInteractiva = () => {
       return;
     }
 
-    setLoading(true);
     try {
-      const res = await axios.delete(`${API_URL}/caja/transacciones/${transactionId}`);
-      
-      if (!res.data) {
-        throw new Error('Respuesta del servidor inválida');
+      const res = await axios.delete(`${API_URL}/caja/transacciones/${id}`);
+      if (res.data && Array.isArray(res.data.transacciones)) {
+        setState(prev => ({
+          ...prev,
+          transacciones: res.data.transacciones,
+          saldos: res.data.saldos
+        }));
+        toast.success('Movimiento eliminado exitosamente');
       }
-
-      const transaccionesProcesadas = procesarTransacciones(res.data.transacciones || []);
-      
-      setState(prev => ({
-        ...prev,
-        transacciones: transaccionesProcesadas,
-        saldos: res.data.saldos || prev.saldos
-      }));
-      
-      toast.success('Movimiento eliminado exitosamente');
     } catch (error) {
       console.error('Error al eliminar:', error);
-      toast.error(error.response?.data?.message || 'Error al eliminar el movimiento');
-    } finally {
-      setLoading(false);
+      toast.error('Error al eliminar el movimiento');
     }
   };
 
