@@ -78,6 +78,15 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
 
+  const handleAction = (action, transaction) => {
+    const id = transaction._id || transaction.id;
+    if (!id) {
+      toast.error('ID de transacción no válido');
+      return;
+    }
+    action(transaction);
+  };
+
   const filteredTransactions = transactions
     .filter(t => {
       const transactionDate = new Date(t.fecha);
@@ -89,7 +98,9 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
       return matchesCurrency &&
              (!start || transactionDate >= start) &&
              (!end || transactionDate <= end);
-    });
+    })
+    .map(t => normalizarTransaccion(t))
+    .filter(t => t !== null);
 
   const handleViewTransaction = async (id) => {
     if (!id) {
@@ -118,15 +129,6 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
     }
   };
 
-  const handleAction = (action, transaction) => {
-    const id = transaction._id || transaction.id;
-    if (!id) {
-      toast.error('ID de transacción no válido');
-      return;
-    }
-    action(transaction);
-  };
-
   return (
     <>
       <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2 }}>
@@ -139,74 +141,65 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredTransactions.map((t) => {
-              const transaccionNormalizada = normalizarTransaccion(t);
-              if (!transaccionNormalizada) return null;
-
-              return (
-                <TableRow key={transaccionNormalizada._id} hover>
-                  <TableCell>
-                    {dateUtils.formatForDisplay(transaccionNormalizada.fecha)}
-                  </TableCell>
-                  <TableCell>{transaccionNormalizada.concepto}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={transaccionNormalizada.moneda} 
-                      color={transaccionNormalizada.moneda === 'USD' ? 'primary' : 'secondary'} 
-                      variant="outlined" 
-                    />
-                  </TableCell>
-                  <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
-                    {transaccionNormalizada.entrada > 0 
-                      ? formatMonetaryValue(transaccionNormalizada.entrada, transaccionNormalizada.moneda) 
-                      : '-'}
-                  </TableCell>
-                  <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
-                    {transaccionNormalizada.salida > 0 
-                      ? formatMonetaryValue(transaccionNormalizada.salida, transaccionNormalizada.moneda) 
-                      : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {formatEquivalentValue(
-                      transaccionNormalizada.entrada || transaccionNormalizada.salida,
-                      transaccionNormalizada.moneda,
-                      tasaActual
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>
-                    {formatMonetaryValue(transaccionNormalizada.saldo, transaccionNormalizada.moneda)}
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <IconButton 
-                        size="small" 
-                        color="info"
-                        onClick={() => handleAction(handleViewTransaction, transaccionNormalizada)}
-                        title="Ver detalles"
-                      >
-                        <Visibility fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        size="small" 
-                        color="primary"
-                        onClick={() => handleAction(onEdit, transaccionNormalizada)}
-                        title="Editar"
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        size="small" 
-                        color="error"
-                        onClick={() => handleAction(onDelete, transaccionNormalizada)}
-                        title="Eliminar"
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {filteredTransactions.map((t) => (
+              <TableRow key={t._id} hover>
+                <TableCell>
+                  {dateUtils.formatForDisplay(t.fecha)}
+                </TableCell>
+                <TableCell>{t.concepto}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={t.moneda} 
+                    color={t.moneda === 'USD' ? 'primary' : 'secondary'} 
+                    variant="outlined" 
+                  />
+                </TableCell>
+                <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
+                  {t.entrada > 0 ? formatMonetaryValue(t.entrada, t.moneda) : '-'}
+                </TableCell>
+                <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
+                  {t.salida > 0 ? formatMonetaryValue(t.salida, t.moneda) : '-'}
+                </TableCell>
+                <TableCell>
+                  {formatEquivalentValue(
+                    t.entrada || t.salida,
+                    t.moneda,
+                    tasaActual
+                  )}
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>
+                  {formatMonetaryValue(t.saldo, t.moneda)}
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <IconButton 
+                      size="small" 
+                      color="info"
+                      onClick={() => handleAction(handleViewTransaction, t)}
+                      title="Ver detalles"
+                    >
+                      <Visibility fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="small" 
+                      color="primary"
+                      onClick={() => handleAction(onEdit, t)}
+                      title="Editar"
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => handleAction(onDelete, t)}
+                      title="Eliminar"
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
@@ -351,6 +344,23 @@ const CajaInteractiva = () => {
       saldo: parseFloat(transaccion.saldo) || 0,
       tasaCambio: parseFloat(transaccion.tasaCambio) || 1
     };
+  };
+
+  // Función para formatear valores monetarios
+  const formatMonetaryValue = (value, currency) => {
+    if (value === undefined || value === null) return '-';
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return '-';
+    return `${currency === 'USD' ? '$' : 'Bs'} ${numValue.toFixed(2)}`;
+  };
+
+  // Función para formatear valores equivalentes
+  const formatEquivalentValue = (value, moneda, tasa) => {
+    if (value === undefined || value === null || !tasa) return '-';
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return '-';
+    const equivalent = moneda === 'USD' ? numValue * tasa : numValue / tasa;
+    return `${moneda === 'USD' ? 'Bs' : '$'} ${equivalent.toFixed(2)}`;
   };
 
   // Función para validar y procesar las transacciones
@@ -850,9 +860,9 @@ const CajaInteractiva = () => {
             </Box>
             
             <TransactionTable 
-              transactions={state.transacciones} 
-              currencyFilter={state.filtros.moneda} 
-              dateFilter={state.filtros.fecha} 
+              transactions={state.transacciones}
+              currencyFilter={state.filtros.moneda}
+              dateFilter={state.filtros.fecha}
               tasaActual={state.tasaCambio}
               onEdit={handleEditTransaction}
               onDelete={handleDeleteTransaction}
