@@ -265,6 +265,11 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
+      if (!state.nuevaTransaccion.monto || parseFloat(state.nuevaTransaccion.monto) <= 0) {
+        toast.error('El monto debe ser mayor a 0');
+        return;
+      }
+
       const movimiento = {
         ...state.nuevaTransaccion,
         fecha: dateUtils.toUTC(state.nuevaTransaccion.fecha),
@@ -272,8 +277,11 @@ const CajaInteractiva = () => {
         tasaCambio: state.tasaCambio
       };
 
+      console.log('Movimiento a enviar:', movimiento); // Para debugging
+      console.log('ID de edición:', state.editingTransaction?._id); // Para debugging
+
       let res;
-      if (state.editingTransaction) {
+      if (state.editingTransaction && state.editingTransaction._id) {
         res = await axios.put(`${API_URL}/caja/transacciones/${state.editingTransaction._id}`, movimiento);
         toast.success('Movimiento actualizado exitosamente!');
       } else {
@@ -299,7 +307,8 @@ const CajaInteractiva = () => {
         }));
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error completo:', error);
+      console.error('Respuesta del servidor:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al procesar la transacción');
     }
   };
@@ -325,6 +334,12 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
+    console.log('Transacción a editar:', transaction); // Para debugging
+    if (!transaction || !transaction._id) {
+      toast.error('Transacción inválida');
+      return;
+    }
+
     setState(prev => ({
       ...prev,
       modalOpen: true,
@@ -341,6 +356,7 @@ const CajaInteractiva = () => {
   };
 
   const handleDeleteTransaction = async (id) => {
+    console.log('ID a eliminar:', id); // Para debugging
     if (!id) {
       toast.error('ID de transacción no válido');
       return;
@@ -352,7 +368,7 @@ const CajaInteractiva = () => {
 
     try {
       const res = await axios.delete(`${API_URL}/caja/transacciones/${id}`);
-      if (res.data && Array.isArray(res.data.transacciones)) {
+      if (res.data && res.data.success) {
         setState(prev => ({
           ...prev,
           transacciones: res.data.transacciones,
@@ -362,7 +378,8 @@ const CajaInteractiva = () => {
       }
     } catch (error) {
       console.error('Error al eliminar:', error);
-      toast.error('Error al eliminar el movimiento');
+      console.error('Respuesta del servidor:', error.response?.data);
+      toast.error(error.response?.data?.message || 'Error al eliminar el movimiento');
     }
   };
 
