@@ -148,7 +148,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
         </TableHead>
         <TableBody>
           {filteredTransactions.map((t) => (
-            <TableRow key={t._id} hover>
+            <TableRow key={t._id || t.id} hover>
               <TableCell>
                 {dateUtils.formatForDisplay(t.fecha)}
               </TableCell>
@@ -192,7 +192,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                   <IconButton 
                     size="small" 
                     color="error"
-                    onClick={() => onDelete(t._id)}
+                    onClick={() => onDelete(t._id || t.id)}
                     title="Eliminar"
                   >
                     <Delete fontSize="small" />
@@ -277,8 +277,8 @@ const CajaInteractiva = () => {
         tasaCambio: state.tasaCambio
       };
 
-      console.log('Movimiento a enviar:', movimiento); // Para debugging
-      console.log('ID de edición:', state.editingTransaction?._id); // Para debugging
+      console.log('Movimiento a enviar:', movimiento);
+      console.log('ID de edición:', state.editingTransaction?._id);
 
       let res;
       if (state.editingTransaction && state.editingTransaction._id) {
@@ -334,8 +334,10 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    console.log('Transacción a editar:', transaction); // Para debugging
-    if (!transaction || !transaction._id) {
+    console.log('Transacción a editar:', transaction);
+    const transactionId = transaction._id || transaction.id;
+    
+    if (!transaction || !transactionId) {
       toast.error('Transacción inválida');
       return;
     }
@@ -343,7 +345,7 @@ const CajaInteractiva = () => {
     setState(prev => ({
       ...prev,
       modalOpen: true,
-      editingTransaction: transaction,
+      editingTransaction: { ...transaction, _id: transactionId },
       nuevaTransaccion: {
         fecha: dateUtils.toUTC(transaction.fecha),
         concepto: transaction.concepto,
@@ -356,7 +358,7 @@ const CajaInteractiva = () => {
   };
 
   const handleDeleteTransaction = async (id) => {
-    console.log('ID a eliminar:', id); // Para debugging
+    console.log('ID a eliminar:', id);
     if (!id) {
       toast.error('ID de transacción no válido');
       return;
