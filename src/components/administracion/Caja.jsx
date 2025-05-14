@@ -99,11 +99,22 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
 
     try {
       const response = await axios.get(`${API_URL}/caja/transacciones/${id}`);
-      setSelectedTransaction(response.data.transaccion);
+      
+      if (!response.data || !response.data.transaccion) {
+        throw new Error('Respuesta del servidor inválida');
+      }
+
+      const transaccionNormalizada = normalizarTransaccion(response.data.transaccion);
+      
+      if (!transaccionNormalizada) {
+        throw new Error('Error al procesar la transacción');
+      }
+
+      setSelectedTransaction(transaccionNormalizada);
       setViewModalOpen(true);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al cargar transacción');
-      console.error('Error:', error);
+      console.error('Error al cargar transacción:', error);
+      toast.error(error.response?.data?.message || 'Error al cargar la transacción');
     }
   };
 
@@ -129,36 +140,48 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
           </TableHead>
           <TableBody>
             {filteredTransactions.map((t) => {
-              const id = t._id || t.id;
+              const transaccionNormalizada = normalizarTransaccion(t);
+              if (!transaccionNormalizada) return null;
+
               return (
-                <TableRow key={id} hover>
+                <TableRow key={transaccionNormalizada._id} hover>
                   <TableCell>
-                    {dateUtils.formatForDisplay(t.fecha)}
+                    {dateUtils.formatForDisplay(transaccionNormalizada.fecha)}
                   </TableCell>
-                  <TableCell>{t.concepto}</TableCell>
+                  <TableCell>{transaccionNormalizada.concepto}</TableCell>
                   <TableCell>
-                    <Chip label={t.moneda} color={t.moneda === 'USD' ? 'primary' : 'secondary'} variant="outlined" />
+                    <Chip 
+                      label={transaccionNormalizada.moneda} 
+                      color={transaccionNormalizada.moneda === 'USD' ? 'primary' : 'secondary'} 
+                      variant="outlined" 
+                    />
                   </TableCell>
                   <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
-                    {t.entrada ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.entrada.toFixed(2)}` : '-'}
+                    {transaccionNormalizada.entrada > 0 
+                      ? formatMonetaryValue(transaccionNormalizada.entrada, transaccionNormalizada.moneda) 
+                      : '-'}
                   </TableCell>
                   <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
-                    {t.salida ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.salida.toFixed(2)}` : '-'}
+                    {transaccionNormalizada.salida > 0 
+                      ? formatMonetaryValue(transaccionNormalizada.salida, transaccionNormalizada.moneda) 
+                      : '-'}
                   </TableCell>
                   <TableCell>
-                    {t.moneda === 'USD' 
-                      ? `Bs ${((t.entrada || t.salida) * tasaActual).toFixed(2)}` 
-                      : `$ ${((t.entrada || t.salida) / tasaActual).toFixed(2)}`}
+                    {formatEquivalentValue(
+                      transaccionNormalizada.entrada || transaccionNormalizada.salida,
+                      transaccionNormalizada.moneda,
+                      tasaActual
+                    )}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>
-                    {t.saldo ? `${t.moneda === 'USD' ? '$' : 'Bs'} ${t.saldo.toFixed(2)}` : '-'}
+                    {formatMonetaryValue(transaccionNormalizada.saldo, transaccionNormalizada.moneda)}
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <IconButton 
                         size="small" 
                         color="info"
-                        onClick={() => handleAction(handleViewTransaction, t)}
+                        onClick={() => handleAction(handleViewTransaction, transaccionNormalizada)}
                         title="Ver detalles"
                       >
                         <Visibility fontSize="small" />
@@ -166,7 +189,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                       <IconButton 
                         size="small" 
                         color="primary"
-                        onClick={() => handleAction(onEdit, t)}
+                        onClick={() => handleAction(onEdit, transaccionNormalizada)}
                         title="Editar"
                       >
                         <Edit fontSize="small" />
@@ -174,7 +197,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                       <IconButton 
                         size="small" 
                         color="error"
-                        onClick={() => handleAction(onDelete, t)}
+                        onClick={() => handleAction(onDelete, transaccionNormalizada)}
                         title="Eliminar"
                       >
                         <Delete fontSize="small" />
@@ -239,7 +262,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                   </Typography>
                   <Typography variant="body1" color="success.main">
                     {selectedTransaction.entrada 
-                      ? `${selectedTransaction.moneda === 'USD' ? '$' : 'Bs'} ${selectedTransaction.entrada.toFixed(2)}`
+                      ? formatMonetaryValue(selectedTransaction.entrada, selectedTransaction.moneda)
                       : '-'}
                   </Typography>
                 </Grid>
@@ -249,7 +272,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                   </Typography>
                   <Typography variant="body1" color="error.main">
                     {selectedTransaction.salida 
-                      ? `${selectedTransaction.moneda === 'USD' ? '$' : 'Bs'} ${selectedTransaction.salida.toFixed(2)}`
+                      ? formatMonetaryValue(selectedTransaction.salida, selectedTransaction.moneda)
                       : '-'}
                   </Typography>
                 </Grid>
@@ -258,7 +281,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                     Saldo
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                    {`${selectedTransaction.moneda === 'USD' ? '$' : 'Bs'} ${selectedTransaction.saldo.toFixed(2)}`}
+                    {formatMonetaryValue(selectedTransaction.saldo, selectedTransaction.moneda)}
                   </Typography>
                 </Grid>
               </Grid>
@@ -313,6 +336,22 @@ const CajaInteractiva = () => {
 
   const navigate = useNavigate();
   const theme = useTheme();
+
+  // Función para normalizar la respuesta del servidor
+  const normalizarTransaccion = (transaccion) => {
+    if (!transaccion) return null;
+
+    return {
+      _id: transaccion._id || transaccion.id, // Normalizar el ID
+      fecha: transaccion.fecha,
+      concepto: transaccion.concepto,
+      moneda: transaccion.moneda,
+      entrada: parseFloat(transaccion.entrada) || 0,
+      salida: parseFloat(transaccion.salida) || 0,
+      saldo: parseFloat(transaccion.saldo) || 0,
+      tasaCambio: parseFloat(transaccion.tasaCambio) || 1
+    };
+  };
 
   // Función para validar y procesar las transacciones
   const procesarTransacciones = (transacciones) => {
@@ -495,40 +534,25 @@ const CajaInteractiva = () => {
 
   // Función para manejar la edición de transacciones
   const handleEditTransaction = (transaction) => {
-    try {
-      const id = transaction._id || transaction.id;
-      if (!id) {
-        throw new Error('ID de transacción no válido');
-      }
-
-      // Validar y formatear la fecha
-      const fecha = new Date(transaction.fecha);
-      if (isNaN(fecha.getTime())) {
-        throw new Error('Fecha inválida');
-      }
-
-      // Validar otros campos
-      if (!transaction.concepto || !transaction.moneda) {
-        throw new Error('Campos requeridos faltantes');
-      }
-
-      setState(prev => ({
-        ...prev,
-        modalOpen: true,
-        editingTransaction: { ...transaction, _id: id },
-        nuevaTransaccion: {
-          fecha: dateUtils.toUTC(transaction.fecha),
-          concepto: transaction.concepto.trim(),
-          moneda: transaction.moneda,
-          tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
-          monto: (transaction.entrada || transaction.salida || 0).toString(),
-          tasaCambio: transaction.tasaCambio || prev.tasaCambio
-        }
-      }));
-    } catch (error) {
-      console.error('Error al preparar edición:', error);
-      toast.error(error.message || 'Error al preparar la edición de la transacción');
+    const transaccionNormalizada = normalizarTransaccion(transaction);
+    if (!transaccionNormalizada) {
+      toast.error('Transacción no válida');
+      return;
     }
+
+    setState(prev => ({
+      ...prev,
+      modalOpen: true,
+      editingTransaction: transaccionNormalizada,
+      nuevaTransaccion: {
+        fecha: dateUtils.toUTC(transaccionNormalizada.fecha),
+        concepto: transaccionNormalizada.concepto,
+        moneda: transaccionNormalizada.moneda,
+        tipo: transaccionNormalizada.entrada > 0 ? 'entrada' : 'salida',
+        monto: (transaccionNormalizada.entrada || transaccionNormalizada.salida).toString(),
+        tasaCambio: transaccionNormalizada.tasaCambio
+      }
+    }));
   };
 
   // Función para manejar la eliminación de transacciones
