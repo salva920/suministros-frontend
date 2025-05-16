@@ -414,45 +414,6 @@ const CajaInteractiva = () => {
     }
   };
 
-  const handleImportarExcel = async () => {
-    if (!state.excelFile) {
-      toast.error('Por favor seleccione un archivo Excel');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', state.excelFile);
-
-    try {
-      toast.info('Importando datos...');
-      const res = await axios.post(`${API_URL}/caja/importar-excel`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      if (res.data.transacciones && res.data.transacciones.length > 0) {
-        const transaccionesOrdenadas = res.data.transacciones.sort((a, b) =>
-          new Date(a.fecha) - new Date(b.fecha)
-        );
-        setState(prev => ({
-          ...prev,
-          transacciones: transaccionesOrdenadas,
-          saldos: res.data.saldos,
-          excelFile: null
-        }));
-        toast.success('Datos importados correctamente');
-      } else {
-        console.error('Respuesta del servidor:', res.data);
-        toast.error('No se encontraron transacciones válidas en el archivo');
-      }
-    } catch (error) {
-      console.error('Error completo:', error);
-      console.error('Respuesta del servidor:', error.response?.data);
-      toast.error(error.response?.data?.message || 'Error al importar el archivo');
-    }
-  };
-
   const formatearFechaSimple = (fechaString) => {
     return dateUtils.formatForDisplay(fechaString);
   };
@@ -608,31 +569,6 @@ const CajaInteractiva = () => {
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6">Movimientos Recientes</Typography>
               <Box>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={(e) => setState(prev => ({ ...prev, excelFile: e.target.files[0] }))}
-                  style={{ display: 'none' }}
-                  id="excel-file"
-                />
-                <label htmlFor="excel-file">
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    component="span"
-                    sx={{ mr: 2 }}
-                  >
-                    Seleccionar Excel
-                  </Button>
-                </label>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleImportarExcel}
-                  sx={{ mr: 2 }}
-                >
-                  Importar Excel
-                </Button>
                 <Button 
                   variant="contained" 
                   startIcon={<Add />}
