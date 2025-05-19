@@ -143,9 +143,17 @@ const ProcesarVenta = () => {
     setLoadingLotes(true);
     try {
       const res = await axios.get(`${API_URL}/productos/${producto._id}/lotes`);
-      // Incluir también el lote de creación si no está en la respuesta
       let lotes = res.data;
-      // Si la respuesta no incluye el lote de creación, puedes hacer otro fetch o modificar el backend
+      
+      // Filtrar solo los lotes que tienen stock disponible
+      lotes = lotes.filter(lote => lote.stockLote > 0);
+      
+      if (lotes.length === 0) {
+        toast.error('No hay lotes disponibles para este producto');
+        setLotesProducto([]);
+        return;
+      }
+
       setLotesProducto(lotes);
       setState(prev => ({
         ...prev,
@@ -154,6 +162,7 @@ const ProcesarVenta = () => {
         precioVentaInput: ''
       }));
     } catch (err) {
+      console.error('Error al cargar lotes:', err);
       toast.error('Error al cargar lotes del producto');
       setLotesProducto([]);
     } finally {
@@ -166,28 +175,40 @@ const ProcesarVenta = () => {
       toast.error('Ingrese una cantidad válida');
       return;
     }
+
     if (lotesProducto.length === 0) {
       toast.error('No hay lotes disponibles');
       return;
     }
+
     const cantidad = parseInt(state.cantidadInput);
     let cantidadRestante = cantidad;
     let productosPorLote = [];
     let precioVenta = parseFloat(state.precioVentaInput);
 
+    // Verificar si hay suficiente stock total
+    const stockTotal = lotesProducto.reduce((total, lote) => total + lote.stockLote, 0);
+    if (stockTotal < cantidad) {
+      toast.error(`Solo hay ${stockTotal} unidades disponibles`);
+      return;
+    }
+
     for (const lote of lotesProducto) {
       if (cantidadRestante <= 0) break;
       const cantidadDeEsteLote = Math.min(lote.stockLote, cantidadRestante);
-      productosPorLote.push({
-        ...state.productoSeleccionado,
-        cantidad: cantidadDeEsteLote,
-        precioVenta: precioVenta,
-        costoFinal: lote.costoFinal,
-        gananciaUnitaria: parseFloat((precioVenta - lote.costoFinal).toFixed(2)),
-        gananciaTotal: parseFloat(((precioVenta - lote.costoFinal) * cantidadDeEsteLote).toFixed(2)),
-        loteId: lote._id
-      });
-      cantidadRestante -= cantidadDeEsteLote;
+      
+      if (cantidadDeEsteLote > 0) {
+        productosPorLote.push({
+          ...state.productoSeleccionado,
+          cantidad: cantidadDeEsteLote,
+          precioVenta: precioVenta,
+          costoFinal: lote.costoFinal,
+          gananciaUnitaria: parseFloat((precioVenta - lote.costoFinal).toFixed(2)),
+          gananciaTotal: parseFloat(((precioVenta - lote.costoFinal) * cantidadDeEsteLote).toFixed(2)),
+          loteId: lote._id
+        });
+        cantidadRestante -= cantidadDeEsteLote;
+      }
     }
 
     if (cantidadRestante > 0) {
