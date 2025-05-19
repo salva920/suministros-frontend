@@ -85,7 +85,7 @@ const ProcesarVenta = () => {
     try {
       const [productosRes, clientesRes] = await Promise.all([
         axios.get(`${API_URL}/productos`),
-        axios.get(`${API_URL}/clientes`)
+        axios.get(`${API_URL}/clientes?limit=1000`)
       ]);
       
       setState(prev => ({
@@ -97,6 +97,7 @@ const ProcesarVenta = () => {
       
     } catch (error) {
       console.error('Error cargando datos iniciales:', error);
+      toast.error('Error al cargar los datos iniciales');
     }
   };
 
@@ -377,7 +378,7 @@ const ProcesarVenta = () => {
                         MenuProps={{
                           PaperProps: {
                             style: {
-                              maxHeight: 300, // Altura máxima del menú desplegable
+                              maxHeight: 400,
                             },
                           },
                           anchorOrigin: {
@@ -395,12 +396,20 @@ const ProcesarVenta = () => {
                             key={cliente.id} 
                             value={cliente.id}
                             sx={{
-                              whiteSpace: 'normal', // Permite que el texto se envuelva
-                              wordBreak: 'break-word', // Rompe palabras largas
-                              py: 1, // Padding vertical
+                              whiteSpace: 'normal',
+                              wordBreak: 'break-word',
+                              py: 1,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'flex-start'
                             }}
                           >
-                            {cliente.nombre} - {cliente.rif}
+                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                              {cliente.nombre}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              RIF: {cliente.rif}
+                            </Typography>
                           </MenuItem>
                         ))}
                       </Select>
