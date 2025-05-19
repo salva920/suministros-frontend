@@ -448,64 +448,90 @@ const GestionInventario = () => {
       setIsSubmitting(true);
       
       const productoActual = productos.find(p => p.id === entradaStock.productoId);
+      if (!productoActual) {
+        toast.error('Producto no encontrado');
+        return;
+      }
+
       const cantidadIngresada = Number(entradaStock.cantidad);
-      
+      if (cantidadIngresada <= 0) {
+        toast.error('La cantidad debe ser mayor a 0');
+        return;
+      }
+
       const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
         .startOf('day')
         .toISOString();
 
-      await axios.post(
+      // Preparar los datos para la entrada
+      const datosEntrada = {
+        cantidad: cantidadIngresada,
+        fechaHora: fechaUTC,
+        costoUnitario: Number(entradaStock.costoInicial),
+        acarreo: Number(entradaStock.acarreo),
+        flete: Number(entradaStock.flete),
+        costoFinalEntrada: Number(entradaStock.costoFinalEntrada)
+      };
+
+      // Intentar agregar el stock
+      const response = await axios.post(
         `${API_URL}/productos/${productoActual.id}/entradas`,
-        {
-          cantidad: cantidadIngresada,
-          fechaHora: fechaUTC,
-          costoUnitario: Number(entradaStock.costoInicial),
-          acarreo: Number(entradaStock.acarreo),
-          flete: Number(entradaStock.flete),
-          costoFinalEntrada: Number(entradaStock.costoFinalEntrada)
-        }
+        datosEntrada
       );
 
-      // Actualizar estado local
-      const nuevosProductos = productos.map(p => {
-        if (p.id === productoActual.id) {
-          return {
-            ...p,
-            stock: p.stock + cantidadIngresada,
-            cantidad: p.cantidad + cantidadIngresada
-          };
+      if (response.data) {
+        // Actualizar estado local
+        const nuevosProductos = productos.map(p => {
+          if (p.id === productoActual.id) {
+            return {
+              ...p,
+              stock: p.stock + cantidadIngresada,
+              cantidad: p.cantidad + cantidadIngresada
+            };
+          }
+          return p;
+        });
+        
+        setProductos(nuevosProductos);
+        
+        // Si el producto editando es el mismo, actualizar estado
+        if (productoEditando?.id === productoActual.id) {
+          setProductoEditando(prev => ({
+            ...prev,
+            stock: prev.stock + cantidadIngresada,
+            cantidad: prev.cantidad + cantidadIngresada
+          }));
         }
-        return p;
-      });
-      
-      setProductos(nuevosProductos);
-      
-      // Si el producto editando es el mismo, actualizar estado
-      if (productoEditando?.id === productoActual.id) {
-        setProductoEditando(prev => ({
-          ...prev,
-          stock: prev.stock + cantidadIngresada,
-          cantidad: prev.cantidad + cantidadIngresada
-        }));
+        
+        toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
+        
+        // Resetear formulario
+        setEntradaStock({
+          productoId: null,
+          cantidad: '',
+          proveedor: '',
+          fechaHora: '',
+          costoInicial: '',
+          acarreo: '',
+          flete: '',
+          costoFinalEntrada: ''
+        });
+
+        // Recargar los productos para asegurar consistencia
+        await cargarProductos();
       }
-      
-      toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
-      
-      // Resetear formulario
-      setEntradaStock({
-        productoId: null,
-        cantidad: '',
-        proveedor: '',
-        fechaHora: '',
-        costoInicial: '',
-        acarreo: '',
-        flete: '',
-        costoFinalEntrada: ''
-      });
 
     } catch (error) {
       console.error('Error al agregar stock:', error);
-      toast.error('Error al agregar stock');
+      
+      // Manejar diferentes tipos de errores
+      if (error.response?.status === 404) {
+        toast.error('Producto no encontrado');
+      } else if (error.response?.status === 400) {
+        toast.error('Datos inválidos para la entrada de stock');
+      } else {
+        toast.error('Error al agregar stock. Por favor, intente nuevamente');
+      }
     } finally {
       setIsSubmitting(false);
       setModalEntradaAbierto(false);
