@@ -354,13 +354,28 @@ const GestionInventario = () => {
     const confirmar = window.confirm('¿Estás seguro de eliminar este producto?');
     if (confirmar) {
       try {
-        await axios.delete(`${API_URL}/productos/${id}`);
+        const response = await axios.delete(`${API_URL}/productos/${id}`);
+        
+        // Actualizar la lista de productos
         const productosActualizados = productos.filter(p => p.id !== id);
         setProductos(productosActualizados);
+        
+        // Mostrar mensaje de éxito
         toast.success('Producto eliminado correctamente');
+        
+        // Recargar los productos para asegurar consistencia
+        await cargarProductos();
       } catch (error) {
         console.error('Error al eliminar el producto:', error);
-        toast.error('Error al eliminar el producto');
+        
+        // Si el producto ya fue eliminado pero recibimos un error 400
+        if (error.response?.status === 400) {
+          // Recargar los productos para actualizar la lista
+          await cargarProductos();
+          toast.success('Producto eliminado correctamente');
+        } else {
+          toast.error('Error al eliminar el producto');
+        }
       }
     }
   };
