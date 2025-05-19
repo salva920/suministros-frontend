@@ -374,9 +374,32 @@ const ProcesarVenta = () => {
                           const clienteSeleccionado = state.clientesFiltrados.find(c => c.id === e.target.value);
                           if (clienteSeleccionado) seleccionarCliente(clienteSeleccionado);
                         }}
+                        MenuProps={{
+                          PaperProps: {
+                            style: {
+                              maxHeight: 300, // Altura máxima del menú desplegable
+                            },
+                          },
+                          anchorOrigin: {
+                            vertical: 'bottom',
+                            horizontal: 'left',
+                          },
+                          transformOrigin: {
+                            vertical: 'top',
+                            horizontal: 'left',
+                          },
+                        }}
                       >
                         {state.clientesFiltrados.map(cliente => (
-                          <MenuItem key={cliente.id} value={cliente.id}>
+                          <MenuItem 
+                            key={cliente.id} 
+                            value={cliente.id}
+                            sx={{
+                              whiteSpace: 'normal', // Permite que el texto se envuelva
+                              wordBreak: 'break-word', // Rompe palabras largas
+                              py: 1, // Padding vertical
+                            }}
+                          >
                             {cliente.nombre} - {cliente.rif}
                           </MenuItem>
                         ))}
