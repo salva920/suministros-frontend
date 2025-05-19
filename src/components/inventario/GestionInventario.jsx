@@ -354,56 +354,13 @@ const GestionInventario = () => {
     const confirmar = window.confirm('¿Estás seguro de eliminar este producto?');
     if (confirmar) {
       try {
-        // Primero verificar si el producto existe y su estado
-        const productoAEliminar = productos.find(p => p.id === id);
-        if (!productoAEliminar) {
-          toast.error('Producto no encontrado');
-          return;
-        }
-
-        // Verificar si el producto tiene stock
-        if (productoAEliminar.stock > 0) {
-          toast.error('No se puede eliminar un producto con stock disponible');
-          return;
-        }
-
-        // Intentar eliminar el producto
         await axios.delete(`${API_URL}/productos/${id}`);
-        
-        // Actualizar la lista de productos
         const productosActualizados = productos.filter(p => p.id !== id);
         setProductos(productosActualizados);
-        
-        // Mostrar mensaje de éxito
         toast.success('Producto eliminado correctamente');
-        
-        // Recargar los productos para asegurar consistencia
-        await cargarProductos();
       } catch (error) {
         console.error('Error al eliminar el producto:', error);
-        
-        // Manejar diferentes tipos de errores
-        if (error.response?.status === 404) {
-          toast.error('Producto no encontrado');
-        } else if (error.response?.status === 400) {
-          toast.error(error.response.data.message || 'No se puede eliminar el producto');
-        } else {
-          // Si el error es 500, verificar si el producto ya fue eliminado
-          try {
-            const productoExiste = await axios.get(`${API_URL}/productos/${id}`);
-            if (!productoExiste.data) {
-              // El producto ya no existe, actualizar la lista
-              await cargarProductos();
-              toast.success('Producto eliminado correctamente');
-            } else {
-              toast.error('Error al eliminar el producto. Por favor, intente nuevamente');
-            }
-          } catch (verificacionError) {
-            // Si no podemos verificar, asumimos que el producto fue eliminado
-            await cargarProductos();
-            toast.success('Producto eliminado correctamente');
-          }
-        }
+        toast.error('Error al eliminar el producto');
       }
     }
   };
@@ -476,90 +433,65 @@ const GestionInventario = () => {
       setIsSubmitting(true);
       
       const productoActual = productos.find(p => p.id === entradaStock.productoId);
-      if (!productoActual) {
-        toast.error('Producto no encontrado');
-        return;
-      }
-
       const cantidadIngresada = Number(entradaStock.cantidad);
-      if (cantidadIngresada <= 0) {
-        toast.error('La cantidad debe ser mayor a 0');
-        return;
-      }
-
+      
       const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
         .startOf('day')
         .toISOString();
 
-      // Preparar los datos para la entrada
-      const datosEntrada = {
-        cantidad: cantidadIngresada,
-        fechaHora: fechaUTC,
-        costoUnitario: Number(entradaStock.costoInicial),
-        acarreo: Number(entradaStock.acarreo),
-        flete: Number(entradaStock.flete),
-        costoFinalEntrada: Number(entradaStock.costoFinalEntrada)
-      };
-
-      // Intentar agregar el stock
       const response = await axios.post(
         `${API_URL}/productos/${productoActual.id}/entradas`,
-        datosEntrada
+        {
+          cantidad: cantidadIngresada,
+          fechaHora: fechaUTC,
+          costoUnitario: Number(entradaStock.costoInicial),
+          acarreo: Number(entradaStock.acarreo),
+          flete: Number(entradaStock.flete),
+          costoFinalEntrada: Number(entradaStock.costoFinalEntrada)
+        }
       );
 
-      if (response.data) {
-        // Actualizar estado local
-        const nuevosProductos = productos.map(p => {
-          if (p.id === productoActual.id) {
-            return {
-              ...p,
-              stock: p.stock + cantidadIngresada,
-              cantidad: p.cantidad + cantidadIngresada
-            };
-          }
-          return p;
-        });
-        
-        setProductos(nuevosProductos);
-        
-        // Si el producto editando es el mismo, actualizar estado
-        if (productoEditando?.id === productoActual.id) {
-          setProductoEditando(prev => ({
-            ...prev,
-            stock: prev.stock + cantidadIngresada,
-            cantidad: prev.cantidad + cantidadIngresada
-          }));
+      // Actualizar estado local
+      const nuevosProductos = productos.map(p => {
+        if (p.id === productoActual.id) {
+          return {
+            ...p,
+            stock: p.stock + cantidadIngresada,
+            cantidad: p.cantidad + cantidadIngresada
+          };
         }
-        
-        toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
-        
-        // Resetear formulario
-        setEntradaStock({
-          productoId: null,
-          cantidad: '',
-          proveedor: '',
-          fechaHora: '',
-          costoInicial: '',
-          acarreo: '',
-          flete: '',
-          costoFinalEntrada: ''
-        });
-
-        // Recargar los productos para asegurar consistencia
-        await cargarProductos();
+        return p;
+      });
+      
+      setProductos(nuevosProductos);
+      
+      // Si el producto editando es el mismo, actualizar estado
+      if (productoEditando?.id === productoActual.id) {
+        setProductoEditando(prev => ({
+          ...prev,
+          stock: prev.stock + cantidadIngresada,
+          cantidad: prev.cantidad + cantidadIngresada
+        }));
       }
+      
+      toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
+      
+      // Resetear formulario
+      setEntradaStock({
+        productoId: null,
+        cantidad: '',
+        proveedor: '',
+        fechaHora: '',
+        costoInicial: '',
+        acarreo: '',
+        flete: '',
+        costoFinalEntrada: ''
+      });
 
     } catch (error) {
       console.error('Error al agregar stock:', error);
-      
-      // Manejar diferentes tipos de errores
-      if (error.response?.status === 404) {
-        toast.error('Producto no encontrado');
-      } else if (error.response?.status === 400) {
-        toast.error('Datos inválidos para la entrada de stock');
-      } else {
-        toast.error('Error al agregar stock. Por favor, intente nuevamente');
-      }
+      const errorMessage = error.response?.data?.message || 'Error al agregar stock';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
       setModalEntradaAbierto(false);
@@ -575,7 +507,7 @@ const GestionInventario = () => {
       key,
       direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
     }));
-  }, []); 
+  }, []);
 
   const sortedData = [...productos].sort((a, b) => {
     if (sortConfig.key === 'fechaIngreso') {
