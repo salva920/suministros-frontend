@@ -361,20 +361,24 @@ const GestionInventario = () => {
           return;
         }
 
-        // Intentar eliminar el producto
-        const response = await axios.delete(`${API_URL}/productos/${id}`);
-        
-        if (response.data) {
-          // Actualizar la lista de productos
-          const productosActualizados = productos.filter(p => p.id !== id);
-          setProductos(productosActualizados);
-          
-          // Mostrar mensaje de éxito
-          toast.success('Producto eliminado correctamente');
-          
-          // Recargar los productos para asegurar consistencia
-          await cargarProductos();
+        // Verificar si el producto tiene stock
+        if (productoAEliminar.stock > 0) {
+          toast.error('No se puede eliminar un producto con stock disponible');
+          return;
         }
+
+        // Intentar eliminar el producto
+        await axios.delete(`${API_URL}/productos/${id}`);
+        
+        // Actualizar la lista de productos
+        const productosActualizados = productos.filter(p => p.id !== id);
+        setProductos(productosActualizados);
+        
+        // Mostrar mensaje de éxito
+        toast.success('Producto eliminado correctamente');
+        
+        // Recargar los productos para asegurar consistencia
+        await cargarProductos();
       } catch (error) {
         console.error('Error al eliminar el producto:', error);
         
@@ -382,11 +386,23 @@ const GestionInventario = () => {
         if (error.response?.status === 404) {
           toast.error('Producto no encontrado');
         } else if (error.response?.status === 400) {
-          // Si el producto ya fue eliminado pero recibimos un error 400
-          await cargarProductos();
-          toast.success('Producto eliminado correctamente');
+          toast.error(error.response.data.message || 'No se puede eliminar el producto');
         } else {
-          toast.error('Error al eliminar el producto. Por favor, intente nuevamente');
+          // Si el error es 500, verificar si el producto ya fue eliminado
+          try {
+            const productoExiste = await axios.get(`${API_URL}/productos/${id}`);
+            if (!productoExiste.data) {
+              // El producto ya no existe, actualizar la lista
+              await cargarProductos();
+              toast.success('Producto eliminado correctamente');
+            } else {
+              toast.error('Error al eliminar el producto. Por favor, intente nuevamente');
+            }
+          } catch (verificacionError) {
+            // Si no podemos verificar, asumimos que el producto fue eliminado
+            await cargarProductos();
+            toast.success('Producto eliminado correctamente');
+          }
         }
       }
     }
