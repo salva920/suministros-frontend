@@ -354,27 +354,39 @@ const GestionInventario = () => {
     const confirmar = window.confirm('¿Estás seguro de eliminar este producto?');
     if (confirmar) {
       try {
+        // Primero verificar si el producto existe y su estado
+        const productoAEliminar = productos.find(p => p.id === id);
+        if (!productoAEliminar) {
+          toast.error('Producto no encontrado');
+          return;
+        }
+
+        // Intentar eliminar el producto
         const response = await axios.delete(`${API_URL}/productos/${id}`);
         
-        // Actualizar la lista de productos
-        const productosActualizados = productos.filter(p => p.id !== id);
-        setProductos(productosActualizados);
-        
-        // Mostrar mensaje de éxito
-        toast.success('Producto eliminado correctamente');
-        
-        // Recargar los productos para asegurar consistencia
-        await cargarProductos();
+        if (response.data) {
+          // Actualizar la lista de productos
+          const productosActualizados = productos.filter(p => p.id !== id);
+          setProductos(productosActualizados);
+          
+          // Mostrar mensaje de éxito
+          toast.success('Producto eliminado correctamente');
+          
+          // Recargar los productos para asegurar consistencia
+          await cargarProductos();
+        }
       } catch (error) {
         console.error('Error al eliminar el producto:', error);
         
-        // Si el producto ya fue eliminado pero recibimos un error 400
-        if (error.response?.status === 400) {
-          // Recargar los productos para actualizar la lista
+        // Manejar diferentes tipos de errores
+        if (error.response?.status === 404) {
+          toast.error('Producto no encontrado');
+        } else if (error.response?.status === 400) {
+          // Si el producto ya fue eliminado pero recibimos un error 400
           await cargarProductos();
           toast.success('Producto eliminado correctamente');
         } else {
-          toast.error('Error al eliminar el producto');
+          toast.error('Error al eliminar el producto. Por favor, intente nuevamente');
         }
       }
     }
@@ -547,7 +559,7 @@ const GestionInventario = () => {
       key,
       direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
     }));
-  }, []);
+  }, []); 
 
   const sortedData = [...productos].sort((a, b) => {
     if (sortConfig.key === 'fechaIngreso') {
