@@ -161,7 +161,10 @@ const GestionInventario = () => {
   const [tabValue, setTabValue] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortConfig, setSortConfig] = useState({ key: 'nombre', direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ 
+    key: 'fechaIngreso', 
+    direction: 'desc' 
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -181,7 +184,7 @@ const GestionInventario = () => {
   moment.locale('es');
 
   const cargarProductos = useCallback(async () => {
-    if (cargando) return; // Evita llamadas múltiples si ya está cargando
+    if (cargando) return;
     
     try {
       setCargando(true);
@@ -189,18 +192,20 @@ const GestionInventario = () => {
       const response = await axios.get(`${API_URL}/productos`);
       const datosProductos = response.data?.productos || response.data || [];
       
-      // Transformar productos correctamente
       const productosTransformados = datosProductos
         .map(p => {
-          // Asegurarse de manejar las fechas correctamente
           const producto = transformarProducto(p);
           if (producto && producto.fechaIngreso) {
-            // Normalizar el formato de fecha para evitar problemas
             producto.fechaIngreso = normalizarFecha(producto.fechaIngreso);
           }
           return producto;
         })
-        .filter(p => p !== null);
+        .filter(p => p !== null)
+        .sort((a, b) => {
+          const dateA = new Date(a.fechaIngreso);
+          const dateB = new Date(b.fechaIngreso);
+          return dateB - dateA;
+        });
       
       setProductos(productosTransformados);
     } catch (error) {
@@ -311,16 +316,12 @@ const GestionInventario = () => {
   };
 
   const handleProductoGuardado = (nuevoProducto) => {
-    // Verificar si es una actualización o un nuevo producto
     const esActualizacion = nuevoProducto._id || nuevoProducto.id;
 
     if (esActualizacion) {
-      // Actualizar el producto
       actualizarProducto(nuevoProducto);
-      // Agregar notificación para actualización
       toast.success(`Producto ${nuevoProducto.codigo || ''} actualizado correctamente`);
     } else {
-      // Es un nuevo producto
       try {
         const productoTransformado = transformarProducto(nuevoProducto);
         if (!productoTransformado) {
@@ -328,10 +329,16 @@ const GestionInventario = () => {
           return;
         }
 
-        // Agregar al estado
-        setProductos(prevProductos => [productoTransformado, ...prevProductos]);
+        // Agregar al estado manteniendo el orden por fecha
+        setProductos(prevProductos => {
+          const nuevosProductos = [productoTransformado, ...prevProductos];
+          return nuevosProductos.sort((a, b) => {
+            const dateA = new Date(a.fechaIngreso);
+            const dateB = new Date(b.fechaIngreso);
+            return dateB - dateA;
+          });
+        });
         
-        // Notificación para nuevo producto
         toast.success('Producto agregado correctamente');
       } catch (error) {
         console.error('Error al procesar nuevo producto:', error);
@@ -339,7 +346,6 @@ const GestionInventario = () => {
       }
     }
 
-    // Resetear estados
     setProductoEditando(null);
     setMostrarFormulario(false);
   };
@@ -503,6 +509,12 @@ const GestionInventario = () => {
   }, []);
 
   const sortedData = [...productos].sort((a, b) => {
+    if (sortConfig.key === 'fechaIngreso') {
+      const dateA = new Date(a.fechaIngreso);
+      const dateB = new Date(b.fechaIngreso);
+      return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+    }
+    
     if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
     if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
