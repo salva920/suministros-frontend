@@ -143,10 +143,15 @@ const ProcesarVenta = () => {
     setLoadingLotes(true);
     try {
       const res = await axios.get(`${API_URL}/productos/${producto._id}/lotes`);
-      let lotes = res.data;
+      let lotes = res.data.lotes || []; // Acceder a la propiedad lotes de la respuesta
+      
+      // Asegurarnos de que lotes sea un array
+      if (!Array.isArray(lotes)) {
+        lotes = [lotes].filter(Boolean); // Convertir a array si es un solo objeto
+      }
       
       // Filtrar solo los lotes que tienen stock disponible
-      lotes = lotes.filter(lote => lote.stockLote > 0);
+      lotes = lotes.filter(lote => lote && lote.stockLote > 0);
       
       if (lotes.length === 0) {
         toast.error('No hay lotes disponibles para este producto');

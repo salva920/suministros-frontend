@@ -433,70 +433,64 @@ const GestionInventario = () => {
       setIsSubmitting(true);
       
       const productoActual = productos.find(p => p.id === entradaStock.productoId);
-      if (!productoActual) {
-        toast.error('Producto no encontrado');
-        return;
-      }
-
       const cantidadIngresada = Number(entradaStock.cantidad);
-      if (isNaN(cantidadIngresada) || cantidadIngresada <= 0) {
-        toast.error('La cantidad debe ser mayor a 0');
-        return;
-      }
       
       const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
         .startOf('day')
         .toISOString();
 
-      const requestData = {
-        cantidad: cantidadIngresada,
-        fechaHora: fechaUTC,
-        costoUnitario: Number(entradaStock.costoInicial) || productoActual.costoInicial || 0,
-        acarreo: Number(entradaStock.acarreo) || 0,
-        flete: Number(entradaStock.flete) || 0,
-        costoFinalEntrada: Number(entradaStock.costoFinalEntrada) || productoActual.costoFinal || 0
-      };
-
-      console.log('Enviando datos:', requestData); // Para debugging
-
-      const response = await axios.post(
+      await axios.post(
         `${API_URL}/productos/${productoActual.id}/entradas`,
-        requestData
+        {
+          cantidad: cantidadIngresada,
+          fechaHora: fechaUTC,
+          costoUnitario: Number(entradaStock.costoInicial),
+          acarreo: Number(entradaStock.acarreo),
+          flete: Number(entradaStock.flete),
+          costoFinalEntrada: Number(entradaStock.costoFinalEntrada)
+        }
       );
 
-      if (response.data) {
-        // Actualizar estado local con los datos del servidor
-        const productoActualizado = response.data.producto;
-        const nuevosProductos = productos.map(p => 
-          p.id === productoActualizado._id ? productoActualizado : p
-        );
-        
-        setProductos(nuevosProductos);
-        
-        // Si el producto editando es el mismo, actualizar estado
-        if (productoEditando?.id === productoActualizado._id) {
-          setProductoEditando(productoActualizado);
+      // Actualizar estado local
+      const nuevosProductos = productos.map(p => {
+        if (p.id === productoActual.id) {
+          return {
+            ...p,
+            stock: p.stock + cantidadIngresada,
+            cantidad: p.cantidad + cantidadIngresada
+          };
         }
-        
-        toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
-        
-        // Resetear formulario
-        setEntradaStock({
-          productoId: null,
-          cantidad: '',
-          proveedor: '',
-          fechaHora: '',
-          costoInicial: '',
-          acarreo: '',
-          flete: '',
-          costoFinalEntrada: ''
-        });
+        return p;
+      });
+      
+      setProductos(nuevosProductos);
+      
+      // Si el producto editando es el mismo, actualizar estado
+      if (productoEditando?.id === productoActual.id) {
+        setProductoEditando(prev => ({
+          ...prev,
+          stock: prev.stock + cantidadIngresada,
+          cantidad: prev.cantidad + cantidadIngresada
+        }));
       }
+      
+      toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
+      
+      // Resetear formulario
+      setEntradaStock({
+        productoId: null,
+        cantidad: '',
+        proveedor: '',
+        fechaHora: '',
+        costoInicial: '',
+        acarreo: '',
+        flete: '',
+        costoFinalEntrada: ''
+      });
 
     } catch (error) {
       console.error('Error al agregar stock:', error);
-      const errorMessage = error.response?.data?.message || 'Error al agregar stock';
-      toast.error(errorMessage);
+      toast.error('Error al agregar stock');
     } finally {
       setIsSubmitting(false);
       setModalEntradaAbierto(false);
