@@ -86,8 +86,6 @@ const RegistroClienteDialog = ({
       setVentas([]);
       setMontosAbono({});
       setVentaSeleccionada(null);
-      setClienteSeleccionado(null);
-      setVentasCliente([]);
     }
   }, [open]);
 

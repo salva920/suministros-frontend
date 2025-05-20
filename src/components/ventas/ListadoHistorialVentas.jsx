@@ -169,6 +169,7 @@ const ListadoHistorialVentas = () => {
       
       console.log('Ventas filtradas:', ventasFiltradas); // Debug
       
+      // Primero establecer el cliente y luego las ventas
       setClienteSeleccionado(venta.cliente);
       setVentasCliente(ventasFiltradas);
       setMostrarRegistroCliente(true);
@@ -178,6 +179,13 @@ const ListadoHistorialVentas = () => {
     } finally {
       setCargando(false);
     }
+  };
+
+  // Función para cerrar el diálogo
+  const handleCloseDialog = () => {
+    setMostrarRegistroCliente(false);
+    setClienteSeleccionado(null);
+    setVentasCliente([]);
   };
 
   // Función para actualizar las ventas después de abonar o solventar
@@ -460,7 +468,7 @@ const ListadoHistorialVentas = () => {
       {/* Modal de RegistroClienteDialog */}
       <RegistroClienteDialog
         open={mostrarRegistroCliente}
-        onClose={() => setMostrarRegistroCliente(false)}
+        onClose={handleCloseDialog}
         clienteSeleccionado={clienteSeleccionado}
         ventasCliente={ventasCliente}
         deudaTotal={ventasCliente.reduce((sum, v) => sum + (v.saldoPendiente || 0), 0)}
