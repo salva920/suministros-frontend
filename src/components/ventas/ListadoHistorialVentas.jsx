@@ -138,17 +138,24 @@ const ListadoHistorialVentas = () => {
       setCargando(true);
       
       // Obtener ID del cliente de manera segura
-      const clienteId = venta.cliente?._id || venta.cliente;
+      let clienteId;
+      if (typeof venta.cliente === 'object' && venta.cliente !== null) {
+        clienteId = venta.cliente._id;
+      } else if (typeof venta.cliente === 'string') {
+        clienteId = venta.cliente;
+      }
       
       if (!clienteId) {
-        toast.error('La venta no tiene un cliente asociado');
+        toast.error('La venta no tiene un cliente asociado válido');
         return;
       }
-  
+
+      console.log('ID del cliente:', clienteId); // Debug
+
       // Obtener datos completos del cliente
       const responseCliente = await axios.get(`${API_URL}/clientes/${clienteId}`);
       const clienteCompleto = responseCliente.data;
-  
+
       // Obtener ventas del cliente con populate
       const responseVentas = await axios.get(`${API_URL}/ventas`, {
         params: {
@@ -158,7 +165,7 @@ const ListadoHistorialVentas = () => {
           populate: 'cliente'
         }
       });
-  
+
       // Normalizar estructura de cliente en ventas
       const ventasNormalizadas = responseVentas.data.ventas.map(v => ({
         ...v,
@@ -166,7 +173,7 @@ const ListadoHistorialVentas = () => {
           ? { _id: v.cliente._id, ...v.cliente }
           : { _id: v.cliente } // Caso por si acaso
       }));
-  
+
       setClienteSeleccionado(clienteCompleto);
       setVentasCliente(ventasNormalizadas);
       setMostrarRegistroCliente(true);
