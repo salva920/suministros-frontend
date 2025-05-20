@@ -135,52 +135,31 @@ const ListadoHistorialVentas = () => {
   // Función para manejar el clic en "Ver"
   const handleVerCliente = async (venta) => {
     try {
-      setCargando(true);
+      setCargando(true); // Añadir indicador de carga
       
-      // Extraer ID del cliente de forma segura
-      let clienteId;
-      if (venta.cliente && typeof venta.cliente === 'object') {
-        clienteId = venta.cliente._id?.toString();
-      } else if (typeof venta.cliente === 'string') {
-        clienteId = venta.cliente;
-      } else {
-        toast.error('Formato de cliente inválido en la venta');
-        return;
-      }
-
-      // Validar formato del ID
-      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
-      if (!clienteId || !objectIdRegex.test(clienteId)) {
-        toast.error('ID de cliente inválido');
-        return;
-      }
-
-      // Obtener datos completos del cliente
-      const responseCliente = await axios.get(`${API_URL}/clientes/${clienteId}`);
-      const clienteCompleto = responseCliente.data;
-
-      // Filtrar las ventas del cliente de las ventas ya cargadas
-      const ventasCliente = ventas.filter(v => {
-        const ventaClienteId = v.cliente?._id?.toString() || v.cliente?.toString();
-        return ventaClienteId === clienteId;
+      // Obtener todas las ventas del cliente
+      const response = await axios.get(`${API_URL}/ventas`, {
+        params: {
+          cliente: venta.cliente._id,
+          limit: 100 // Asegurar que se obtengan suficientes ventas
+        }
       });
-
-      setClienteSeleccionado(clienteCompleto);
-      setVentasCliente(ventasCliente);
+      
+      console.log('Ventas del cliente:', response.data.ventas); // Agregar log para depuración
+      
+      if (!response.data.ventas || response.data.ventas.length === 0) {
+        toast.info('El cliente no tiene ventas registradas');
+      }
+      
+      setClienteSeleccionado(venta.cliente);
+      setVentasCliente(response.data.ventas);
       setMostrarRegistroCliente(true);
     } catch (error) {
-      console.error('Error:', error);
-      toast.error(error.response?.data?.message || 'Error al cargar datos');
+      console.error('Error al obtener ventas del cliente:', error);
+      toast.error('Error al cargar historial del cliente');
     } finally {
       setCargando(false);
     }
-  };
-
-  // Función para cerrar el diálogo
-  const handleCloseDialog = () => {
-    setMostrarRegistroCliente(false);
-    setClienteSeleccionado(null);
-    setVentasCliente([]);
   };
 
   // Función para actualizar las ventas después de abonar o solventar
@@ -386,7 +365,7 @@ const ListadoHistorialVentas = () => {
                         {formatearFechaSimple(venta.fecha)}
                       </TableCell>
                       <TableCell>
-                        {venta.cliente && typeof venta.cliente === 'object' ? (
+                        {venta.cliente ? (
                           <Box>
                             <div>{venta.cliente.nombre}</div>
                             <Chip 
@@ -396,13 +375,7 @@ const ListadoHistorialVentas = () => {
                               color="info"
                             />
                           </Box>
-                        ) : (
-                          <Chip 
-                            label="Cliente no disponible"
-                            color="warning"
-                            size="small"
-                          />
-                        )}
+                        ) : 'Cliente no registrado'}
                       </TableCell>
                       <TableCell align="right">${(venta.total || 0).toFixed(2)}</TableCell>
                       <TableCell align="right">${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
@@ -469,7 +442,7 @@ const ListadoHistorialVentas = () => {
       {/* Modal de RegistroClienteDialog */}
       <RegistroClienteDialog
         open={mostrarRegistroCliente}
-        onClose={handleCloseDialog}
+        onClose={() => setMostrarRegistroCliente(false)}
         clienteSeleccionado={clienteSeleccionado}
         ventasCliente={ventasCliente}
         deudaTotal={ventasCliente.reduce((sum, v) => sum + (v.saldoPendiente || 0), 0)}
