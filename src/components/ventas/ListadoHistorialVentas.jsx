@@ -67,6 +67,9 @@ const ListadoHistorialVentas = () => {
       
       const ventasConCosto = response.data.ventas.map(venta => ({
         ...venta,
+        cliente: venta.cliente?._id 
+          ? venta.cliente 
+          : { _id: venta.cliente }, // Normalizar estructura
         costoFinal: venta.productos.reduce((total, p) => total + (p.precio * p.cantidad), 0)
       }));
       setVentas(ventasConCosto);
@@ -137,48 +140,40 @@ const ListadoHistorialVentas = () => {
     try {
       setCargando(true);
       
-      // Validar que la venta tenga un cliente válido
-      if (!venta.cliente || !venta.cliente._id) {
-        toast.error('No se puede acceder al historial del cliente');
+      // Obtener el ID del cliente de manera segura
+      const clienteId = venta.cliente?._id || venta.cliente;
+      
+      if (!clienteId) {
+        toast.error('La venta no tiene un cliente asociado válido');
         return;
       }
-
-      console.log('Cliente ID:', venta.cliente._id); // Debug
-
-      // Obtener solo las ventas del cliente específico
-      const response = await axios.get(`${API_URL}/ventas`, {
+  
+      // Obtener detalles completos del cliente
+      const responseCliente = await axios.get(`${API_URL}/clientes/${clienteId}`);
+      const clienteCompleto = responseCliente.data;
+  
+      // Obtener ventas del cliente
+      const responseVentas = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: venta.cliente._id,
+          cliente: clienteId,
           limit: 100,
           sort: 'fecha',
           order: 'desc'
         }
       });
-      
-      console.log('Respuesta del servidor:', response.data); // Debug
-      
-      if (!response.data?.ventas || response.data.ventas.length === 0) {
-        toast.info('El cliente no tiene ventas registradas');
-        return;
-      }
-      
-      // Asegurarse de que las ventas correspondan al cliente
-      const ventasFiltradas = response.data.ventas.filter(v => 
-        v.cliente && (v.cliente._id === venta.cliente._id || v.cliente === venta.cliente._id)
-      );
-      
-      console.log('Ventas filtradas:', ventasFiltradas); // Debug
-      
-      // Primero establecer el cliente y luego las ventas
-      setClienteSeleccionado({
-        ...venta.cliente,
-        id: venta.cliente._id // Asegurar que el ID esté disponible
-      });
+  
+      // Normalizar la estructura de cliente en las ventas
+      const ventasFiltradas = responseVentas.data.ventas.map(v => ({
+        ...v,
+        cliente: v.cliente?._id ? v.cliente : { _id: v.cliente } // Normalizar estructura
+      }));
+  
+      setClienteSeleccionado(clienteCompleto);
       setVentasCliente(ventasFiltradas);
       setMostrarRegistroCliente(true);
     } catch (error) {
-      console.error('Error al obtener ventas del cliente:', error);
-      toast.error('Error al cargar historial del cliente');
+      console.error('Error al obtener datos del cliente:', error);
+      toast.error(error.response?.data?.error || 'Error al cargar datos del cliente');
     } finally {
       setCargando(false);
     }
