@@ -62,12 +62,16 @@ const RegistroClienteDialog = ({
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Actualizar ventas cuando cambia ventasCliente
+  // Actualizar ventas cuando cambia ventasCliente o clienteSeleccionado
   useEffect(() => {
-    if (ventasCliente) {
-      setVentas(ventasCliente);
+    if (ventasCliente && clienteSeleccionado) {
+      // Filtrar solo las ventas del cliente seleccionado
+      const ventasFiltradas = ventasCliente.filter(
+        venta => venta.cliente && venta.cliente._id === clienteSeleccionado._id
+      );
+      setVentas(ventasFiltradas);
     }
-  }, [ventasCliente]);
+  }, [ventasCliente, clienteSeleccionado]);
 
   const calcularDeudaTotal = () => {
     return ventas.reduce((total, venta) => {
@@ -143,81 +147,89 @@ const RegistroClienteDialog = ({
 
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
               <CheckCircle fontSize="small" sx={{ mr: 1 }} />
-              Historial Completo de Ventas
+              Historial de Ventas del Cliente
             </Typography>
 
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    {['Fecha', 'Total', 'Abonado', 'Saldo', 'Acciones'].map((header) => (
-                      <TableCell key={header} sx={{ fontWeight: 600 }}>
-                        {header}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                
-                <TableBody>
-                  {ventas.map(venta => (
-                    <TableRow key={venta._id} hover>
-                      <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
-                      <TableCell>${(venta.total || 0).toFixed(2)}</TableCell>
-                      <TableCell>${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
-                      <TableCell sx={{ 
-                        color: (venta.saldoPendiente || 0) > 0 ? 'error.main' : 'success.main',
-                        fontWeight: 500
-                      }}>
-                        ${(venta.saldoPendiente || 0).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        {(venta.saldoPendiente || 0) > 0 && (
-                          <Box display="flex" gap={1} alignItems="center">
-                            <TextField
-                              type="number"
-                              size="small"
-                              value={montosAbono[venta._id] || ''}
-                              onChange={(e) => handleMontoChange(venta._id, parseFloat(e.target.value))}
-                              InputProps={{
-                                startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                                inputProps: { 
-                                  min: 0,
-                                  max: venta.saldoPendiente,
-                                  step: 0.01
-                                }
-                              }}
-                              sx={{ width: 120 }}
-                            />
-                            <Button 
-                              variant="contained" 
-                              onClick={() => handleAbonar(venta)}
-                              disabled={!montosAbono[venta._id]}
-                            >
-                              Abonar
-                            </Button>
-                            <Button 
-                              variant="outlined" 
-                              color="success" 
-                              onClick={() => handleSolventarDeuda(venta)}
-                            >
-                              Pagar Total
-                            </Button>
-                          </Box>
-                        )}
-                        {(venta.saldoPendiente || 0) <= 0 && (
-                          <Chip 
-                            label="Pagado" 
-                            color="success" 
-                            size="small" 
-                            sx={{ fontWeight: 'bold' }}
-                          />
-                        )}
-                      </TableCell>
+            {ventas.length > 0 ? (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      {['Fecha', 'Total', 'Abonado', 'Saldo', 'Acciones'].map((header) => (
+                        <TableCell key={header} sx={{ fontWeight: 600 }}>
+                          {header}
+                        </TableCell>
+                      ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  
+                  <TableBody>
+                    {ventas.map(venta => (
+                      <TableRow key={venta._id} hover>
+                        <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
+                        <TableCell>${(venta.total || 0).toFixed(2)}</TableCell>
+                        <TableCell>${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
+                        <TableCell sx={{ 
+                          color: (venta.saldoPendiente || 0) > 0 ? 'error.main' : 'success.main',
+                          fontWeight: 500
+                        }}>
+                          ${(venta.saldoPendiente || 0).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {(venta.saldoPendiente || 0) > 0 && (
+                            <Box display="flex" gap={1} alignItems="center">
+                              <TextField
+                                type="number"
+                                size="small"
+                                value={montosAbono[venta._id] || ''}
+                                onChange={(e) => handleMontoChange(venta._id, parseFloat(e.target.value))}
+                                InputProps={{
+                                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                                  inputProps: { 
+                                    min: 0,
+                                    max: venta.saldoPendiente,
+                                    step: 0.01
+                                  }
+                                }}
+                                sx={{ width: 120 }}
+                              />
+                              <Button 
+                                variant="contained" 
+                                onClick={() => handleAbonar(venta)}
+                                disabled={!montosAbono[venta._id]}
+                              >
+                                Abonar
+                              </Button>
+                              <Button 
+                                variant="outlined" 
+                                color="success" 
+                                onClick={() => handleSolventarDeuda(venta)}
+                              >
+                                Pagar Total
+                              </Button>
+                            </Box>
+                          )}
+                          {(venta.saldoPendiente || 0) <= 0 && (
+                            <Chip 
+                              label="Pagado" 
+                              color="success" 
+                              size="small" 
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Box textAlign="center" p={4}>
+                <Typography variant="body1" color="textSecondary">
+                  No hay ventas registradas para este cliente
+                </Typography>
+              </Box>
+            )}
 
             <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
               <Typography variant="h6">
