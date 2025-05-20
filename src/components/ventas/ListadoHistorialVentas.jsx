@@ -135,34 +135,24 @@ const ListadoHistorialVentas = () => {
   // Función para manejar el clic en "Ver"
   const handleVerCliente = async (venta) => {
     try {
-      setCargando(true);
+      setCargando(true); // Añadir indicador de carga
       
-      // Validar que la venta tenga un cliente válido
-      if (!venta.cliente || !venta.cliente._id) {
-        toast.error('No se puede acceder al historial del cliente');
-        return;
-      }
-
-      // Obtener solo las ventas del cliente específico
+      // Obtener todas las ventas del cliente
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
           cliente: venta.cliente._id,
-          limit: 100
+          limit: 100 // Asegurar que se obtengan suficientes ventas
         }
       });
       
-      if (!response.data?.ventas || response.data.ventas.length === 0) {
+      console.log('Ventas del cliente:', response.data.ventas); // Agregar log para depuración
+      
+      if (!response.data.ventas || response.data.ventas.length === 0) {
         toast.info('El cliente no tiene ventas registradas');
-        return;
       }
       
-      // Filtrar solo las ventas del cliente seleccionado
-      const ventasCliente = response.data.ventas.filter(
-        v => v.cliente && v.cliente._id === venta.cliente._id
-      );
-      
       setClienteSeleccionado(venta.cliente);
-      setVentasCliente(ventasCliente);
+      setVentasCliente(response.data.ventas);
       setMostrarRegistroCliente(true);
     } catch (error) {
       console.error('Error al obtener ventas del cliente:', error);
@@ -319,9 +309,9 @@ const ListadoHistorialVentas = () => {
                 </Typography>
                 <Typography variant="h5" sx={{ 
                   fontWeight: 'bold',
-                  color: (totalDeudas || 0) > 0 ? 'error.main' : 'success.main'
+                  color: totalDeudas > 0 ? 'error.main' : 'success.main'
                 }}>
-                  ${(totalDeudas || 0).toFixed(2)}
+                  ${totalDeudas.toFixed(2)}
                 </Typography>
               </Box>
             </Box>
@@ -387,18 +377,18 @@ const ListadoHistorialVentas = () => {
                           </Box>
                         ) : 'Cliente no registrado'}
                       </TableCell>
-                      <TableCell align="right">${(venta.total || 0).toFixed(2)}</TableCell>
-                      <TableCell align="right">${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
+                      <TableCell align="right">${venta.total.toFixed(2)}</TableCell>
+                      <TableCell align="right">${venta.montoAbonado.toFixed(2)}</TableCell>
                       <TableCell align="right" sx={{ 
-                        color: (venta.saldoPendiente || 0) > 0 ? 'error.main' : 'success.main',
+                        color: venta.saldoPendiente > 0 ? 'error.main' : 'success.main',
                         fontWeight: 'bold'
                       }}>
-                        ${(venta.saldoPendiente || 0).toFixed(2)}
+                        ${venta.saldoPendiente.toFixed(2)}
                       </TableCell>
                       <TableCell>
                         <Chip 
-                          label={(venta.saldoPendiente || 0) > 0 ? 'Pendiente' : 'Pagado'} 
-                          color={(venta.saldoPendiente || 0) > 0 ? 'warning' : 'success'}
+                          label={venta.saldoPendiente > 0 ? 'Pendiente' : 'Pagado'} 
+                          color={venta.saldoPendiente > 0 ? 'warning' : 'success'}
                           size="small"
                         />
                       </TableCell>
