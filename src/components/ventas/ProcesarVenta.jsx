@@ -240,29 +240,44 @@ const ProcesarVenta = () => {
         throw new Error('ID de cliente inválido');
       }
 
+      // Calcular montos
+      const totalVenta = totalGeneral;
       const montoAbonadoFinal = formState.tipoPago === 'contado' 
-        ? totalGeneral 
-        : Number(formState.montoAbonar);
+        ? totalVenta 
+        : Number(formState.montoAbonar || 0);
+      
+      const saldoPendiente = totalVenta - montoAbonadoFinal;
+
+      // Validar montos
+      if (montoAbonadoFinal > totalVenta) {
+        throw new Error('El monto abonado no puede ser mayor al total de la venta');
+      }
+
+      if (saldoPendiente < 0) {
+        throw new Error('El saldo pendiente no puede ser negativo');
+      }
 
       const ventaData = {
-        fecha:  formState.fechaVenta,  // Formato de fecha en UTC
-        cliente: clienteId, // Solo el ID válido
+        fecha: formState.fechaVenta,
+        cliente: clienteId,
         productos: state.productosVenta.map(p => ({
-          producto: p._id, // ID del producto
+          producto: p._id,
           cantidad: p.cantidad,
           precioUnitario: p.precioVenta,
           costoInicial: p.costoFinal,
-          gananciaUnitaria: p.precioVenta - p.costoFinal,
-          gananciaTotal: (p.precioVenta - p.costoFinal) * p.cantidad
+          gananciaUnitaria: p.gananciaUnitaria,
+          gananciaTotal: p.gananciaTotal
         })),
-        total: totalGeneral, // Asegúrate de que totalGeneral esté definido
+        total: totalVenta,
         tipoPago: formState.tipoPago,
         metodoPago: formState.metodoPago,
         nrFactura: formState.nrFactura,
         banco: formState.metodoPago !== 'efectivo' ? formState.banco : undefined,
         montoAbonado: montoAbonadoFinal,
-        saldoPendiente: totalGeneral - montoAbonadoFinal // Calcular saldo pendiente
+        saldoPendiente: saldoPendiente
       };
+
+      console.log('Datos de la venta:', ventaData);
 
       const response = await axios.post(`${API_URL}/ventas`, ventaData);
       console.log('Venta creada:', response.data);
@@ -274,7 +289,8 @@ const ProcesarVenta = () => {
         productosVenta: [],
         cliente: null,
         busquedaDni: '',
-        nrFactura: ''
+        nrFactura: '',
+        montoAbonar: ''
       }));
 
       toast.success('Venta registrada exitosamente!');
@@ -282,7 +298,7 @@ const ProcesarVenta = () => {
     } catch (error) {
       console.error('Error al finalizar la venta:', error);
       console.error('Respuesta de error:', error.response?.data);
-      toast.error(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(error.response?.data?.error || error.message || 'Error al finalizar la venta');
     }
   };
 
