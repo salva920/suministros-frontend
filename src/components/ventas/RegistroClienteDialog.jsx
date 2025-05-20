@@ -49,50 +49,29 @@ const RegistroClienteDialog = ({
   open, 
   onClose, 
   clienteSeleccionado, 
-  onDataUpdated
+  ventasCliente,
+  deudaTotal,
+  montoAbonar,
+  setMontoAbonar,
+  handleAbonarSaldo,
+  handleImprimirFactura
 }) => {
   const [ventas, setVentas] = useState([]);
   const [montosAbono, setMontosAbono] = useState({});
   const [mostrarGenerarFactura, setMostrarGenerarFactura] = useState(false);
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Cargar ventas al abrir el diálogo
+  // Actualizar ventas cuando cambia ventasCliente
   useEffect(() => {
-    const cargarVentasPendientes = async () => {
-      if (open && clienteSeleccionado?.id) {  
-        try {
-          setLoading(true);
-          
-          const response = await axios.get(`${API_URL}/ventas`, {
-            params: {
-              cliente: clienteSeleccionado.id, // ✅ Enviar id
-              limit: 1000
-            }
-          });
-
-          if (response.data?.ventas) {
-            setVentas(response.data.ventas);
-          }
-          
-        } catch (error) {
-          console.error('Error cargando ventas:', error);
-          toast.error(`Error: ${error.response?.data?.message || error.message}`);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    
-    if (open) cargarVentasPendientes();
-  }, [open, clienteSeleccionado?.id]);
+    if (ventasCliente) {
+      setVentas(ventasCliente);
+    }
+  }, [ventasCliente]);
 
   const calcularDeudaTotal = () => {
     return ventas.reduce((total, venta) => {
-      if (venta.saldoPendiente > 0) {
-        return total + venta.saldoPendiente;
-      }
-      return total;
+      return total + (venta.saldoPendiente || 0);
     }, 0);
   };
 
@@ -104,21 +83,18 @@ const RegistroClienteDialog = ({
   };
 
   const handleAbonar = async (venta) => {
-    const monto = montosAbono[venta.id];
+    const monto = montosAbono[venta._id];
     if (!monto || monto <= 0) return;
 
     try {
-      const { data: ventaActualizada } = await axios.put(`${API_URL}/ventas/${venta.id}`, { // ✅ Cambiar _id por id
+      const ventaActualizada = {
+        ...venta,
+        montoAbonado: (venta.montoAbonado || 0) + monto,
+        saldoPendiente: (venta.saldoPendiente || 0) - monto
+      };
 
-        montoAbonado: venta.montoAbonado + monto,
-        saldoPendiente: venta.saldoPendiente - monto
-      });
-
-      setVentas(prev => prev.map(v => 
-        v.id === venta.id ? ventaActualizada : v // ✅ Cambiar _id por id
-      ));
-      
-      onDataUpdated?.();
+      handleAbonarSaldo(ventaActualizada);
+      setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
       toast.success(`Abono de $${monto.toFixed(2)} registrado`);
     } catch (error) {
       toast.error('Error al procesar el abono');
@@ -127,28 +103,18 @@ const RegistroClienteDialog = ({
 
   const handleSolventarDeuda = async (venta) => {
     try {
-      const { data: ventaActualizada } = await axios.put(`${API_URL}/ventas/${venta.id}`, { // ✅ Cambiar _id por id
-
+      const ventaActualizada = {
+        ...venta,
         montoAbonado: venta.total,
         saldoPendiente: 0
-      });
+      };
 
-      setVentas(prev => prev.map(v => 
-        v.id === venta.id ? ventaActualizada : v // ✅ Cambiar _id por id
-      ));
-      
-      onDataUpdated?.();
+      handleAbonarSaldo(ventaActualizada);
       toast.success('Deuda solventada completamente');
     } catch (error) {
       toast.error('Error al solventar la deuda');
     }
   };
-
-  // Agregar console.log para depuración
-  useEffect(() => {
-    console.log('Cliente:', clienteSeleccionado);
-    console.log('Ventas:', ventas);
-  }, [clienteSeleccionado, ventas]); // Se ejecuta cada vez que cambian
 
   return (
     <StyledDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -194,24 +160,24 @@ const RegistroClienteDialog = ({
                 
                 <TableBody>
                   {ventas.map(venta => (
-                    <TableRow key={venta.id} hover>
+                    <TableRow key={venta._id} hover>
                       <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
-                      <TableCell>${venta.total.toFixed(2)}</TableCell>
-                      <TableCell>${venta.montoAbonado.toFixed(2)}</TableCell>
+                      <TableCell>${(venta.total || 0).toFixed(2)}</TableCell>
+                      <TableCell>${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
                       <TableCell sx={{ 
-                        color: venta.saldoPendiente > 0 ? 'error.main' : 'success.main',
+                        color: (venta.saldoPendiente || 0) > 0 ? 'error.main' : 'success.main',
                         fontWeight: 500
                       }}>
-                        ${venta.saldoPendiente.toFixed(2)}
+                        ${(venta.saldoPendiente || 0).toFixed(2)}
                       </TableCell>
                       <TableCell>
-                        {venta.saldoPendiente > 0 && (
+                        {(venta.saldoPendiente || 0) > 0 && (
                           <Box display="flex" gap={1} alignItems="center">
                             <TextField
                               type="number"
                               size="small"
-                              value={montosAbono[venta.id] || ''}
-                              onChange={(e) => handleMontoChange(venta.id, parseFloat(e.target.value))}
+                              value={montosAbono[venta._id] || ''}
+                              onChange={(e) => handleMontoChange(venta._id, parseFloat(e.target.value))}
                               InputProps={{
                                 startAdornment: <InputAdornment position="start">$</InputAdornment>,
                                 inputProps: { 
@@ -225,7 +191,7 @@ const RegistroClienteDialog = ({
                             <Button 
                               variant="contained" 
                               onClick={() => handleAbonar(venta)}
-                              disabled={!montosAbono[venta.id]}
+                              disabled={!montosAbono[venta._id]}
                             >
                               Abonar
                             </Button>
@@ -238,7 +204,7 @@ const RegistroClienteDialog = ({
                             </Button>
                           </Box>
                         )}
-                        {venta.saldoPendiente <= 0 && (
+                        {(venta.saldoPendiente || 0) <= 0 && (
                           <Chip 
                             label="Pagado" 
                             color="success" 
