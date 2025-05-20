@@ -240,13 +240,13 @@ const ProcesarVenta = () => {
         throw new Error('ID de cliente inválido');
       }
 
-      // Calcular montos
-      const totalVenta = totalGeneral;
+      // Calcular montos con precisión decimal
+      const totalVenta = parseFloat(totalGeneral.toFixed(2));
       const montoAbonadoFinal = formState.tipoPago === 'contado' 
         ? totalVenta 
-        : Number(formState.montoAbonar || 0);
+        : parseFloat(Number(formState.montoAbonar || 0).toFixed(2));
       
-      const saldoPendiente = totalVenta - montoAbonadoFinal;
+      const saldoPendiente = parseFloat((totalVenta - montoAbonadoFinal).toFixed(2));
 
       // Validar montos
       if (montoAbonadoFinal > totalVenta) {
@@ -257,16 +257,21 @@ const ProcesarVenta = () => {
         throw new Error('El saldo pendiente no puede ser negativo');
       }
 
+      // Validar que los montos coincidan
+      if (Math.abs((totalVenta - montoAbonadoFinal - saldoPendiente)) > 0.01) {
+        throw new Error('El saldo pendiente no coincide con el total y monto abonado');
+      }
+
       const ventaData = {
         fecha: formState.fechaVenta,
         cliente: clienteId,
         productos: state.productosVenta.map(p => ({
           producto: p._id,
-          cantidad: p.cantidad,
-          precioUnitario: p.precioVenta,
-          costoInicial: p.costoFinal,
-          gananciaUnitaria: p.gananciaUnitaria,
-          gananciaTotal: p.gananciaTotal
+          cantidad: parseFloat(p.cantidad),
+          precioUnitario: parseFloat(p.precioVenta.toFixed(2)),
+          costoInicial: parseFloat(p.costoFinal.toFixed(2)),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria.toFixed(2)),
+          gananciaTotal: parseFloat(p.gananciaTotal.toFixed(2))
         })),
         total: totalVenta,
         tipoPago: formState.tipoPago,
