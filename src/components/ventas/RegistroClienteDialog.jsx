@@ -65,21 +65,8 @@ const RegistroClienteDialog = ({
   // Actualizar ventas cuando cambia ventasCliente o clienteSeleccionado
   useEffect(() => {
     if (ventasCliente && clienteSeleccionado) {
-      // Normalizar el ID del cliente seleccionado
-      const clienteId = clienteSeleccionado._id?.toString();
-      
-      if (!clienteId) {
-        console.error('ID de cliente inválido');
-        return;
-      }
-
-      // Filtrar y normalizar ventas
-      const ventasFiltradas = ventasCliente
-        .filter(v => {
-          // Normalizar ID del cliente en la venta
-          const ventaClienteId = v.cliente?._id?.toString() || v.cliente?.toString();
-          return ventaClienteId === clienteId;
-        })
+      // Normalizar y ordenar las ventas
+      const ventasNormalizadas = ventasCliente
         .map(v => ({
           ...v,
           _id: v._id?.toString(),
@@ -92,14 +79,10 @@ const RegistroClienteDialog = ({
           total: parseFloat(v.total || 0),
           montoAbonado: parseFloat(v.montoAbonado || 0),
           saldoPendiente: parseFloat(v.saldoPendiente || 0)
-        }));
+        }))
+        .sort((a, b) => (b.fecha || 0) - (a.fecha || 0));
       
-      // Ordenar por fecha descendente
-      const ventasOrdenadas = [...ventasFiltradas].sort((a, b) => 
-        (b.fecha || 0) - (a.fecha || 0)
-      );
-      
-      setVentas(ventasOrdenadas);
+      setVentas(ventasNormalizadas);
     } else {
       setVentas([]);
     }

@@ -159,26 +159,14 @@ const ListadoHistorialVentas = () => {
       const responseCliente = await axios.get(`${API_URL}/clientes/${clienteId}`);
       const clienteCompleto = responseCliente.data;
 
-      // Obtener ventas del cliente con populate
-      const responseVentas = await axios.get(`${API_URL}/ventas`, {
-        params: {
-          cliente: clienteId,
-          populate: 'cliente'
-        }
+      // Filtrar las ventas del cliente de las ventas ya cargadas
+      const ventasCliente = ventas.filter(v => {
+        const ventaClienteId = v.cliente?._id?.toString() || v.cliente?.toString();
+        return ventaClienteId === clienteId;
       });
 
-      // Normalizar estructura de las ventas
-      const ventasNormalizadas = responseVentas.data.ventas.map(v => ({
-        ...v,
-        cliente: {
-          _id: v.cliente?._id?.toString(),
-          nombre: v.cliente?.nombre,
-          rif: v.cliente?.rif
-        }
-      }));
-
       setClienteSeleccionado(clienteCompleto);
-      setVentasCliente(ventasNormalizadas);
+      setVentasCliente(ventasCliente);
       setMostrarRegistroCliente(true);
     } catch (error) {
       console.error('Error:', error);
