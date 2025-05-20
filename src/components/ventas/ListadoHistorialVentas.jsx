@@ -170,7 +170,10 @@ const ListadoHistorialVentas = () => {
       console.log('Ventas filtradas:', ventasFiltradas); // Debug
       
       // Primero establecer el cliente y luego las ventas
-      setClienteSeleccionado(venta.cliente);
+      setClienteSeleccionado({
+        ...venta.cliente,
+        id: venta.cliente._id // Asegurar que el ID esté disponible
+      });
       setVentasCliente(ventasFiltradas);
       setMostrarRegistroCliente(true);
     } catch (error) {
@@ -184,8 +187,11 @@ const ListadoHistorialVentas = () => {
   // Función para cerrar el diálogo
   const handleCloseDialog = () => {
     setMostrarRegistroCliente(false);
-    setClienteSeleccionado(null);
-    setVentasCliente([]);
+    // No limpiar los estados aquí para evitar parpadeos
+    setTimeout(() => {
+      setClienteSeleccionado(null);
+      setVentasCliente([]);
+    }, 300);
   };
 
   // Función para actualizar las ventas después de abonar o solventar

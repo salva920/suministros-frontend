@@ -67,11 +67,13 @@ const RegistroClienteDialog = ({
     console.log('ventasCliente:', ventasCliente); // Debug
     console.log('clienteSeleccionado:', clienteSeleccionado); // Debug
 
-    if (ventasCliente && clienteSeleccionado) {
+    if (ventasCliente && ventasCliente.length > 0 && clienteSeleccionado) {
       // Ordenar las ventas por fecha, más recientes primero
-      const ventasOrdenadas = [...ventasCliente].sort((a, b) => 
-        new Date(b.fecha) - new Date(a.fecha)
-      );
+      const ventasOrdenadas = [...ventasCliente].sort((a, b) => {
+        const fechaA = new Date(a.fecha);
+        const fechaB = new Date(b.fecha);
+        return fechaB - fechaA;
+      });
       
       console.log('Ventas ordenadas:', ventasOrdenadas); // Debug
       setVentas(ventasOrdenadas);
