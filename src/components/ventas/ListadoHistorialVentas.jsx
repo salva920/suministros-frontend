@@ -143,6 +143,8 @@ const ListadoHistorialVentas = () => {
         return;
       }
 
+      console.log('Cliente ID:', venta.cliente._id); // Debug
+
       // Obtener solo las ventas del cliente específico
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
@@ -153,13 +155,22 @@ const ListadoHistorialVentas = () => {
         }
       });
       
+      console.log('Respuesta del servidor:', response.data); // Debug
+      
       if (!response.data?.ventas || response.data.ventas.length === 0) {
         toast.info('El cliente no tiene ventas registradas');
         return;
       }
       
+      // Asegurarse de que las ventas correspondan al cliente
+      const ventasFiltradas = response.data.ventas.filter(v => 
+        v.cliente && (v.cliente._id === venta.cliente._id || v.cliente === venta.cliente._id)
+      );
+      
+      console.log('Ventas filtradas:', ventasFiltradas); // Debug
+      
       setClienteSeleccionado(venta.cliente);
-      setVentasCliente(response.data.ventas);
+      setVentasCliente(ventasFiltradas);
       setMostrarRegistroCliente(true);
     } catch (error) {
       console.error('Error al obtener ventas del cliente:', error);

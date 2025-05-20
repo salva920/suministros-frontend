@@ -64,12 +64,16 @@ const RegistroClienteDialog = ({
 
   // Actualizar ventas cuando cambia ventasCliente o clienteSeleccionado
   useEffect(() => {
+    console.log('ventasCliente:', ventasCliente); // Debug
+    console.log('clienteSeleccionado:', clienteSeleccionado); // Debug
+
     if (ventasCliente && clienteSeleccionado) {
       // Ordenar las ventas por fecha, más recientes primero
       const ventasOrdenadas = [...ventasCliente].sort((a, b) => 
         new Date(b.fecha) - new Date(a.fecha)
       );
       
+      console.log('Ventas ordenadas:', ventasOrdenadas); // Debug
       setVentas(ventasOrdenadas);
     } else {
       setVentas([]);
@@ -82,6 +86,8 @@ const RegistroClienteDialog = ({
       setVentas([]);
       setMontosAbono({});
       setVentaSeleccionada(null);
+      setClienteSeleccionado(null);
+      setVentasCliente([]);
     }
   }, [open]);
 
