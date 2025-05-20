@@ -137,45 +137,42 @@ const ListadoHistorialVentas = () => {
     try {
       setCargando(true);
       
-      // Validar que la venta tenga un cliente válido
-      if (!venta.cliente || !venta.cliente._id) {
-        toast.error('No se puede acceder al historial del cliente');
+      // Obtener ID del cliente de manera segura
+      const clienteId = venta.cliente?._id || venta.cliente;
+      
+      if (!clienteId) {
+        toast.error('La venta no tiene un cliente asociado');
         return;
       }
-
-      console.log('Cliente ID:', venta.cliente._id); // Debug
-
-      // Obtener solo las ventas del cliente específico
-      const response = await axios.get(`${API_URL}/ventas`, {
+  
+      // Obtener datos completos del cliente
+      const responseCliente = await axios.get(`${API_URL}/clientes/${clienteId}`);
+      const clienteCompleto = responseCliente.data;
+  
+      // Obtener ventas del cliente con populate
+      const responseVentas = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: venta.cliente._id,
+          cliente: clienteId,
           limit: 100,
-          sort: 'fecha',
-          order: 'desc'
+          sort: '-fecha',
+          populate: 'cliente'
         }
       });
-      
-      console.log('Respuesta del servidor:', response.data); // Debug
-      
-      if (!response.data?.ventas || response.data.ventas.length === 0) {
-        toast.info('El cliente no tiene ventas registradas');
-        return;
-      }
-      
-      // Asegurarse de que las ventas correspondan al cliente
-      const ventasFiltradas = response.data.ventas.filter(v => 
-        v.cliente && (v.cliente._id === venta.cliente._id || v.cliente === venta.cliente._id)
-      );
-      
-      console.log('Ventas filtradas:', ventasFiltradas); // Debug
-      
-      // Primero establecer el cliente y luego las ventas
-      setClienteSeleccionado(venta.cliente);
-      setVentasCliente(ventasFiltradas);
+  
+      // Normalizar estructura de cliente en ventas
+      const ventasNormalizadas = responseVentas.data.ventas.map(v => ({
+        ...v,
+        cliente: v.cliente?._id 
+          ? { _id: v.cliente._id, ...v.cliente }
+          : { _id: v.cliente } // Caso por si acaso
+      }));
+  
+      setClienteSeleccionado(clienteCompleto);
+      setVentasCliente(ventasNormalizadas);
       setMostrarRegistroCliente(true);
     } catch (error) {
-      console.error('Error al obtener ventas del cliente:', error);
-      toast.error('Error al cargar historial del cliente');
+      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'Error al cargar datos');
     } finally {
       setCargando(false);
     }
@@ -391,7 +388,7 @@ const ListadoHistorialVentas = () => {
                         {formatearFechaSimple(venta.fecha)}
                       </TableCell>
                       <TableCell>
-                        {venta.cliente ? (
+                        {venta.cliente && typeof venta.cliente === 'object' ? (
                           <Box>
                             <div>{venta.cliente.nombre}</div>
                             <Chip 
@@ -401,7 +398,13 @@ const ListadoHistorialVentas = () => {
                               color="info"
                             />
                           </Box>
-                        ) : 'Cliente no registrado'}
+                        ) : (
+                          <Chip 
+                            label="Cliente no disponible"
+                            color="warning"
+                            size="small"
+                          />
+                        )}
                       </TableCell>
                       <TableCell align="right">${(venta.total || 0).toFixed(2)}</TableCell>
                       <TableCell align="right">${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
