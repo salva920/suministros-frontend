@@ -66,9 +66,14 @@ const RegistroClienteDialog = ({
   useEffect(() => {
     if (ventasCliente && clienteSeleccionado) {
       // Asegurarse de que las ventas correspondan al cliente seleccionado
-      const ventasFiltradas = ventasCliente.filter(
-        venta => venta.cliente && venta.cliente._id === clienteSeleccionado._id
-      );
+      const ventasFiltradas = ventasCliente.filter(venta => {
+        // Verificar que la venta tenga cliente y que coincida con el cliente seleccionado
+        const clienteVenta = venta.cliente;
+        return clienteVenta && 
+               (typeof clienteVenta === 'string' ? 
+                clienteVenta === clienteSeleccionado._id : 
+                clienteVenta._id === clienteSeleccionado._id);
+      });
       
       // Ordenar las ventas por fecha, más recientes primero
       const ventasOrdenadas = ventasFiltradas.sort((a, b) => 
@@ -80,6 +85,15 @@ const RegistroClienteDialog = ({
       setVentas([]);
     }
   }, [ventasCliente, clienteSeleccionado]);
+
+  // Limpiar estados cuando se cierra el diálogo
+  useEffect(() => {
+    if (!open) {
+      setVentas([]);
+      setMontosAbono({});
+      setVentaSeleccionada(null);
+    }
+  }, [open]);
 
   const calcularDeudaTotal = () => {
     return ventas.reduce((total, venta) => {
@@ -173,7 +187,7 @@ const RegistroClienteDialog = ({
                   
                   <TableBody>
                     {ventas.map(venta => (
-                      <TableRow key={venta._id} hover>
+                      <TableRow key={venta._id || venta.id} hover>
                         <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
                         <TableCell>${(venta.total || 0).toFixed(2)}</TableCell>
                         <TableCell>${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
@@ -189,8 +203,8 @@ const RegistroClienteDialog = ({
                               <TextField
                                 type="number"
                                 size="small"
-                                value={montosAbono[venta._id] || ''}
-                                onChange={(e) => handleMontoChange(venta._id, parseFloat(e.target.value))}
+                                value={montosAbono[venta._id || venta.id] || ''}
+                                onChange={(e) => handleMontoChange(venta._id || venta.id, parseFloat(e.target.value))}
                                 InputProps={{
                                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                                   inputProps: { 
@@ -204,7 +218,7 @@ const RegistroClienteDialog = ({
                               <Button 
                                 variant="contained" 
                                 onClick={() => handleAbonar(venta)}
-                                disabled={!montosAbono[venta._id]}
+                                disabled={!montosAbono[venta._id || venta.id]}
                               >
                                 Abonar
                               </Button>
