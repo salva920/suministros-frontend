@@ -355,6 +355,25 @@ const ProcesarVenta = () => {
     setState(prev => ({ ...prev, mostrarModalPago: true }));
   };
 
+  // Validación de cálculos
+  useEffect(() => {
+    const totalCalculado = state.productosVenta.reduce((acc, p) => 
+      acc + (parseFloat(p.precioVenta) * parseFloat(p.cantidad)), 0);
+    
+    const diferencia = Math.abs(totalCalculado - totalGeneral);
+    if (diferencia > 0.05) {
+      setState(prev => ({
+        ...prev,
+        error: 'Discrepancia en cálculos. Verifique precios y cantidades'
+      }));
+    } else {
+      setState(prev => ({
+        ...prev,
+        error: null
+      }));
+    }
+  }, [state.productosVenta, totalGeneral]);
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Botón para ir al Dashboard */}
@@ -734,6 +753,13 @@ const ProcesarVenta = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* Mostrar error si existe */}
+      {state.error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {state.error}
+        </Alert>
+      )}
     </Container>
   );
 };
