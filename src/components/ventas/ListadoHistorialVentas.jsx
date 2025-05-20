@@ -137,20 +137,23 @@ const ListadoHistorialVentas = () => {
     try {
       setCargando(true);
       
-      // Obtener ID del cliente de manera segura
+      // Extraer ID del cliente de forma segura
       let clienteId;
-      if (typeof venta.cliente === 'object' && venta.cliente !== null) {
-        clienteId = venta.cliente._id;
+      if (venta.cliente && typeof venta.cliente === 'object') {
+        clienteId = venta.cliente._id?.toString();
       } else if (typeof venta.cliente === 'string') {
         clienteId = venta.cliente;
-      }
-      
-      if (!clienteId) {
-        toast.error('La venta no tiene un cliente asociado válido');
+      } else {
+        toast.error('Formato de cliente inválido en la venta');
         return;
       }
 
-      console.log('ID del cliente:', clienteId); // Debug
+      // Validar formato del ID
+      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+      if (!clienteId || !objectIdRegex.test(clienteId)) {
+        toast.error('ID de cliente inválido');
+        return;
+      }
 
       // Obtener datos completos del cliente
       const responseCliente = await axios.get(`${API_URL}/clientes/${clienteId}`);
@@ -160,18 +163,18 @@ const ListadoHistorialVentas = () => {
       const responseVentas = await axios.get(`${API_URL}/ventas`, {
         params: {
           cliente: clienteId,
-          limit: 100,
-          sort: '-fecha',
           populate: 'cliente'
         }
       });
 
-      // Normalizar estructura de cliente en ventas
+      // Normalizar estructura de las ventas
       const ventasNormalizadas = responseVentas.data.ventas.map(v => ({
         ...v,
-        cliente: v.cliente?._id 
-          ? { _id: v.cliente._id, ...v.cliente }
-          : { _id: v.cliente } // Caso por si acaso
+        cliente: {
+          _id: v.cliente?._id?.toString(),
+          nombre: v.cliente?.nombre,
+          rif: v.cliente?.rif
+        }
       }));
 
       setClienteSeleccionado(clienteCompleto);
