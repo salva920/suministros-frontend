@@ -77,21 +77,28 @@ const RegistroClienteDialog = ({
       const ventasFiltradas = ventasCliente
         .filter(v => {
           // Normalizar ID del cliente en la venta
-          const ventaClienteId = v.cliente?.id?.toString() || v.cliente?.toString();
+          const ventaClienteId = v.cliente?.toString() || v.cliente?._id?.toString();
           return ventaClienteId === clienteId;
         })
         .map(v => ({
           ...v,
-          id: v.id?.toString(),
+          id: v._id?.toString(),
           cliente: {
-            id: v.cliente?.id?.toString(),
+            id: v.cliente?.toString() || v.cliente?._id?.toString(),
             nombre: v.cliente?.nombre || 'Cliente no disponible',
             rif: v.cliente?.rif || 'Sin RIF'
           },
-          fecha: v.fecha ? new Date(v.fecha) : null,
-          total: parseFloat(v.total || 0),
-          montoAbonado: parseFloat(v.montoAbonado || 0),
-          saldoPendiente: parseFloat(v.saldoPendiente || 0)
+          fecha: v.fecha ? new Date(v.fecha.$date || v.fecha) : null,
+          total: parseFloat(v.total?.$numberInt || v.total || 0),
+          montoAbonado: parseFloat(v.montoAbonado?.$numberInt || v.montoAbonado || 0),
+          saldoPendiente: parseFloat(v.saldoPendiente?.$numberInt || v.saldoPendiente || 0),
+          productos: v.productos.map(p => ({
+            producto: p.producto?.toString() || p.producto?._id?.toString(),
+            cantidad: parseFloat(p.cantidad?.$numberInt || p.cantidad || 0),
+            precioUnitario: parseFloat(p.precioUnitario?.$numberInt || p.precioUnitario || 0),
+            gananciaUnitaria: parseFloat(p.gananciaUnitaria?.$numberInt || p.gananciaUnitaria || 0),
+            gananciaTotal: parseFloat(p.gananciaTotal?.$numberInt || p.gananciaTotal || 0)
+          }))
         }))
         .sort((a, b) => {
           const fechaA = a.fecha ? new Date(a.fecha) : new Date(0);
@@ -138,7 +145,7 @@ const RegistroClienteDialog = ({
       const nuevoSaldo = parseFloat((venta.total || 0) - nuevoAbonado);
 
       // Asegurar que el ID del cliente sea válido
-      const clienteId = venta.cliente?.id || venta.cliente;
+      const clienteId = venta.cliente?.id || venta.cliente?._id || venta.cliente;
       if (!clienteId) {
         throw new Error('ID de cliente no válido');
       }
@@ -153,10 +160,9 @@ const RegistroClienteDialog = ({
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
         productos: venta.productos.map(p => ({
-          producto: p.producto?.id || p.producto,
+          producto: p.producto?.toString() || p.producto?._id?.toString(),
           cantidad: parseFloat(p.cantidad),
           precioUnitario: parseFloat(p.precioUnitario),
-          costoInicial: parseFloat(p.costoInicial),
           gananciaUnitaria: parseFloat(p.gananciaUnitaria),
           gananciaTotal: parseFloat(p.gananciaTotal)
         }))
@@ -187,7 +193,7 @@ const RegistroClienteDialog = ({
       setLoading(true);
       
       // Asegurar que el ID del cliente sea válido
-      const clienteId = venta.cliente?.id || venta.cliente;
+      const clienteId = venta.cliente?.id || venta.cliente?._id || venta.cliente;
       if (!clienteId) {
         throw new Error('ID de cliente no válido');
       }
@@ -202,10 +208,9 @@ const RegistroClienteDialog = ({
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
         productos: venta.productos.map(p => ({
-          producto: p.producto?.id || p.producto,
+          producto: p.producto?.toString() || p.producto?._id?.toString(),
           cantidad: parseFloat(p.cantidad),
           precioUnitario: parseFloat(p.precioUnitario),
-          costoInicial: parseFloat(p.costoInicial),
           gananciaUnitaria: parseFloat(p.gananciaUnitaria),
           gananciaTotal: parseFloat(p.gananciaTotal)
         }))
