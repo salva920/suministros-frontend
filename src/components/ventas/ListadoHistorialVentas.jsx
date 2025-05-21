@@ -135,27 +135,57 @@ const ListadoHistorialVentas = () => {
   // Función para manejar el clic en "Ver"
   const handleVerCliente = async (venta) => {
     try {
-      setCargando(true); // Añadir indicador de carga
+      setCargando(true);
       
-      // Obtener todas las ventas del cliente
+      // Extraer y validar ID del cliente
+      const clienteId = venta.cliente?._id?.toString() || venta.cliente;
+      
+      if (!clienteId) {
+        toast.error('ID de cliente inválido');
+        return;
+      }
+
+      // Obtener ventas con filtro estricto desde el backend
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: venta.cliente._id,
-          limit: 100 // Asegurar que se obtengan suficientes ventas
+          cliente: clienteId,
+          populate: 'cliente',
+          limit: 100
         }
       });
-      
-      console.log('Ventas del cliente:', response.data.ventas); // Agregar log para depuración
-      
-      if (!response.data.ventas || response.data.ventas.length === 0) {
-        toast.info('El cliente no tiene ventas registradas');
-      }
-      
-      setClienteSeleccionado(venta.cliente);
-      setVentasCliente(response.data.ventas);
+
+      // Normalizar estructura de ventas
+      const ventasFiltradas = response.data.ventas.map(v => ({
+        ...v,
+        _id: v._id?.toString(),
+        cliente: {
+          _id: v.cliente?._id?.toString(),
+          nombre: v.cliente?.nombre || 'Cliente no disponible',
+          rif: v.cliente?.rif || 'Sin RIF'
+        },
+        fecha: v.fecha ? new Date(v.fecha) : null,
+        total: parseFloat(v.total || 0),
+        montoAbonado: parseFloat(v.montoAbonado || 0),
+        saldoPendiente: parseFloat(v.saldoPendiente || 0)
+      }));
+
+      // Normalizar datos del cliente
+      const clienteNormalizado = {
+        _id: clienteId,
+        nombre: venta.cliente?.nombre || 'Cliente no disponible',
+        rif: venta.cliente?.rif || 'Sin RIF',
+        telefono: venta.cliente?.telefono || 'No disponible',
+        email: venta.cliente?.email || 'No disponible',
+        direccion: venta.cliente?.direccion || 'No disponible',
+        municipio: venta.cliente?.municipio || 'No disponible'
+      };
+
+      setClienteSeleccionado(clienteNormalizado);
+      setVentasCliente(ventasFiltradas);
       setMostrarRegistroCliente(true);
+      
     } catch (error) {
-      console.error('Error al obtener ventas del cliente:', error);
+      console.error('Error:', error);
       toast.error('Error al cargar historial del cliente');
     } finally {
       setCargando(false);

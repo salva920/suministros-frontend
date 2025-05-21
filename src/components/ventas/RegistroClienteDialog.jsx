@@ -65,24 +65,41 @@ const RegistroClienteDialog = ({
   // Actualizar ventas cuando cambia ventasCliente o clienteSeleccionado
   useEffect(() => {
     if (ventasCliente && clienteSeleccionado) {
-      // Normalizar y ordenar las ventas
-      const ventasNormalizadas = ventasCliente
+      // Normalizar ID del cliente seleccionado
+      const clienteId = clienteSeleccionado._id?.toString();
+      
+      if (!clienteId) {
+        console.error('ID de cliente inválido');
+        return;
+      }
+
+      // Filtrar y normalizar ventas
+      const ventasFiltradas = ventasCliente
+        .filter(v => {
+          // Normalizar ID del cliente en la venta
+          const ventaClienteId = v.cliente?._id?.toString() || v.cliente?.toString();
+          return ventaClienteId === clienteId;
+        })
         .map(v => ({
           ...v,
           _id: v._id?.toString(),
           cliente: {
             _id: v.cliente?._id?.toString(),
-            nombre: v.cliente?.nombre,
-            rif: v.cliente?.rif
+            nombre: v.cliente?.nombre || 'Cliente no disponible',
+            rif: v.cliente?.rif || 'Sin RIF'
           },
           fecha: v.fecha ? new Date(v.fecha) : null,
           total: parseFloat(v.total || 0),
           montoAbonado: parseFloat(v.montoAbonado || 0),
           saldoPendiente: parseFloat(v.saldoPendiente || 0)
         }))
-        .sort((a, b) => (b.fecha || 0) - (a.fecha || 0));
+        .sort((a, b) => {
+          const fechaA = a.fecha ? new Date(a.fecha) : new Date(0);
+          const fechaB = b.fecha ? new Date(b.fecha) : new Date(0);
+          return fechaB - fechaA;
+        });
       
-      setVentas(ventasNormalizadas);
+      setVentas(ventasFiltradas);
     } else {
       setVentas([]);
     }
