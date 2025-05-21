@@ -163,22 +163,27 @@ const RegistroClienteDialog = ({
         }))
       };
 
-      console.log('Enviando datos al backend para abono:', {
-        ventaId: ventaActualizada._id,
-        montoAbonado: nuevoAbonado,
-        saldoPendiente: nuevoSaldo,
-        estadoCredito: ventaActualizada.estadoCredito
-      });
+      console.log('Enviando datos al backend para abono:', ventaActualizada);
 
-      const success = await handleAbonarSaldo(ventaActualizada);
+      const response = await axios.put(`${API_URL}/ventas/${ventaId}`, ventaActualizada);
       
-      if (success) {
+      if (response.data) {
         setMontosAbono(prev => ({ ...prev, [ventaId]: '' }));
+        setVentas(prev => prev.map(v => 
+          (v._id || v.id) === ventaId ? response.data : v
+        ));
         toast.success(`Abono de $${monto.toFixed(2)} registrado`);
+        return true;
       }
     } catch (error) {
       console.error('Error al procesar abono:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al procesar el abono');
+      return false;
     } finally {
       setLoading(false);
     }
