@@ -128,7 +128,14 @@ const RegistroClienteDialog = ({
   };
 
   const handleAbonar = async (venta) => {
-    const monto = montosAbono[venta._id];
+    const ventaId = venta._id || venta.id;
+    if (!ventaId) {
+      console.error('Error: ID de venta no disponible', venta);
+      toast.error('Error: ID de venta no disponible');
+      return;
+    }
+
+    const monto = montosAbono[ventaId];
     if (!monto || monto <= 0) return;
 
     try {
@@ -138,15 +145,22 @@ const RegistroClienteDialog = ({
       const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
 
       const ventaActualizada = {
-        _id: venta._id,
-        cliente: venta.cliente._id,
-        total: venta.total,
-        montoAbonado: nuevoAbonado,
-        saldoPendiente: nuevoSaldo,
+        _id: ventaId,
+        cliente: venta.cliente?._id || venta.cliente,
+        total: parseFloat(venta.total || 0),
+        montoAbonado: parseFloat(nuevoAbonado),
+        saldoPendiente: parseFloat(nuevoSaldo),
         estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos
+        productos: venta.productos?.map(p => ({
+          producto: p.producto?._id || p.producto,
+          cantidad: parseFloat(p.cantidad || 0),
+          precioUnitario: parseFloat(p.precioUnitario || 0),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria || 0),
+          gananciaTotal: parseFloat(p.gananciaTotal || 0),
+          costoInicial: parseFloat(p.costoInicial || 0)
+        }))
       };
 
       console.log('Enviando datos al backend para abono:', {
@@ -158,19 +172,12 @@ const RegistroClienteDialog = ({
 
       const success = await handleAbonarSaldo(ventaActualizada);
       
-      console.log('Respuesta del backend:', success);
-      
       if (success) {
-        setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
+        setMontosAbono(prev => ({ ...prev, [ventaId]: '' }));
         toast.success(`Abono de $${monto.toFixed(2)} registrado`);
       }
     } catch (error) {
       console.error('Error al procesar abono:', error);
-      console.error('Detalles del error:', {
-        mensaje: error.message,
-        respuesta: error.response?.data,
-        estado: error.response?.status
-      });
       toast.error(error.response?.data?.error || 'Error al procesar el abono');
     } finally {
       setLoading(false);
@@ -178,18 +185,18 @@ const RegistroClienteDialog = ({
   };
 
   const handleSolventarDeuda = async (venta) => {
+    const ventaId = venta._id || venta.id;
+    if (!ventaId) {
+      console.error('Error: ID de venta no disponible', venta);
+      toast.error('Error: ID de venta no disponible');
+      return;
+    }
+
     try {
       setLoading(true);
       
-      // Validar que la venta tenga ID
-      if (!venta._id) {
-        console.error('Error: ID de venta no disponible');
-        toast.error('Error: ID de venta no disponible');
-        return;
-      }
-
       const ventaActualizada = {
-        _id: venta._id,
+        _id: ventaId,
         cliente: venta.cliente?._id || venta.cliente,
         total: parseFloat(venta.total || 0),
         montoAbonado: parseFloat(venta.total || 0),
@@ -218,19 +225,13 @@ const RegistroClienteDialog = ({
       const success = await handleAbonarSaldo(ventaActualizada);
       
       if (success) {
-        // Actualizar el estado local
         setVentas(prev => prev.map(v => 
-          v._id === venta._id ? ventaActualizada : v
+          (v._id || v.id) === ventaId ? ventaActualizada : v
         ));
         toast.success('Deuda solventada completamente');
       }
     } catch (error) {
       console.error('Error al solventar deuda:', error);
-      console.error('Detalles del error:', {
-        mensaje: error.message,
-        respuesta: error.response?.data,
-        estado: error.response?.status
-      });
       toast.error(error.response?.data?.error || 'Error al solventar la deuda');
     } finally {
       setLoading(false);
