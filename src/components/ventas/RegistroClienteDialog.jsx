@@ -138,14 +138,19 @@ const RegistroClienteDialog = ({
       const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
 
       const ventaActualizada = {
-        ...venta,
+        _id: venta._id,
+        cliente: venta.cliente._id,
+        total: venta.total,
         montoAbonado: nuevoAbonado,
         saldoPendiente: nuevoSaldo,
-        estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado'
+        estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
+        tipoPago: venta.tipoPago,
+        metodoPago: venta.metodoPago,
+        productos: venta.productos
       };
 
       console.log('Enviando datos al backend para abono:', {
-        ventaId: venta._id,
+        ventaId: ventaActualizada._id,
         montoAbonado: nuevoAbonado,
         saldoPendiente: nuevoSaldo,
         estadoCredito: ventaActualizada.estadoCredito
@@ -177,14 +182,19 @@ const RegistroClienteDialog = ({
       setLoading(true);
       
       const ventaActualizada = {
-        ...venta,
+        _id: venta._id,
+        cliente: venta.cliente._id,
+        total: venta.total,
         montoAbonado: venta.total,
         saldoPendiente: 0,
-        estadoCredito: 'pagado'
+        estadoCredito: 'pagado',
+        tipoPago: venta.tipoPago,
+        metodoPago: venta.metodoPago,
+        productos: venta.productos
       };
 
       console.log('Enviando datos al backend para solventar deuda:', {
-        ventaId: venta._id,
+        ventaId: ventaActualizada._id,
         montoAbonado: venta.total,
         saldoPendiente: 0,
         estadoCredito: 'pagado'
