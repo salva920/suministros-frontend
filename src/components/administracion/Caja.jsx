@@ -324,7 +324,17 @@ const CajaInteractiva = () => {
     }));
   };
 
-  const totalCajaUSD = state.saldos.USD + (state.saldos.Bs / state.tasaCambio);
+  // Calcular el último saldo de cada moneda
+  const getUltimoSaldo = (moneda) => {
+    const transaccionesMoneda = state.transacciones
+      .filter(t => t.moneda === moneda)
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    
+    return transaccionesMoneda.length > 0 ? transaccionesMoneda[0].saldo : 0;
+  };
+
+  // Calcular el valor total consolidado usando los últimos saldos
+  const totalCajaUSD = getUltimoSaldo('USD') + (getUltimoSaldo('Bs') / state.tasaCambio);
 
   const getResumenMonedas = () => state.transacciones.reduce((acc, t) => {
     if (!acc[t.moneda]) acc[t.moneda] = { entradas: 0, salidas: 0 };
