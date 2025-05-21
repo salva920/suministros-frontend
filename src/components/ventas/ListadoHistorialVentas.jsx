@@ -141,13 +141,8 @@ const ListadoHistorialVentas = () => {
   };
 
   // Función para abonar saldo
-  const handleAbonarSaldo = async (venta, monto) => {
-    const ventaActualizada = {
-      ...venta,
-      montoAbonado: venta.montoAbonado + monto,
-      saldoPendiente: venta.saldoPendiente - monto
-    };
-    await actualizarVenta(ventaActualizada);
+  const handleAbonarSaldo = async (ventaActualizada) => {
+    return await actualizarVenta(ventaActualizada);
   };
 
   // Función para manejar el orden de la tabla
