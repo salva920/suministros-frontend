@@ -65,18 +65,41 @@ const RegistroClienteDialog = ({
   // Actualizar ventas cuando cambia ventasCliente o clienteSeleccionado
   useEffect(() => {
     if (ventasCliente && clienteSeleccionado) {
-      // Filtrar ventas que pertenecen al cliente
-      const ventasFiltradas = ventasCliente.filter(v => {
-        const ventaClienteId = v.cliente?._id || v.cliente;
-        return ventaClienteId === clienteSeleccionado._id;
-      });
+      // Normalizar ID del cliente seleccionado
+      const clienteId = clienteSeleccionado._id?.toString();
       
-      // Ordenar por fecha descendente
-      const ventasOrdenadas = [...ventasFiltradas].sort((a, b) => 
-        new Date(b.fecha) - new Date(a.fecha)
-      );
+      if (!clienteId) {
+        console.error('ID de cliente inválido');
+        return;
+      }
+
+      // Filtrar y normalizar ventas
+      const ventasFiltradas = ventasCliente
+        .filter(v => {
+          // Normalizar ID del cliente en la venta
+          const ventaClienteId = v.cliente?._id?.toString() || v.cliente?.toString();
+          return ventaClienteId === clienteId;
+        })
+        .map(v => ({
+          ...v,
+          _id: v._id?.toString(),
+          cliente: {
+            _id: v.cliente?._id?.toString(),
+            nombre: v.cliente?.nombre || 'Cliente no disponible',
+            rif: v.cliente?.rif || 'Sin RIF'
+          },
+          fecha: v.fecha ? new Date(v.fecha) : null,
+          total: parseFloat(v.total || 0),
+          montoAbonado: parseFloat(v.montoAbonado || 0),
+          saldoPendiente: parseFloat(v.saldoPendiente || 0)
+        }))
+        .sort((a, b) => {
+          const fechaA = a.fecha ? new Date(a.fecha) : new Date(0);
+          const fechaB = b.fecha ? new Date(b.fecha) : new Date(0);
+          return fechaB - fechaA;
+        });
       
-      setVentas(ventasOrdenadas);
+      setVentas(ventasFiltradas);
     } else {
       setVentas([]);
     }
@@ -115,38 +138,39 @@ const RegistroClienteDialog = ({
       const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
 
       const ventaActualizada = {
-        _id: venta._id, // Asegurar que se envía el _id de MongoDB
-        cliente: venta.cliente?._id || venta.cliente, // Enviar solo el ID del cliente
-        total: parseFloat(venta.total || 0),
-        montoAbonado: parseFloat(nuevoAbonado),
-        saldoPendiente: parseFloat(nuevoSaldo),
+        _id: venta._id,
+        cliente: venta.cliente._id,
+        total: venta.total,
+        montoAbonado: nuevoAbonado,
+        saldoPendiente: nuevoSaldo,
         estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos?.map(p => ({
-          producto: p.producto?._id || p.producto, // ID del producto
-          cantidad: parseFloat(p.cantidad || 0),
-          precioUnitario: parseFloat(p.precioUnitario || 0),
-          gananciaUnitaria: parseFloat(p.gananciaUnitaria || 0),
-          gananciaTotal: parseFloat(p.gananciaTotal || 0),
-          costoInicial: parseFloat(p.costoInicial || 0) // Campo requerido en el esquema
-        }))
+        productos: venta.productos
       };
 
-      console.log('Enviando datos al backend para abono:', ventaActualizada);
+      console.log('Enviando datos al backend para abono:', {
+        ventaId: ventaActualizada._id,
+        montoAbonado: nuevoAbonado,
+        saldoPendiente: nuevoSaldo,
+        estadoCredito: ventaActualizada.estadoCredito
+      });
 
       const success = await handleAbonarSaldo(ventaActualizada);
+      
+      console.log('Respuesta del backend:', success);
       
       if (success) {
         setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
         toast.success(`Abono de $${monto.toFixed(2)} registrado`);
-        // Actualizar la lista de ventas
-        setVentas(prev => prev.map(v => 
-          v._id === venta._id ? { ...v, montoAbonado: nuevoAbonado, saldoPendiente: nuevoSaldo } : v
-        ));
       }
     } catch (error) {
       console.error('Error al procesar abono:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al procesar el abono');
     } finally {
       setLoading(false);
@@ -158,42 +182,38 @@ const RegistroClienteDialog = ({
       setLoading(true);
       
       const ventaActualizada = {
-        _id: venta._id, // Asegurar que se envía el _id de MongoDB
-        cliente: venta.cliente?._id || venta.cliente, // Enviar solo el ID del cliente
-        total: parseFloat(venta.total || 0),
-        montoAbonado: parseFloat(venta.total || 0),
+        _id: venta._id,
+        cliente: venta.cliente._id,
+        total: venta.total,
+        montoAbonado: venta.total,
         saldoPendiente: 0,
         estadoCredito: 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos?.map(p => ({
-          producto: p.producto?._id || p.producto, // ID del producto
-          cantidad: parseFloat(p.cantidad || 0),
-          precioUnitario: parseFloat(p.precioUnitario || 0),
-          gananciaUnitaria: parseFloat(p.gananciaUnitaria || 0),
-          gananciaTotal: parseFloat(p.gananciaTotal || 0),
-          costoInicial: parseFloat(p.costoInicial || 0) // Campo requerido en el esquema
-        }))
+        productos: venta.productos
       };
 
-      console.log('Enviando datos al backend para solventar deuda:', ventaActualizada);
+      console.log('Enviando datos al backend para solventar deuda:', {
+        ventaId: ventaActualizada._id,
+        montoAbonado: venta.total,
+        saldoPendiente: 0,
+        estadoCredito: 'pagado'
+      });
 
       const success = await handleAbonarSaldo(ventaActualizada);
       
+      console.log('Respuesta del backend:', success);
+      
       if (success) {
         toast.success('Deuda solventada completamente');
-        // Actualizar la lista de ventas
-        setVentas(prev => prev.map(v => 
-          v._id === venta._id ? { 
-            ...v, 
-            montoAbonado: parseFloat(venta.total || 0),
-            saldoPendiente: 0,
-            estadoCredito: 'pagado'
-          } : v
-        ));
       }
     } catch (error) {
       console.error('Error al solventar deuda:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al solventar la deuda');
     } finally {
       setLoading(false);

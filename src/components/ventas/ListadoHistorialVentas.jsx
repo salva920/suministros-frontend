@@ -99,24 +99,50 @@ const ListadoHistorialVentas = () => {
   // Función para actualizar una venta
   const actualizarVenta = async (ventaActualizada) => {
     try {
-      await axios.put(`${API_URL}/ventas/${ventaActualizada._id}`, ventaActualizada);
-      const ventasActualizadas = ventas.map(v => 
-        v._id === ventaActualizada._id ? ventaActualizada : v
-      );
-      setVentas(ventasActualizadas);
+      // Normalizar datos antes de enviar
+      const datosActualizados = {
+        ...ventaActualizada,
+        cliente: ventaActualizada.cliente?._id || ventaActualizada.cliente,
+        total: parseFloat(ventaActualizada.total.toFixed(2)),
+        montoAbonado: parseFloat(ventaActualizada.montoAbonado.toFixed(2)),
+        saldoPendiente: parseFloat(ventaActualizada.saldoPendiente.toFixed(2)),
+        productos: ventaActualizada.productos?.map(p => ({
+          ...p,
+          cantidad: parseFloat(p.cantidad.toFixed(2)),
+          precioUnitario: parseFloat(p.precioUnitario.toFixed(2)),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria.toFixed(2)),
+          gananciaTotal: parseFloat(p.gananciaTotal.toFixed(2))
+        }))
+      };
+
+      const response = await axios.put(`${API_URL}/ventas/${ventaActualizada._id}`, datosActualizados);
+      
+      const ventaActualizadaCompleta = response.data;
+      
+      // Actualizar ventas en el listado principal
+      setVentas(prev => prev.map(v => 
+        v._id === ventaActualizadaCompleta._id ? ventaActualizadaCompleta : v
+      ));
+      
+      // Actualizar ventas del cliente en el diálogo
+      setVentasCliente(prev => prev.map(v => 
+        v._id === ventaActualizadaCompleta._id ? ventaActualizadaCompleta : v
+      ));
+
+      // Mostrar mensaje de éxito
+      toast.success('Venta actualizada correctamente');
+      
+      return true;
     } catch (error) {
       console.error('Error actualizando venta:', error);
+      toast.error(error.response?.data?.error || 'Error al actualizar venta');
+      return false;
     }
   };
 
   // Función para abonar saldo
-  const handleAbonarSaldo = async (venta, monto) => {
-    const ventaActualizada = {
-      ...venta,
-      montoAbonado: venta.montoAbonado + monto,
-      saldoPendiente: venta.saldoPendiente - monto
-    };
-    await actualizarVenta(ventaActualizada);
+  const handleAbonarSaldo = async (ventaActualizada) => {
+    return await actualizarVenta(ventaActualizada);
   };
 
   // Función para manejar el orden de la tabla
@@ -135,27 +161,57 @@ const ListadoHistorialVentas = () => {
   // Función para manejar el clic en "Ver"
   const handleVerCliente = async (venta) => {
     try {
-      setCargando(true); // Añadir indicador de carga
+      setCargando(true);
       
-      // Obtener todas las ventas del cliente
+      // Extraer y validar ID del cliente
+      const clienteId = venta.cliente?._id?.toString() || venta.cliente;
+      
+      if (!clienteId) {
+        toast.error('ID de cliente inválido');
+        return;
+      }
+
+      // Obtener ventas con filtro estricto desde el backend
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
-          cliente: venta.cliente._id,
-          limit: 100 // Asegurar que se obtengan suficientes ventas
+          cliente: clienteId,
+          populate: 'cliente',
+          limit: 100
         }
       });
-      
-      console.log('Ventas del cliente:', response.data.ventas); // Agregar log para depuración
-      
-      if (!response.data.ventas || response.data.ventas.length === 0) {
-        toast.info('El cliente no tiene ventas registradas');
-      }
-      
-      setClienteSeleccionado(venta.cliente);
-      setVentasCliente(response.data.ventas);
+
+      // Normalizar estructura de ventas
+      const ventasFiltradas = response.data.ventas.map(v => ({
+        ...v,
+        _id: v._id?.toString(),
+        cliente: {
+          _id: v.cliente?._id?.toString(),
+          nombre: v.cliente?.nombre || 'Cliente no disponible',
+          rif: v.cliente?.rif || 'Sin RIF'
+        },
+        fecha: v.fecha ? new Date(v.fecha) : null,
+        total: parseFloat(v.total || 0),
+        montoAbonado: parseFloat(v.montoAbonado || 0),
+        saldoPendiente: parseFloat(v.saldoPendiente || 0)
+      }));
+
+      // Normalizar datos del cliente
+      const clienteNormalizado = {
+        _id: clienteId,
+        nombre: venta.cliente?.nombre || 'Cliente no disponible',
+        rif: venta.cliente?.rif || 'Sin RIF',
+        telefono: venta.cliente?.telefono || 'No disponible',
+        email: venta.cliente?.email || 'No disponible',
+        direccion: venta.cliente?.direccion || 'No disponible',
+        municipio: venta.cliente?.municipio || 'No disponible'
+      };
+
+      setClienteSeleccionado(clienteNormalizado);
+      setVentasCliente(ventasFiltradas);
       setMostrarRegistroCliente(true);
+      
     } catch (error) {
-      console.error('Error al obtener ventas del cliente:', error);
+      console.error('Error:', error);
       toast.error('Error al cargar historial del cliente');
     } finally {
       setCargando(false);
