@@ -66,7 +66,7 @@ const RegistroClienteDialog = ({
   useEffect(() => {
     if (ventasCliente && clienteSeleccionado) {
       // Normalizar ID del cliente seleccionado
-      const clienteId = clienteSeleccionado._id?.toString();
+      const clienteId = clienteSeleccionado.id?.toString();
       
       if (!clienteId) {
         console.error('ID de cliente inválido');
@@ -77,14 +77,14 @@ const RegistroClienteDialog = ({
       const ventasFiltradas = ventasCliente
         .filter(v => {
           // Normalizar ID del cliente en la venta
-          const ventaClienteId = v.cliente?._id?.toString() || v.cliente?.toString();
+          const ventaClienteId = v.cliente?.id?.toString() || v.cliente?.toString();
           return ventaClienteId === clienteId;
         })
         .map(v => ({
           ...v,
-          _id: v._id?.toString(),
+          id: v.id?.toString(),
           cliente: {
-            _id: v.cliente?._id?.toString(),
+            id: v.cliente?.id?.toString(),
             nombre: v.cliente?.nombre || 'Cliente no disponible',
             rif: v.cliente?.rif || 'Sin RIF'
           },
@@ -128,7 +128,7 @@ const RegistroClienteDialog = ({
   };
 
   const handleAbonar = async (venta) => {
-    const monto = montosAbono[venta._id];
+    const monto = montosAbono[venta.id];
     if (!monto || monto <= 0) return;
 
     try {
@@ -138,19 +138,21 @@ const RegistroClienteDialog = ({
       const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
 
       const ventaActualizada = {
-        _id: venta._id,
-        cliente: venta.cliente._id,
+        id: venta.id,
+        cliente: venta.cliente.id,
         total: venta.total,
         montoAbonado: nuevoAbonado,
         saldoPendiente: nuevoSaldo,
         estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos
+        productos: venta.productos,
+        nrFactura: venta.nrFactura,
+        estado: venta.estado
       };
 
       console.log('Enviando datos al backend para abono:', {
-        ventaId: ventaActualizada._id,
+        ventaId: ventaActualizada.id,
         montoAbonado: nuevoAbonado,
         saldoPendiente: nuevoSaldo,
         estadoCredito: ventaActualizada.estadoCredito
@@ -161,7 +163,7 @@ const RegistroClienteDialog = ({
       console.log('Respuesta del backend:', success);
       
       if (success) {
-        setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
+        setMontosAbono(prev => ({ ...prev, [venta.id]: '' }));
         toast.success(`Abono de $${monto.toFixed(2)} registrado`);
       }
     } catch (error) {
@@ -182,19 +184,21 @@ const RegistroClienteDialog = ({
       setLoading(true);
       
       const ventaActualizada = {
-        _id: venta._id,
-        cliente: venta.cliente._id,
+        id: venta.id,
+        cliente: venta.cliente.id,
         total: venta.total,
         montoAbonado: venta.total,
         saldoPendiente: 0,
         estadoCredito: 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos
+        productos: venta.productos,
+        nrFactura: venta.nrFactura,
+        estado: venta.estado
       };
 
       console.log('Enviando datos al backend para solventar deuda:', {
-        ventaId: ventaActualizada._id,
+        ventaId: ventaActualizada.id,
         montoAbonado: venta.total,
         saldoPendiente: 0,
         estadoCredito: 'pagado'
@@ -265,7 +269,7 @@ const RegistroClienteDialog = ({
                   
                   <TableBody>
                     {ventas.map(venta => (
-                      <TableRow key={venta._id || venta.id} hover>
+                      <TableRow key={venta.id} hover>
                         <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
                         <TableCell>${(venta.total || 0).toFixed(2)}</TableCell>
                         <TableCell>${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
@@ -281,8 +285,8 @@ const RegistroClienteDialog = ({
                               <TextField
                                 type="number"
                                 size="small"
-                                value={montosAbono[venta._id || venta.id] || ''}
-                                onChange={(e) => handleMontoChange(venta._id || venta.id, parseFloat(e.target.value))}
+                                value={montosAbono[venta.id] || ''}
+                                onChange={(e) => handleMontoChange(venta.id, parseFloat(e.target.value))}
                                 InputProps={{
                                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                                   inputProps: { 
@@ -296,7 +300,7 @@ const RegistroClienteDialog = ({
                               <Button 
                                 variant="contained" 
                                 onClick={() => handleAbonar(venta)}
-                                disabled={!montosAbono[venta._id || venta.id]}
+                                disabled={!montosAbono[venta.id]}
                               >
                                 Abonar
                               </Button>
