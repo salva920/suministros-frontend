@@ -99,34 +99,46 @@ const ListadoHistorialVentas = () => {
   // Función para actualizar una venta
   const actualizarVenta = async (ventaActualizada) => {
     try {
+      console.log('Iniciando actualización de venta:', ventaActualizada);
+
       // Normalizar datos antes de enviar
       const datosActualizados = {
-        ...ventaActualizada,
+        _id: ventaActualizada._id,
         cliente: ventaActualizada.cliente?._id || ventaActualizada.cliente,
-        total: parseFloat(ventaActualizada.total.toFixed(2)),
-        montoAbonado: parseFloat(ventaActualizada.montoAbonado.toFixed(2)),
-        saldoPendiente: parseFloat(ventaActualizada.saldoPendiente.toFixed(2)),
+        total: parseFloat(ventaActualizada.total || 0),
+        montoAbonado: parseFloat(ventaActualizada.montoAbonado || 0),
+        saldoPendiente: parseFloat(ventaActualizada.saldoPendiente || 0),
+        estadoCredito: ventaActualizada.estadoCredito,
+        tipoPago: ventaActualizada.tipoPago,
+        metodoPago: ventaActualizada.metodoPago,
         productos: ventaActualizada.productos?.map(p => ({
-          ...p,
-          cantidad: parseFloat(p.cantidad.toFixed(2)),
-          precioUnitario: parseFloat(p.precioUnitario.toFixed(2)),
-          gananciaUnitaria: parseFloat(p.gananciaUnitaria.toFixed(2)),
-          gananciaTotal: parseFloat(p.gananciaTotal.toFixed(2))
+          producto: p.producto?._id || p.producto,
+          cantidad: parseFloat(p.cantidad || 0),
+          precioUnitario: parseFloat(p.precioUnitario || 0),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria || 0),
+          gananciaTotal: parseFloat(p.gananciaTotal || 0),
+          costoInicial: parseFloat(p.costoInicial || 0)
         }))
       };
 
+      console.log('Datos normalizados para enviar:', datosActualizados);
+
       const response = await axios.put(`${API_URL}/ventas/${ventaActualizada._id}`, datosActualizados);
       
-      const ventaActualizadaCompleta = response.data;
-      
+      console.log('Respuesta del backend:', response.data);
+
+      if (!response.data) {
+        throw new Error('No se recibió respuesta del servidor');
+      }
+
       // Actualizar ventas en el listado principal
       setVentas(prev => prev.map(v => 
-        v._id === ventaActualizadaCompleta._id ? ventaActualizadaCompleta : v
+        v._id === ventaActualizada._id ? response.data : v
       ));
       
       // Actualizar ventas del cliente en el diálogo
       setVentasCliente(prev => prev.map(v => 
-        v._id === ventaActualizadaCompleta._id ? ventaActualizadaCompleta : v
+        v._id === ventaActualizada._id ? response.data : v
       ));
 
       // Mostrar mensaje de éxito
@@ -135,6 +147,11 @@ const ListadoHistorialVentas = () => {
       return true;
     } catch (error) {
       console.error('Error actualizando venta:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al actualizar venta');
       return false;
     }
@@ -142,7 +159,20 @@ const ListadoHistorialVentas = () => {
 
   // Función para abonar saldo
   const handleAbonarSaldo = async (ventaActualizada) => {
-    return await actualizarVenta(ventaActualizada);
+    try {
+      console.log('Iniciando abono de saldo:', ventaActualizada);
+      const success = await actualizarVenta(ventaActualizada);
+      
+      if (success) {
+        // Recargar las ventas para asegurar datos actualizados
+        await cargarVentas();
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error en handleAbonarSaldo:', error);
+      return false;
+    }
   };
 
   // Función para manejar el orden de la tabla
