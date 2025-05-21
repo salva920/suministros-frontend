@@ -134,31 +134,30 @@ const RegistroClienteDialog = ({
     try {
       setLoading(true);
       
-      const nuevoAbonado = (venta.montoAbonado || 0) + monto;
-      const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
+      const nuevoAbonado = parseFloat((venta.montoAbonado || 0) + monto).toFixed(2);
+      const nuevoSaldo = parseFloat((venta.total || 0) - nuevoAbonado).toFixed(2);
 
       const ventaActualizada = {
         _id: venta._id,
         cliente: venta.cliente._id,
-        total: venta.total,
-        montoAbonado: nuevoAbonado,
-        saldoPendiente: nuevoSaldo,
-        estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
+        total: parseFloat(venta.total).toFixed(2),
+        montoAbonado: parseFloat(nuevoAbonado),
+        saldoPendiente: parseFloat(nuevoSaldo),
+        estadoCredito: parseFloat(nuevoSaldo) > 0 ? 'vigente' : 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos
+        productos: venta.productos.map(p => ({
+          producto: p.producto._id || p.producto,
+          cantidad: parseFloat(p.cantidad).toFixed(2),
+          precioUnitario: parseFloat(p.precioUnitario).toFixed(2),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria).toFixed(2),
+          gananciaTotal: parseFloat(p.gananciaTotal).toFixed(2)
+        }))
       };
 
-      console.log('Enviando datos al backend para abono:', {
-        ventaId: ventaActualizada._id,
-        montoAbonado: nuevoAbonado,
-        saldoPendiente: nuevoSaldo,
-        estadoCredito: ventaActualizada.estadoCredito
-      });
+      console.log('Enviando datos al backend para abono:', ventaActualizada);
 
       const success = await handleAbonarSaldo(ventaActualizada);
-      
-      console.log('Respuesta del backend:', success);
       
       if (success) {
         setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
@@ -166,11 +165,6 @@ const RegistroClienteDialog = ({
       }
     } catch (error) {
       console.error('Error al procesar abono:', error);
-      console.error('Detalles del error:', {
-        mensaje: error.message,
-        respuesta: error.response?.data,
-        estado: error.response?.status
-      });
       toast.error(error.response?.data?.error || 'Error al procesar el abono');
     } finally {
       setLoading(false);
@@ -184,36 +178,30 @@ const RegistroClienteDialog = ({
       const ventaActualizada = {
         _id: venta._id,
         cliente: venta.cliente._id,
-        total: venta.total,
-        montoAbonado: venta.total,
+        total: parseFloat(venta.total).toFixed(2),
+        montoAbonado: parseFloat(venta.total).toFixed(2),
         saldoPendiente: 0,
         estadoCredito: 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos
+        productos: venta.productos.map(p => ({
+          producto: p.producto._id || p.producto,
+          cantidad: parseFloat(p.cantidad).toFixed(2),
+          precioUnitario: parseFloat(p.precioUnitario).toFixed(2),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria).toFixed(2),
+          gananciaTotal: parseFloat(p.gananciaTotal).toFixed(2)
+        }))
       };
 
-      console.log('Enviando datos al backend para solventar deuda:', {
-        ventaId: ventaActualizada._id,
-        montoAbonado: venta.total,
-        saldoPendiente: 0,
-        estadoCredito: 'pagado'
-      });
+      console.log('Enviando datos al backend para solventar deuda:', ventaActualizada);
 
       const success = await handleAbonarSaldo(ventaActualizada);
-      
-      console.log('Respuesta del backend:', success);
       
       if (success) {
         toast.success('Deuda solventada completamente');
       }
     } catch (error) {
       console.error('Error al solventar deuda:', error);
-      console.error('Detalles del error:', {
-        mensaje: error.message,
-        respuesta: error.response?.data,
-        estado: error.response?.status
-      });
       toast.error(error.response?.data?.error || 'Error al solventar la deuda');
     } finally {
       setLoading(false);
