@@ -66,7 +66,7 @@ const RegistroClienteDialog = ({
   useEffect(() => {
     if (ventasCliente && clienteSeleccionado) {
       // Normalizar ID del cliente seleccionado
-      const clienteId = clienteSeleccionado.id?.toString();
+      const clienteId = clienteSeleccionado._id?.toString();
       
       if (!clienteId) {
         console.error('ID de cliente inválido');
@@ -77,28 +77,21 @@ const RegistroClienteDialog = ({
       const ventasFiltradas = ventasCliente
         .filter(v => {
           // Normalizar ID del cliente en la venta
-          const ventaClienteId = v.cliente?.toString() || v.cliente?._id?.toString();
+          const ventaClienteId = v.cliente?._id?.toString() || v.cliente?.toString();
           return ventaClienteId === clienteId;
         })
         .map(v => ({
           ...v,
-          id: v._id?.toString(),
+          _id: v._id?.toString(),
           cliente: {
-            id: v.cliente?.toString() || v.cliente?._id?.toString(),
+            _id: v.cliente?._id?.toString(),
             nombre: v.cliente?.nombre || 'Cliente no disponible',
             rif: v.cliente?.rif || 'Sin RIF'
           },
-          fecha: v.fecha ? new Date(v.fecha.$date || v.fecha) : null,
-          total: parseFloat(v.total?.$numberInt || v.total || 0),
-          montoAbonado: parseFloat(v.montoAbonado?.$numberInt || v.montoAbonado || 0),
-          saldoPendiente: parseFloat(v.saldoPendiente?.$numberInt || v.saldoPendiente || 0),
-          productos: v.productos.map(p => ({
-            producto: p.producto?.toString() || p.producto?._id?.toString(),
-            cantidad: parseFloat(p.cantidad?.$numberInt || p.cantidad || 0),
-            precioUnitario: parseFloat(p.precioUnitario?.$numberInt || p.precioUnitario || 0),
-            gananciaUnitaria: parseFloat(p.gananciaUnitaria?.$numberInt || p.gananciaUnitaria || 0),
-            gananciaTotal: parseFloat(p.gananciaTotal?.$numberInt || p.gananciaTotal || 0)
-          }))
+          fecha: v.fecha ? new Date(v.fecha) : null,
+          total: parseFloat(v.total || 0),
+          montoAbonado: parseFloat(v.montoAbonado || 0),
+          saldoPendiente: parseFloat(v.saldoPendiente || 0)
         }))
         .sort((a, b) => {
           const fechaA = a.fecha ? new Date(a.fecha) : new Date(0);
@@ -135,53 +128,49 @@ const RegistroClienteDialog = ({
   };
 
   const handleAbonar = async (venta) => {
-    const monto = montosAbono[venta.id];
+    const monto = montosAbono[venta._id];
     if (!monto || monto <= 0) return;
 
     try {
       setLoading(true);
       
-      const nuevoAbonado = parseFloat((venta.montoAbonado || 0) + monto);
-      const nuevoSaldo = parseFloat((venta.total || 0) - nuevoAbonado);
-
-      // Asegurar que el ID del cliente sea válido
-      const clienteId = venta.cliente?.id || venta.cliente?._id || venta.cliente;
-      if (!clienteId) {
-        throw new Error('ID de cliente no válido');
-      }
+      const nuevoAbonado = (venta.montoAbonado || 0) + monto;
+      const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
 
       const ventaActualizada = {
-        id: venta.id,
-        cliente: clienteId,
-        total: parseFloat(venta.total),
+        _id: venta._id,
+        cliente: venta.cliente._id,
+        total: venta.total,
         montoAbonado: nuevoAbonado,
         saldoPendiente: nuevoSaldo,
         estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos.map(p => ({
-          producto: p.producto?.toString() || p.producto?._id?.toString(),
-          cantidad: parseFloat(p.cantidad),
-          precioUnitario: parseFloat(p.precioUnitario),
-          gananciaUnitaria: parseFloat(p.gananciaUnitaria),
-          gananciaTotal: parseFloat(p.gananciaTotal)
-        }))
+        productos: venta.productos
       };
 
-      console.log('Enviando datos al backend para abono:', ventaActualizada);
+      console.log('Enviando datos al backend para abono:', {
+        ventaId: ventaActualizada._id,
+        montoAbonado: nuevoAbonado,
+        saldoPendiente: nuevoSaldo,
+        estadoCredito: ventaActualizada.estadoCredito
+      });
 
       const success = await handleAbonarSaldo(ventaActualizada);
       
+      console.log('Respuesta del backend:', success);
+      
       if (success) {
-        setMontosAbono(prev => ({ ...prev, [venta.id]: '' }));
+        setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
         toast.success(`Abono de $${monto.toFixed(2)} registrado`);
-        // Actualizar la lista de ventas
-        setVentas(prev => prev.map(v => 
-          v.id === venta.id ? { ...v, montoAbonado: nuevoAbonado, saldoPendiente: nuevoSaldo } : v
-        ));
       }
     } catch (error) {
       console.error('Error al procesar abono:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al procesar el abono');
     } finally {
       setLoading(false);
@@ -192,48 +181,39 @@ const RegistroClienteDialog = ({
     try {
       setLoading(true);
       
-      // Asegurar que el ID del cliente sea válido
-      const clienteId = venta.cliente?.id || venta.cliente?._id || venta.cliente;
-      if (!clienteId) {
-        throw new Error('ID de cliente no válido');
-      }
-
       const ventaActualizada = {
-        id: venta.id,
-        cliente: clienteId,
-        total: parseFloat(venta.total),
-        montoAbonado: parseFloat(venta.total),
+        _id: venta._id,
+        cliente: venta.cliente._id,
+        total: venta.total,
+        montoAbonado: venta.total,
         saldoPendiente: 0,
         estadoCredito: 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
-        productos: venta.productos.map(p => ({
-          producto: p.producto?.toString() || p.producto?._id?.toString(),
-          cantidad: parseFloat(p.cantidad),
-          precioUnitario: parseFloat(p.precioUnitario),
-          gananciaUnitaria: parseFloat(p.gananciaUnitaria),
-          gananciaTotal: parseFloat(p.gananciaTotal)
-        }))
+        productos: venta.productos
       };
 
-      console.log('Enviando datos al backend para solventar deuda:', ventaActualizada);
+      console.log('Enviando datos al backend para solventar deuda:', {
+        ventaId: ventaActualizada._id,
+        montoAbonado: venta.total,
+        saldoPendiente: 0,
+        estadoCredito: 'pagado'
+      });
 
       const success = await handleAbonarSaldo(ventaActualizada);
       
+      console.log('Respuesta del backend:', success);
+      
       if (success) {
         toast.success('Deuda solventada completamente');
-        // Actualizar la lista de ventas
-        setVentas(prev => prev.map(v => 
-          v.id === venta.id ? { 
-            ...v, 
-            montoAbonado: parseFloat(venta.total),
-            saldoPendiente: 0,
-            estadoCredito: 'pagado'
-          } : v
-        ));
       }
     } catch (error) {
       console.error('Error al solventar deuda:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al solventar la deuda');
     } finally {
       setLoading(false);
@@ -285,7 +265,7 @@ const RegistroClienteDialog = ({
                   
                   <TableBody>
                     {ventas.map(venta => (
-                      <TableRow key={venta.id} hover>
+                      <TableRow key={venta._id || venta.id} hover>
                         <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
                         <TableCell>${(venta.total || 0).toFixed(2)}</TableCell>
                         <TableCell>${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
@@ -301,8 +281,8 @@ const RegistroClienteDialog = ({
                               <TextField
                                 type="number"
                                 size="small"
-                                value={montosAbono[venta.id] || ''}
-                                onChange={(e) => handleMontoChange(venta.id, parseFloat(e.target.value))}
+                                value={montosAbono[venta._id || venta.id] || ''}
+                                onChange={(e) => handleMontoChange(venta._id || venta.id, parseFloat(e.target.value))}
                                 InputProps={{
                                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                                   inputProps: { 
@@ -316,7 +296,7 @@ const RegistroClienteDialog = ({
                               <Button 
                                 variant="contained" 
                                 onClick={() => handleAbonar(venta)}
-                                disabled={!montosAbono[venta.id]}
+                                disabled={!montosAbono[venta._id || venta.id]}
                               >
                                 Abonar
                               </Button>
