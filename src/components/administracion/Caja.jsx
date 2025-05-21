@@ -336,6 +336,22 @@ const CajaInteractiva = () => {
   // Calcular el valor total consolidado usando los últimos saldos
   const totalCajaUSD = getUltimoSaldo('USD') + (getUltimoSaldo('Bs') / state.tasaCambio);
 
+  // Actualizar el estado de saldos cuando cambian las transacciones
+  useEffect(() => {
+    if (state.transacciones.length > 0) {
+      const saldoUSD = getUltimoSaldo('USD');
+      const saldoBs = getUltimoSaldo('Bs');
+      
+      setState(prev => ({
+        ...prev,
+        saldos: {
+          USD: saldoUSD,
+          Bs: saldoBs
+        }
+      }));
+    }
+  }, [state.transacciones]);
+
   const getResumenMonedas = () => state.transacciones.reduce((acc, t) => {
     if (!acc[t.moneda]) acc[t.moneda] = { entradas: 0, salidas: 0 };
     acc[t.moneda].entradas += t.entrada;
