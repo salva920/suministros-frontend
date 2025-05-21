@@ -137,9 +137,15 @@ const RegistroClienteDialog = ({
       const nuevoAbonado = parseFloat((venta.montoAbonado || 0) + monto);
       const nuevoSaldo = parseFloat((venta.total || 0) - nuevoAbonado);
 
+      // Asegurar que el ID del cliente sea válido
+      const clienteId = venta.cliente?.id || venta.cliente;
+      if (!clienteId) {
+        throw new Error('ID de cliente no válido');
+      }
+
       const ventaActualizada = {
         id: venta.id,
-        cliente: venta.cliente.id,
+        cliente: clienteId,
         total: parseFloat(venta.total),
         montoAbonado: nuevoAbonado,
         saldoPendiente: nuevoSaldo,
@@ -180,9 +186,15 @@ const RegistroClienteDialog = ({
     try {
       setLoading(true);
       
+      // Asegurar que el ID del cliente sea válido
+      const clienteId = venta.cliente?.id || venta.cliente;
+      if (!clienteId) {
+        throw new Error('ID de cliente no válido');
+      }
+
       const ventaActualizada = {
         id: venta.id,
-        cliente: venta.cliente.id,
+        cliente: clienteId,
         total: parseFloat(venta.total),
         montoAbonado: parseFloat(venta.total),
         saldoPendiente: 0,
