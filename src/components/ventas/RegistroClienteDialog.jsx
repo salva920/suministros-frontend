@@ -139,7 +139,7 @@ const RegistroClienteDialog = ({
 
       const ventaActualizada = {
         _id: venta._id,
-        cliente: venta.cliente._id || venta.cliente,
+        cliente: venta.cliente._id,
         total: parseFloat(venta.total),
         montoAbonado: nuevoAbonado,
         saldoPendiente: nuevoSaldo,
@@ -157,11 +157,15 @@ const RegistroClienteDialog = ({
 
       console.log('Enviando datos al backend para abono:', ventaActualizada);
 
-      const success = await handleAbonarSaldo(ventaActualizada);
+      const response = await axios.put(`${API_URL}/ventas/${venta._id}`, ventaActualizada);
       
-      if (success) {
+      if (response.data) {
         setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
         toast.success(`Abono de $${monto.toFixed(2)} registrado`);
+        // Actualizar la lista de ventas
+        setVentas(prev => prev.map(v => 
+          v._id === venta._id ? response.data : v
+        ));
       }
     } catch (error) {
       console.error('Error al procesar abono:', error);
@@ -177,7 +181,7 @@ const RegistroClienteDialog = ({
       
       const ventaActualizada = {
         _id: venta._id,
-        cliente: venta.cliente._id || venta.cliente,
+        cliente: venta.cliente._id,
         total: parseFloat(venta.total),
         montoAbonado: parseFloat(venta.total),
         saldoPendiente: 0,
@@ -195,10 +199,14 @@ const RegistroClienteDialog = ({
 
       console.log('Enviando datos al backend para solventar deuda:', ventaActualizada);
 
-      const success = await handleAbonarSaldo(ventaActualizada);
+      const response = await axios.put(`${API_URL}/ventas/${venta._id}`, ventaActualizada);
       
-      if (success) {
+      if (response.data) {
         toast.success('Deuda solventada completamente');
+        // Actualizar la lista de ventas
+        setVentas(prev => prev.map(v => 
+          v._id === venta._id ? response.data : v
+        ));
       }
     } catch (error) {
       console.error('Error al solventar deuda:', error);
