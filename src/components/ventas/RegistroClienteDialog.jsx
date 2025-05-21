@@ -65,41 +65,18 @@ const RegistroClienteDialog = ({
   // Actualizar ventas cuando cambia ventasCliente o clienteSeleccionado
   useEffect(() => {
     if (ventasCliente && clienteSeleccionado) {
-      // Normalizar ID del cliente seleccionado
-      const clienteId = clienteSeleccionado._id?.toString();
+      // Filtrar ventas que pertenecen al cliente
+      const ventasFiltradas = ventasCliente.filter(v => {
+        const ventaClienteId = v.cliente?._id || v.cliente;
+        return ventaClienteId === clienteSeleccionado._id;
+      });
       
-      if (!clienteId) {
-        console.error('ID de cliente inválido');
-        return;
-      }
-
-      // Filtrar y normalizar ventas
-      const ventasFiltradas = ventasCliente
-        .filter(v => {
-          // Normalizar ID del cliente en la venta
-          const ventaClienteId = v.cliente?._id?.toString() || v.cliente?.toString();
-          return ventaClienteId === clienteId;
-        })
-        .map(v => ({
-          ...v,
-          _id: v._id?.toString(),
-          cliente: {
-            _id: v.cliente?._id?.toString(),
-            nombre: v.cliente?.nombre || 'Cliente no disponible',
-            rif: v.cliente?.rif || 'Sin RIF'
-          },
-          fecha: v.fecha ? new Date(v.fecha) : null,
-          total: parseFloat(v.total || 0),
-          montoAbonado: parseFloat(v.montoAbonado || 0),
-          saldoPendiente: parseFloat(v.saldoPendiente || 0)
-        }))
-        .sort((a, b) => {
-          const fechaA = a.fecha ? new Date(a.fecha) : new Date(0);
-          const fechaB = b.fecha ? new Date(b.fecha) : new Date(0);
-          return fechaB - fechaA;
-        });
+      // Ordenar por fecha descendente
+      const ventasOrdenadas = [...ventasFiltradas].sort((a, b) => 
+        new Date(b.fecha) - new Date(a.fecha)
+      );
       
-      setVentas(ventasFiltradas);
+      setVentas(ventasOrdenadas);
     } else {
       setVentas([]);
     }
@@ -132,91 +109,32 @@ const RegistroClienteDialog = ({
     if (!monto || monto <= 0) return;
 
     try {
-      setLoading(true);
-      
-      const nuevoAbonado = (venta.montoAbonado || 0) + monto;
-      const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
-
       const ventaActualizada = {
-        _id: venta._id,
-        cliente: venta.cliente._id,
-        total: venta.total,
-        montoAbonado: nuevoAbonado,
-        saldoPendiente: nuevoSaldo,
-        estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
-        tipoPago: venta.tipoPago,
-        metodoPago: venta.metodoPago,
-        productos: venta.productos
+        ...venta,
+        montoAbonado: (venta.montoAbonado || 0) + monto,
+        saldoPendiente: (venta.saldoPendiente || 0) - monto
       };
 
-      console.log('Enviando datos al backend para abono:', {
-        ventaId: ventaActualizada._id,
-        montoAbonado: nuevoAbonado,
-        saldoPendiente: nuevoSaldo,
-        estadoCredito: ventaActualizada.estadoCredito
-      });
-
-      const success = await handleAbonarSaldo(ventaActualizada);
-      
-      console.log('Respuesta del backend:', success);
-      
-      if (success) {
-        setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
-        toast.success(`Abono de $${monto.toFixed(2)} registrado`);
-      }
+      handleAbonarSaldo(ventaActualizada);
+      setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
+      toast.success(`Abono de $${monto.toFixed(2)} registrado`);
     } catch (error) {
-      console.error('Error al procesar abono:', error);
-      console.error('Detalles del error:', {
-        mensaje: error.message,
-        respuesta: error.response?.data,
-        estado: error.response?.status
-      });
-      toast.error(error.response?.data?.error || 'Error al procesar el abono');
-    } finally {
-      setLoading(false);
+      toast.error('Error al procesar el abono');
     }
   };
 
   const handleSolventarDeuda = async (venta) => {
     try {
-      setLoading(true);
-      
       const ventaActualizada = {
-        _id: venta._id,
-        cliente: venta.cliente._id,
-        total: venta.total,
+        ...venta,
         montoAbonado: venta.total,
-        saldoPendiente: 0,
-        estadoCredito: 'pagado',
-        tipoPago: venta.tipoPago,
-        metodoPago: venta.metodoPago,
-        productos: venta.productos
+        saldoPendiente: 0
       };
 
-      console.log('Enviando datos al backend para solventar deuda:', {
-        ventaId: ventaActualizada._id,
-        montoAbonado: venta.total,
-        saldoPendiente: 0,
-        estadoCredito: 'pagado'
-      });
-
-      const success = await handleAbonarSaldo(ventaActualizada);
-      
-      console.log('Respuesta del backend:', success);
-      
-      if (success) {
-        toast.success('Deuda solventada completamente');
-      }
+      handleAbonarSaldo(ventaActualizada);
+      toast.success('Deuda solventada completamente');
     } catch (error) {
-      console.error('Error al solventar deuda:', error);
-      console.error('Detalles del error:', {
-        mensaje: error.message,
-        respuesta: error.response?.data,
-        estado: error.response?.status
-      });
-      toast.error(error.response?.data?.error || 'Error al solventar la deuda');
-    } finally {
-      setLoading(false);
+      toast.error('Error al solventar la deuda');
     }
   };
 
