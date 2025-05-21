@@ -309,9 +309,9 @@ const ListadoHistorialVentas = () => {
                 </Typography>
                 <Typography variant="h5" sx={{ 
                   fontWeight: 'bold',
-                  color: totalDeudas > 0 ? 'error.main' : 'success.main'
+                  color: (totalDeudas || 0) > 0 ? 'error.main' : 'success.main'
                 }}>
-                  ${totalDeudas.toFixed(2)}
+                  ${(totalDeudas || 0).toFixed(2)}
                 </Typography>
               </Box>
             </Box>
@@ -377,18 +377,18 @@ const ListadoHistorialVentas = () => {
                           </Box>
                         ) : 'Cliente no registrado'}
                       </TableCell>
-                      <TableCell align="right">${venta.total.toFixed(2)}</TableCell>
-                      <TableCell align="right">${venta.montoAbonado.toFixed(2)}</TableCell>
+                      <TableCell align="right">${(venta.total || 0).toFixed(2)}</TableCell>
+                      <TableCell align="right">${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
                       <TableCell align="right" sx={{ 
-                        color: venta.saldoPendiente > 0 ? 'error.main' : 'success.main',
+                        color: (venta.saldoPendiente || 0) > 0 ? 'error.main' : 'success.main',
                         fontWeight: 'bold'
                       }}>
-                        ${venta.saldoPendiente.toFixed(2)}
+                        ${(venta.saldoPendiente || 0).toFixed(2)}
                       </TableCell>
                       <TableCell>
                         <Chip 
-                          label={venta.saldoPendiente > 0 ? 'Pendiente' : 'Pagado'} 
-                          color={venta.saldoPendiente > 0 ? 'warning' : 'success'}
+                          label={(venta.saldoPendiente || 0) > 0 ? 'Pendiente' : 'Pagado'} 
+                          color={(venta.saldoPendiente || 0) > 0 ? 'warning' : 'success'}
                           size="small"
                         />
                       </TableCell>
