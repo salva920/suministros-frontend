@@ -219,25 +219,26 @@ const RegistroClienteDialog = ({
         }))
       };
 
-      console.log('Enviando datos al backend para solventar deuda:', {
-        ventaId: ventaActualizada._id,
-        montoAbonado: ventaActualizada.montoAbonado,
-        saldoPendiente: ventaActualizada.saldoPendiente,
-        estadoCredito: ventaActualizada.estadoCredito,
-        total: ventaActualizada.total
-      });
+      console.log('Enviando datos al backend para solventar deuda:', ventaActualizada);
 
-      const success = await handleAbonarSaldo(ventaActualizada);
+      const response = await axios.put(`${API_URL}/ventas/${ventaId}`, ventaActualizada);
       
-      if (success) {
+      if (response.data) {
         setVentas(prev => prev.map(v => 
-          (v._id || v.id) === ventaId ? ventaActualizada : v
+          (v._id || v.id) === ventaId ? response.data : v
         ));
         toast.success('Deuda solventada completamente');
+        return true;
       }
     } catch (error) {
       console.error('Error al solventar deuda:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al solventar la deuda');
+      return false;
     } finally {
       setLoading(false);
     }
