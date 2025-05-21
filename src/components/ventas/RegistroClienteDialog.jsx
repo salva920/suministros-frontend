@@ -144,7 +144,16 @@ const RegistroClienteDialog = ({
         estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado'
       };
 
+      console.log('Enviando datos al backend para abono:', {
+        ventaId: venta._id,
+        montoAbonado: nuevoAbonado,
+        saldoPendiente: nuevoSaldo,
+        estadoCredito: ventaActualizada.estadoCredito
+      });
+
       const success = await handleAbonarSaldo(ventaActualizada);
+      
+      console.log('Respuesta del backend:', success);
       
       if (success) {
         setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
@@ -152,6 +161,11 @@ const RegistroClienteDialog = ({
       }
     } catch (error) {
       console.error('Error al procesar abono:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al procesar el abono');
     } finally {
       setLoading(false);
@@ -169,13 +183,27 @@ const RegistroClienteDialog = ({
         estadoCredito: 'pagado'
       };
 
+      console.log('Enviando datos al backend para solventar deuda:', {
+        ventaId: venta._id,
+        montoAbonado: venta.total,
+        saldoPendiente: 0,
+        estadoCredito: 'pagado'
+      });
+
       const success = await handleAbonarSaldo(ventaActualizada);
+      
+      console.log('Respuesta del backend:', success);
       
       if (success) {
         toast.success('Deuda solventada completamente');
       }
     } catch (error) {
       console.error('Error al solventar deuda:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al solventar la deuda');
     } finally {
       setLoading(false);
