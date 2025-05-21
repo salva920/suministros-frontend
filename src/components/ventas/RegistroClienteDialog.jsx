@@ -109,32 +109,94 @@ const RegistroClienteDialog = ({
     if (!monto || monto <= 0) return;
 
     try {
+      setLoading(true);
+      
+      const nuevoAbonado = (venta.montoAbonado || 0) + monto;
+      const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
+
       const ventaActualizada = {
-        ...venta,
-        montoAbonado: (venta.montoAbonado || 0) + monto,
-        saldoPendiente: (venta.saldoPendiente || 0) - monto
+        _id: venta._id, // Asegurar que se envía el _id de MongoDB
+        cliente: venta.cliente?._id || venta.cliente, // Enviar solo el ID del cliente
+        total: parseFloat(venta.total || 0),
+        montoAbonado: parseFloat(nuevoAbonado),
+        saldoPendiente: parseFloat(nuevoSaldo),
+        estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
+        tipoPago: venta.tipoPago,
+        metodoPago: venta.metodoPago,
+        productos: venta.productos?.map(p => ({
+          producto: p.producto?._id || p.producto, // ID del producto
+          cantidad: parseFloat(p.cantidad || 0),
+          precioUnitario: parseFloat(p.precioUnitario || 0),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria || 0),
+          gananciaTotal: parseFloat(p.gananciaTotal || 0),
+          costoInicial: parseFloat(p.costoInicial || 0) // Campo requerido en el esquema
+        }))
       };
 
-      handleAbonarSaldo(ventaActualizada);
-      setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
-      toast.success(`Abono de $${monto.toFixed(2)} registrado`);
+      console.log('Enviando datos al backend para abono:', ventaActualizada);
+
+      const success = await handleAbonarSaldo(ventaActualizada);
+      
+      if (success) {
+        setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
+        toast.success(`Abono de $${monto.toFixed(2)} registrado`);
+        // Actualizar la lista de ventas
+        setVentas(prev => prev.map(v => 
+          v._id === venta._id ? { ...v, montoAbonado: nuevoAbonado, saldoPendiente: nuevoSaldo } : v
+        ));
+      }
     } catch (error) {
-      toast.error('Error al procesar el abono');
+      console.error('Error al procesar abono:', error);
+      toast.error(error.response?.data?.error || 'Error al procesar el abono');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSolventarDeuda = async (venta) => {
     try {
+      setLoading(true);
+      
       const ventaActualizada = {
-        ...venta,
-        montoAbonado: venta.total,
-        saldoPendiente: 0
+        _id: venta._id, // Asegurar que se envía el _id de MongoDB
+        cliente: venta.cliente?._id || venta.cliente, // Enviar solo el ID del cliente
+        total: parseFloat(venta.total || 0),
+        montoAbonado: parseFloat(venta.total || 0),
+        saldoPendiente: 0,
+        estadoCredito: 'pagado',
+        tipoPago: venta.tipoPago,
+        metodoPago: venta.metodoPago,
+        productos: venta.productos?.map(p => ({
+          producto: p.producto?._id || p.producto, // ID del producto
+          cantidad: parseFloat(p.cantidad || 0),
+          precioUnitario: parseFloat(p.precioUnitario || 0),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria || 0),
+          gananciaTotal: parseFloat(p.gananciaTotal || 0),
+          costoInicial: parseFloat(p.costoInicial || 0) // Campo requerido en el esquema
+        }))
       };
 
-      handleAbonarSaldo(ventaActualizada);
-      toast.success('Deuda solventada completamente');
+      console.log('Enviando datos al backend para solventar deuda:', ventaActualizada);
+
+      const success = await handleAbonarSaldo(ventaActualizada);
+      
+      if (success) {
+        toast.success('Deuda solventada completamente');
+        // Actualizar la lista de ventas
+        setVentas(prev => prev.map(v => 
+          v._id === venta._id ? { 
+            ...v, 
+            montoAbonado: parseFloat(venta.total || 0),
+            saldoPendiente: 0,
+            estadoCredito: 'pagado'
+          } : v
+        ));
+      }
     } catch (error) {
-      toast.error('Error al solventar la deuda');
+      console.error('Error al solventar deuda:', error);
+      toast.error(error.response?.data?.error || 'Error al solventar la deuda');
+    } finally {
+      setLoading(false);
     }
   };
 
