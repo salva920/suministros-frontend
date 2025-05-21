@@ -99,13 +99,44 @@ const ListadoHistorialVentas = () => {
   // Función para actualizar una venta
   const actualizarVenta = async (ventaActualizada) => {
     try {
-      await axios.put(`${API_URL}/ventas/${ventaActualizada._id}`, ventaActualizada);
-      const ventasActualizadas = ventas.map(v => 
-        v._id === ventaActualizada._id ? ventaActualizada : v
-      );
-      setVentas(ventasActualizadas);
+      // Normalizar datos antes de enviar
+      const datosActualizados = {
+        ...ventaActualizada,
+        cliente: ventaActualizada.cliente?._id || ventaActualizada.cliente,
+        total: parseFloat(ventaActualizada.total.toFixed(2)),
+        montoAbonado: parseFloat(ventaActualizada.montoAbonado.toFixed(2)),
+        saldoPendiente: parseFloat(ventaActualizada.saldoPendiente.toFixed(2)),
+        productos: ventaActualizada.productos?.map(p => ({
+          ...p,
+          cantidad: parseFloat(p.cantidad.toFixed(2)),
+          precioUnitario: parseFloat(p.precioUnitario.toFixed(2)),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria.toFixed(2)),
+          gananciaTotal: parseFloat(p.gananciaTotal.toFixed(2))
+        }))
+      };
+
+      const response = await axios.put(`${API_URL}/ventas/${ventaActualizada._id}`, datosActualizados);
+      
+      const ventaActualizadaCompleta = response.data;
+      
+      // Actualizar ventas en el listado principal
+      setVentas(prev => prev.map(v => 
+        v._id === ventaActualizadaCompleta._id ? ventaActualizadaCompleta : v
+      ));
+      
+      // Actualizar ventas del cliente en el diálogo
+      setVentasCliente(prev => prev.map(v => 
+        v._id === ventaActualizadaCompleta._id ? ventaActualizadaCompleta : v
+      ));
+
+      // Mostrar mensaje de éxito
+      toast.success('Venta actualizada correctamente');
+      
+      return true;
     } catch (error) {
       console.error('Error actualizando venta:', error);
+      toast.error(error.response?.data?.error || 'Error al actualizar venta');
+      return false;
     }
   };
 

@@ -132,32 +132,53 @@ const RegistroClienteDialog = ({
     if (!monto || monto <= 0) return;
 
     try {
+      setLoading(true);
+      
+      const nuevoAbonado = (venta.montoAbonado || 0) + monto;
+      const nuevoSaldo = (venta.total || 0) - nuevoAbonado;
+
       const ventaActualizada = {
         ...venta,
-        montoAbonado: (venta.montoAbonado || 0) + monto,
-        saldoPendiente: (venta.saldoPendiente || 0) - monto
+        montoAbonado: nuevoAbonado,
+        saldoPendiente: nuevoSaldo,
+        estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado'
       };
 
-      handleAbonarSaldo(ventaActualizada);
-      setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
-      toast.success(`Abono de $${monto.toFixed(2)} registrado`);
+      const success = await handleAbonarSaldo(ventaActualizada);
+      
+      if (success) {
+        setMontosAbono(prev => ({ ...prev, [venta._id]: '' }));
+        toast.success(`Abono de $${monto.toFixed(2)} registrado`);
+      }
     } catch (error) {
-      toast.error('Error al procesar el abono');
+      console.error('Error al procesar abono:', error);
+      toast.error(error.response?.data?.error || 'Error al procesar el abono');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSolventarDeuda = async (venta) => {
     try {
+      setLoading(true);
+      
       const ventaActualizada = {
         ...venta,
         montoAbonado: venta.total,
-        saldoPendiente: 0
+        saldoPendiente: 0,
+        estadoCredito: 'pagado'
       };
 
-      handleAbonarSaldo(ventaActualizada);
-      toast.success('Deuda solventada completamente');
+      const success = await handleAbonarSaldo(ventaActualizada);
+      
+      if (success) {
+        toast.success('Deuda solventada completamente');
+      }
     } catch (error) {
-      toast.error('Error al solventar la deuda');
+      console.error('Error al solventar deuda:', error);
+      toast.error(error.response?.data?.error || 'Error al solventar la deuda');
+    } finally {
+      setLoading(false);
     }
   };
 
