@@ -134,24 +134,24 @@ const RegistroClienteDialog = ({
     try {
       setLoading(true);
       
-      const nuevoAbonado = parseFloat((venta.montoAbonado || 0) + monto).toFixed(2);
-      const nuevoSaldo = parseFloat((venta.total || 0) - nuevoAbonado).toFixed(2);
+      const nuevoAbonado = parseFloat((venta.montoAbonado || 0) + monto);
+      const nuevoSaldo = parseFloat((venta.total || 0) - nuevoAbonado);
 
       const ventaActualizada = {
         _id: venta._id,
-        cliente: venta.cliente._id,
-        total: parseFloat(venta.total).toFixed(2),
-        montoAbonado: parseFloat(nuevoAbonado),
-        saldoPendiente: parseFloat(nuevoSaldo),
-        estadoCredito: parseFloat(nuevoSaldo) > 0 ? 'vigente' : 'pagado',
+        cliente: venta.cliente._id || venta.cliente,
+        total: parseFloat(venta.total),
+        montoAbonado: nuevoAbonado,
+        saldoPendiente: nuevoSaldo,
+        estadoCredito: nuevoSaldo > 0 ? 'vigente' : 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
         productos: venta.productos.map(p => ({
           producto: p.producto._id || p.producto,
-          cantidad: parseFloat(p.cantidad).toFixed(2),
-          precioUnitario: parseFloat(p.precioUnitario).toFixed(2),
-          gananciaUnitaria: parseFloat(p.gananciaUnitaria).toFixed(2),
-          gananciaTotal: parseFloat(p.gananciaTotal).toFixed(2)
+          cantidad: parseFloat(p.cantidad),
+          precioUnitario: parseFloat(p.precioUnitario),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria),
+          gananciaTotal: parseFloat(p.gananciaTotal)
         }))
       };
 
@@ -177,19 +177,19 @@ const RegistroClienteDialog = ({
       
       const ventaActualizada = {
         _id: venta._id,
-        cliente: venta.cliente._id,
-        total: parseFloat(venta.total).toFixed(2),
-        montoAbonado: parseFloat(venta.total).toFixed(2),
+        cliente: venta.cliente._id || venta.cliente,
+        total: parseFloat(venta.total),
+        montoAbonado: parseFloat(venta.total),
         saldoPendiente: 0,
         estadoCredito: 'pagado',
         tipoPago: venta.tipoPago,
         metodoPago: venta.metodoPago,
         productos: venta.productos.map(p => ({
           producto: p.producto._id || p.producto,
-          cantidad: parseFloat(p.cantidad).toFixed(2),
-          precioUnitario: parseFloat(p.precioUnitario).toFixed(2),
-          gananciaUnitaria: parseFloat(p.gananciaUnitaria).toFixed(2),
-          gananciaTotal: parseFloat(p.gananciaTotal).toFixed(2)
+          cantidad: parseFloat(p.cantidad),
+          precioUnitario: parseFloat(p.precioUnitario),
+          gananciaUnitaria: parseFloat(p.gananciaUnitaria),
+          gananciaTotal: parseFloat(p.gananciaTotal)
         }))
       };
 
