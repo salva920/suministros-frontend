@@ -618,7 +618,7 @@ const ProcesarVenta = () => {
             <>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 Lote seleccionado: 
-                <b> {lotesProducto[0]?.fecha ? moment(lotesProducto[0].fecha).format('DD/MM/YYYY') : 'Sin fecha'} </b>
+                <b> {lotesProducto[0]?.fecha ? moment.utc(lotesProducto[0].fecha).local().format('DD/MM/YYYY') : 'Sin fecha'} </b>
                 | Costo: <b>${lotesProducto[0]?.costoFinal?.toFixed(2) || 'N/A'}</b>
                 | Stock disponible: {lotesProducto[0]?.stockLote}
               </Typography>
