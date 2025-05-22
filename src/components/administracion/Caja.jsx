@@ -328,7 +328,14 @@ const CajaInteractiva = () => {
   const getUltimoSaldo = (moneda) => {
     const transaccionesMoneda = state.transacciones
       .filter(t => t.moneda === moneda)
-      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      .sort((a, b) => {
+        // Primero ordenar por fecha descendente
+        const dateDiff = new Date(b.fecha) - new Date(a.fecha);
+        if (dateDiff !== 0) return dateDiff;
+        
+        // Si es el mismo día, ordenar por ID (timestamp) descendente
+        return b._id.getTimestamp() - a._id.getTimestamp();
+      });
     
     return transaccionesMoneda.length > 0 ? transaccionesMoneda[0].saldo : 0;
   };
@@ -339,14 +346,36 @@ const CajaInteractiva = () => {
   // Actualizar el estado de saldos cuando cambian las transacciones
   useEffect(() => {
     if (state.transacciones.length > 0) {
-      const saldoUSD = getUltimoSaldo('USD');
-      const saldoBs = getUltimoSaldo('Bs');
-      
+      // Ordenar transacciones por fecha y ID
+      const transaccionesOrdenadas = [...state.transacciones].sort((a, b) => {
+        const dateDiff = new Date(b.fecha) - new Date(a.fecha);
+        if (dateDiff !== 0) return dateDiff;
+        return b._id.getTimestamp() - a._id.getTimestamp();
+      });
+
+      // Calcular saldos por moneda
+      const saldosPorMoneda = transaccionesOrdenadas.reduce((acc, t) => {
+        if (!acc[t.moneda]) {
+          acc[t.moneda] = {
+            saldo: 0,
+            ultimaFecha: null
+          };
+        }
+        
+        // Solo actualizar si es la transacción más reciente para esta moneda
+        if (!acc[t.moneda].ultimaFecha || new Date(t.fecha) > acc[t.moneda].ultimaFecha) {
+          acc[t.moneda].saldo = t.saldo;
+          acc[t.moneda].ultimaFecha = new Date(t.fecha);
+        }
+        
+        return acc;
+      }, {});
+
       setState(prev => ({
         ...prev,
         saldos: {
-          USD: saldoUSD,
-          Bs: saldoBs
+          USD: saldosPorMoneda['USD']?.saldo || 0,
+          Bs: saldosPorMoneda['Bs']?.saldo || 0
         }
       }));
     }
