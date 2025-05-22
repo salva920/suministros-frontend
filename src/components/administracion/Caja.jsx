@@ -333,8 +333,8 @@ const CajaInteractiva = () => {
         const dateDiff = new Date(b.fecha) - new Date(a.fecha);
         if (dateDiff !== 0) return dateDiff;
         
-        // Si es el mismo día, ordenar por ID (timestamp) descendente
-        return b._id.getTimestamp() - a._id.getTimestamp();
+        // Si es el mismo día, ordenar por ID (string)
+        return (b._id || b.id || '').localeCompare(a._id || a.id || '');
       });
     
     return transaccionesMoneda.length > 0 ? transaccionesMoneda[0].saldo : 0;
@@ -350,7 +350,7 @@ const CajaInteractiva = () => {
       const transaccionesOrdenadas = [...state.transacciones].sort((a, b) => {
         const dateDiff = new Date(b.fecha) - new Date(a.fecha);
         if (dateDiff !== 0) return dateDiff;
-        return b._id.getTimestamp() - a._id.getTimestamp();
+        return (b._id || b.id || '').localeCompare(a._id || a.id || '');
       });
 
       // Calcular saldos por moneda
