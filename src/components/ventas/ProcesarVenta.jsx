@@ -743,6 +743,7 @@ const ProcesarVenta = () => {
         productosVenta={state.productosVenta}
         cliente={state.cliente}
         handleConfirmarPago={finalizarVenta}
+        showPrecios={state.showPrecios}
       />
 
       <ToastContainer position="top-right" autoClose={3000} />

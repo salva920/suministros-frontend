@@ -33,7 +33,8 @@ const ConfirmarPagoModal = ({
   errorBanco,
   setErrorBanco,
   productosVenta,
-  handleConfirmarPago
+  handleConfirmarPago,
+  showPrecios
 }) => {
   // Función para calcular ganancias
   const calcularGanancias = (productos) => {
@@ -199,29 +200,32 @@ const ConfirmarPagoModal = ({
             </>
           )}
 
-          <Grid item xs={12}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Detalle de Ganancias</Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Producto</TableCell>
-                    <TableCell align="right">Ganancia Unitaria</TableCell>
-                    <TableCell align="right">Ganancia Total</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {ganancias.map((producto, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{producto.nombre}</TableCell>
-                      <TableCell align="right">${producto.gananciaUnitaria.toFixed(2)}</TableCell>
-                      <TableCell align="right">${producto.gananciaTotal.toFixed(2)}</TableCell>
+          {/* Tabla de Ganancias solo si showPrecios es true */}
+          {showPrecios && (
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Detalle de Ganancias</Typography>
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Producto</TableCell>
+                      <TableCell align="right">Ganancia Unitaria</TableCell>
+                      <TableCell align="right">Ganancia Total</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Grid>
+                  </TableHead>
+                  <TableBody>
+                    {ganancias.map((producto, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{producto.nombre}</TableCell>
+                        <TableCell align="right">${producto.gananciaUnitaria.toFixed(2)}</TableCell>
+                        <TableCell align="right">${producto.gananciaTotal.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
+          )}
         </Grid>
       </DialogContent>
       <DialogActions>
