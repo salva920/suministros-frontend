@@ -298,6 +298,9 @@ const ProcesarVenta = () => {
         montoAbonar: ''
       }));
 
+      // Volver a cargar productos y clientes para actualizar el stock
+      await cargarDatosIniciales();
+
       toast.success('Venta registrada exitosamente!');
       
     } catch (error) {
