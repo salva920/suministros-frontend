@@ -34,16 +34,16 @@ const ControlFinanciero = () => {
       try {
         // Configurar timeout y headers para axios
         const axiosConfig = {
-          timeout: 15000, // 15 segundos
+          timeout: 15000,
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           }
         };
 
-        // Cargar datos de forma secuencial para evitar sobrecarga
-        const ventasRes = await axios.get(`${API_URL}/ventas?limit=1000`, axiosConfig);
-        const gastosRes = await axios.get(`${API_URL}/gastos?limit=1000`, axiosConfig);
+        // Cargar datos con límite más razonable
+        const ventasRes = await axios.get(`${API_URL}/ventas?limit=100`, axiosConfig);
+        const gastosRes = await axios.get(`${API_URL}/gastos?limit=100`, axiosConfig);
         
         console.log('Respuesta de ventas:', ventasRes.data);
         console.log('Respuesta de gastos:', gastosRes.data);
@@ -71,7 +71,7 @@ const ControlFinanciero = () => {
 
         let mensajeError = 'Error al cargar datos';
         if (error.response?.status === 400) {
-          mensajeError = 'Error en la solicitud: datos inválidos';
+          mensajeError = error.response.data.error || 'Error en la solicitud';
         } else if (error.code === 'ECONNABORTED') {
           mensajeError = 'La solicitud tardó demasiado tiempo';
         } else if (error.message.includes('CORS')) {
