@@ -326,18 +326,11 @@ const CajaInteractiva = () => {
 
   // Calcular el último saldo de cada moneda
   const getUltimoSaldo = (moneda) => {
-    // Filtrar transacciones por moneda y ordenar por fecha
     const transaccionesMoneda = state.transacciones
       .filter(t => t.moneda === moneda)
-      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
     
-    // Calcular saldo acumulado
-    let saldoAcumulado = 0;
-    transaccionesMoneda.forEach(t => {
-      saldoAcumulado += t.entrada - t.salida;
-    });
-    
-    return saldoAcumulado;
+    return transaccionesMoneda.length > 0 ? transaccionesMoneda[0].saldo : 0;
   };
 
   // Calcular el valor total consolidado usando los últimos saldos
@@ -346,25 +339,15 @@ const CajaInteractiva = () => {
   // Actualizar el estado de saldos cuando cambian las transacciones
   useEffect(() => {
     if (state.transacciones.length > 0) {
-      // Ordenar transacciones por fecha
-      const transaccionesOrdenadas = [...state.transacciones].sort((a, b) => 
-        new Date(a.fecha) - new Date(b.fecha)
-      );
-
-      // Calcular saldos por moneda
-      const saldosPorMoneda = { USD: 0, Bs: 0 };
+      const saldoUSD = getUltimoSaldo('USD');
+      const saldoBs = getUltimoSaldo('Bs');
       
-      transaccionesOrdenadas.forEach(t => {
-        if (t.moneda === 'USD') {
-          saldosPorMoneda.USD += t.entrada - t.salida;
-        } else if (t.moneda === 'Bs') {
-          saldosPorMoneda.Bs += t.entrada - t.salida;
-        }
-      });
-
       setState(prev => ({
         ...prev,
-        saldos: saldosPorMoneda
+        saldos: {
+          USD: saldoUSD,
+          Bs: saldoBs
+        }
       }));
     }
   }, [state.transacciones]);
