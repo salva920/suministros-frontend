@@ -30,28 +30,57 @@ const ControlFinanciero = () => {
 
   useEffect(() => {
     const cargarDatos = async () => {
-      setCargando(true); // Mostrar indicador de carga
+      setCargando(true);
       try {
-        const [ventasRes, gastosRes] = await Promise.all([
-          axios.get(`${API_URL}/ventas?limit=1000`),
-          axios.get(`${API_URL}/gastos?limit=1000`)
-        ]);
+        // Configurar timeout y headers para axios
+        const axiosConfig = {
+          timeout: 15000, // 15 segundos
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        };
+
+        // Cargar datos de forma secuencial para evitar sobrecarga
+        const ventasRes = await axios.get(`${API_URL}/ventas?limit=1000`, axiosConfig);
+        const gastosRes = await axios.get(`${API_URL}/gastos?limit=1000`, axiosConfig);
         
         console.log('Respuesta de ventas:', ventasRes.data);
         console.log('Respuesta de gastos:', gastosRes.data);
 
-        // Validación corregida para ambas respuestas
-        if (!Array.isArray(ventasRes.data?.ventas) || !Array.isArray(gastosRes.data?.gastos)) {
-          throw new Error('Estructura de respuesta inválida');
+        // Validación mejorada de las respuestas
+        if (!ventasRes.data?.ventas || !Array.isArray(ventasRes.data.ventas)) {
+          console.error('Estructura de respuesta de ventas inválida:', ventasRes.data);
+          throw new Error('Estructura de respuesta de ventas inválida');
+        }
+
+        if (!gastosRes.data?.gastos || !Array.isArray(gastosRes.data.gastos)) {
+          console.error('Estructura de respuesta de gastos inválida:', gastosRes.data);
+          throw new Error('Estructura de respuesta de gastos inválida');
         }
         
-        setVentas(ventasRes.data.ventas); // Usar la propiedad correcta
-        setGastos(gastosRes.data.gastos); // Usar la propiedad correcta
+        setVentas(ventasRes.data.ventas);
+        setGastos(gastosRes.data.gastos);
       } catch (error) {
-        console.error('Error al cargar datos:', error);
-        toast.error(`Error al cargar datos: ${error.message}`);
+        console.error('Error detallado al cargar datos:', {
+          mensaje: error.message,
+          respuesta: error.response?.data,
+          estado: error.response?.status,
+          config: error.config
+        });
+
+        let mensajeError = 'Error al cargar datos';
+        if (error.response?.status === 400) {
+          mensajeError = 'Error en la solicitud: datos inválidos';
+        } else if (error.code === 'ECONNABORTED') {
+          mensajeError = 'La solicitud tardó demasiado tiempo';
+        } else if (error.message.includes('CORS')) {
+          mensajeError = 'Error de CORS: No se puede acceder al servidor';
+        }
+
+        toast.error(mensajeError);
       } finally {
-        setCargando(false); // Ocultar indicador de carga
+        setCargando(false);
       }
     };
     
@@ -74,23 +103,50 @@ const ControlFinanciero = () => {
         fecha: fecha.toISOString()
       };
 
-      const response = await axios.post(`${API_URL}/gastos`, nuevoGastoData);
+      const response = await axios.post(`${API_URL}/gastos`, nuevoGastoData, {
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
       
-      setGastos([...gastos, response.data]);
-      setNuevoGasto({ descripcion: '', monto: '', categoria: '', fecha: new Date() });
-      toast.success('Gasto registrado exitosamente');
+      if (response.data) {
+        setGastos(prev => [...prev, response.data]);
+        setNuevoGasto({ descripcion: '', monto: '', categoria: '', fecha: new Date() });
+        toast.success('Gasto registrado exitosamente');
+      }
     } catch (error) {
+      console.error('Error al registrar gasto:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al registrar gasto');
     }
   };
 
   const handleDeleteGasto = async (id) => {
     try {
-      await axios.delete(`${API_URL}/gastos/${id}`);
-      setGastos(gastos.filter(g => g._id !== id));
-      toast.success('Gasto eliminado correctamente');
+      const response = await axios.delete(`${API_URL}/gastos/${id}`, {
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.status === 200) {
+        setGastos(prev => prev.filter(g => g._id !== id));
+        toast.success('Gasto eliminado correctamente');
+      }
     } catch (error) {
-      toast.error('Error al eliminar el gasto');
+      console.error('Error al eliminar gasto:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
+      toast.error(error.response?.data?.error || 'Error al eliminar el gasto');
     }
   };
 
