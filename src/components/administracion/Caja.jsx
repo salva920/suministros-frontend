@@ -654,9 +654,9 @@ const CajaInteractiva = () => {
                   label="Concepto"
                   fullWidth
                   value={state.nuevaTransaccion.concepto}
-                  onChange={(e) => setState(prev => ({ 
-                    ...prev, 
-                    nuevaTransaccion: { ...prev.nuevaTransaccion, concepto: e.target.value } 
+                  onChange={(e) => setNuevaTransaccion(prev => ({
+                    ...prev,
+                    concepto: e.target.value
                   }))}
                 />
               </Grid>
