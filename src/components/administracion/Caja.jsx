@@ -234,6 +234,15 @@ const CajaInteractiva = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
+  const [nuevaTransaccion, setNuevaTransaccion] = useState({
+    fecha: moment.utc().format('YYYY-MM-DD'),
+    concepto: '',
+    moneda: 'USD',
+    tipo: 'entrada',
+    monto: '',
+    tasaCambio: 0
+  });
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -265,15 +274,15 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async () => {
     try {
-      if (!state.nuevaTransaccion.monto || parseFloat(state.nuevaTransaccion.monto) <= 0) {
+      if (!nuevaTransaccion.monto || parseFloat(nuevaTransaccion.monto) <= 0) {
         toast.error('El monto debe ser mayor a 0');
         return;
       }
 
       const movimiento = {
-        ...state.nuevaTransaccion,
-        fecha: dateUtils.toUTC(state.nuevaTransaccion.fecha),
-        monto: parseFloat(state.nuevaTransaccion.monto),
+        ...nuevaTransaccion,
+        fecha: dateUtils.toUTC(nuevaTransaccion.fecha),
+        monto: parseFloat(nuevaTransaccion.monto),
         tasaCambio: state.tasaCambio
       };
 
@@ -635,15 +644,12 @@ const CajaInteractiva = () => {
                   label="Fecha"
                   type="date"
                   fullWidth
-                  value={state.nuevaTransaccion.fecha}
+                  value={nuevaTransaccion.fecha}
                   onChange={(e) => {
                     const fechaSeleccionada = e.target.value;
-                    setState(prev => ({ 
+                    setNuevaTransaccion(prev => ({ 
                       ...prev, 
-                      nuevaTransaccion: { 
-                        ...prev.nuevaTransaccion, 
-                        fecha: fechaSeleccionada 
-                      } 
+                      fecha: fechaSeleccionada 
                     }));
                   }}
                   InputLabelProps={{ shrink: true }}
@@ -653,7 +659,7 @@ const CajaInteractiva = () => {
                 <TextField
                   label="Concepto"
                   fullWidth
-                  value={state.nuevaTransaccion.concepto}
+                  value={nuevaTransaccion.concepto}
                   onChange={(e) => setNuevaTransaccion(prev => ({
                     ...prev,
                     concepto: e.target.value
@@ -664,10 +670,10 @@ const CajaInteractiva = () => {
                 <FormControl fullWidth>
                   <InputLabel>Moneda</InputLabel>
                   <Select
-                    value={state.nuevaTransaccion.moneda}
-                    onChange={(e) => setState(prev => ({ 
+                    value={nuevaTransaccion.moneda}
+                    onChange={(e) => setNuevaTransaccion(prev => ({ 
                       ...prev, 
-                      nuevaTransaccion: { ...prev.nuevaTransaccion, moneda: e.target.value } 
+                      moneda: e.target.value 
                     }))}
                   >
                     <MenuItem value="USD">USD</MenuItem>
@@ -679,10 +685,10 @@ const CajaInteractiva = () => {
                 <FormControl fullWidth>
                   <InputLabel>Tipo de Movimiento</InputLabel>
                   <Select
-                    value={state.nuevaTransaccion.tipo}
-                    onChange={(e) => setState(prev => ({ 
+                    value={nuevaTransaccion.tipo}
+                    onChange={(e) => setNuevaTransaccion(prev => ({ 
                       ...prev, 
-                      nuevaTransaccion: { ...prev.nuevaTransaccion, tipo: e.target.value } 
+                      tipo: e.target.value 
                     }))}
                   >
                     <MenuItem value="entrada">Entrada</MenuItem>
@@ -696,10 +702,10 @@ const CajaInteractiva = () => {
                   type="number"
                   fullWidth
                   inputProps={{ min: 0 }}
-                  value={state.nuevaTransaccion.monto}
-                  onChange={(e) => setState(prev => ({ 
-                    ...prev, 
-                    nuevaTransaccion: { ...prev.nuevaTransaccion, monto: e.target.value } 
+                  value={nuevaTransaccion.monto}
+                  onChange={(e) => setNuevaTransaccion(prev => ({
+                    ...prev,
+                    monto: e.target.value
                   }))}
                 />
               </Grid>
