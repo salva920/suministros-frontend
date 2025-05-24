@@ -5,7 +5,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, Chip, FormControl, InputLabel, Select, MenuItem,
   Box, LinearProgress, Dialog, DialogTitle, DialogContent,
-  DialogActions, IconButton, CircularProgress
+  DialogActions, IconButton, CircularProgress, Pagination
 } from '@mui/material';
 import { 
    AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, Visibility
@@ -303,7 +303,13 @@ const CajaInteractiva = () => {
       fecha: { start: null, end: null }
     },
     modalOpen: false,
-    editingTransaction: null
+    editingTransaction: null,
+    pagination: {
+      page: 1,
+      limit: 50,
+      total: 0,
+      totalPages: 0
+    }
   });
 
   const [nuevaTransaccion, setNuevaTransaccion] = useState({
@@ -321,55 +327,59 @@ const CajaInteractiva = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [cajaRes, tasaRes] = await Promise.all([
-          axios.get(`${API_URL}/caja`),
-          axios.get(`${API_URL}/tasa-cambio`)
-        ]);
-        
-        if (cajaRes.data && Array.isArray(cajaRes.data.transacciones)) {
-          setState(prev => ({
-            ...prev,
-            transacciones: cajaRes.data.transacciones,
-            saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
-            tasaCambio: tasaRes.data.tasa
-          }));
-        }
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
-        toast.error('Error al cargar los datos');
+  const fetchData = async (page = 1, moneda = state.filtros.moneda) => {
+    setLoading(true);
+    try {
+      const [cajaRes, tasaRes] = await Promise.all([
+        axios.get(`${API_URL}/caja`, {
+          params: {
+            page,
+            limit: state.pagination.limit,
+            moneda
+          }
+        }),
+        axios.get(`${API_URL}/tasa-cambio`)
+      ]);
+      
+      if (cajaRes.data && Array.isArray(cajaRes.data.transacciones)) {
+        setState(prev => ({
+          ...prev,
+          transacciones: cajaRes.data.transacciones,
+          saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
+          tasaCambio: tasaRes.data.tasa,
+          pagination: {
+            ...prev.pagination,
+            page,
+            total: cajaRes.data.total,
+            totalPages: cajaRes.data.totalPages
+          }
+        }));
       }
-    };
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+      toast.error('Error al cargar los datos');
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchInitialData();
+  useEffect(() => {
+    fetchData();
   }, []);
 
-  // Al abrir el modal, inicializa el formulario según si es edición o nuevo
-  useEffect(() => {
-    if (state.modalOpen) {
-      if (state.editingTransaction) {
-        setNuevaTransaccion({
-          fecha: dateUtils.toUTC(state.editingTransaction.fecha),
-          concepto: state.editingTransaction.concepto,
-          moneda: state.editingTransaction.moneda,
-          tipo: state.editingTransaction.entrada > 0 ? 'entrada' : 'salida',
-          monto: (state.editingTransaction.entrada || state.editingTransaction.salida).toString(),
-          tasaCambio: state.tasaCambio
-        });
-      } else {
-        setNuevaTransaccion({
-          fecha: moment.utc().format('YYYY-MM-DD'),
-          concepto: '',
-          moneda: 'USD',
-          tipo: 'entrada',
-          monto: '',
-          tasaCambio: state.tasaCambio
-        });
-      }
-    }
-  }, [state.modalOpen, state.editingTransaction, state.tasaCambio]);
+  const handlePageChange = (event, newPage) => {
+    fetchData(newPage);
+  };
+
+  const handleMonedaChange = (e) => {
+    const nuevaMoneda = e.target.value;
+    setState(prev => ({
+      ...prev,
+      filtros: { ...prev.filtros, moneda: nuevaMoneda }
+    }));
+    fetchData(1, nuevaMoneda);
+  };
 
   const handleRegistrarMovimiento = async (formData) => {
     try {
@@ -552,7 +562,7 @@ const CajaInteractiva = () => {
         </Typography>
         <Button 
           variant="contained" 
-          onClick={fetchInitialData}
+          onClick={fetchData}
           sx={{ mt: 2 }}
         >
           Reintentar
@@ -615,10 +625,7 @@ const CajaInteractiva = () => {
               <InputLabel>Moneda</InputLabel>
               <Select
                 value={state.filtros.moneda}
-                onChange={(e) => setState(prev => ({
-                  ...prev,
-                  filtros: { ...prev.filtros, moneda: e.target.value }
-                }))}
+                onChange={handleMonedaChange}
               >
                 <MenuItem value="TODAS">Todas</MenuItem>
                 <MenuItem value="USD">Dólares</MenuItem>
@@ -696,14 +703,33 @@ const CajaInteractiva = () => {
               </Box>
             </Box>
             
-            <MemoTransactionTable 
-              transactions={state.transacciones}
-              currencyFilter={state.filtros.moneda}
-              dateFilter={state.filtros.fecha}
-              tasaActual={state.tasaCambio}
-              onEdit={handleEditTransaction}
-              onDelete={handleDeleteTransaction}
-            />
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <>
+                <MemoTransactionTable 
+                  transactions={state.transacciones}
+                  currencyFilter={state.filtros.moneda}
+                  dateFilter={state.filtros.fecha}
+                  tasaActual={state.tasaCambio}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                />
+                
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                  <Pagination 
+                    count={state.pagination.totalPages}
+                    page={state.pagination.page}
+                    onChange={handlePageChange}
+                    color="primary"
+                    showFirstButton
+                    showLastButton
+                  />
+                </Box>
+              </>
+            )}
           </Paper>
         </Grid>
       </Grid>
