@@ -217,22 +217,8 @@ const CajaInteractiva = () => {
       fecha: { start: null, end: null }
     },
     modalOpen: false,
-    nuevaTransaccion: {
-      fecha: moment.utc().format('YYYY-MM-DD'),
-      concepto: '',
-      moneda: 'USD',
-      tipo: 'entrada',
-      monto: '',
-      tasaCambio: 0
-    },
     editingTransaction: null
   });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const navigate = useNavigate();
-  const theme = useTheme();
 
   const [nuevaTransaccion, setNuevaTransaccion] = useState({
     fecha: moment.utc().format('YYYY-MM-DD'),
@@ -242,6 +228,12 @@ const CajaInteractiva = () => {
     monto: '',
     tasaCambio: 0
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const navigate = useNavigate();
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -256,11 +248,7 @@ const CajaInteractiva = () => {
             ...prev,
             transacciones: cajaRes.data.transacciones,
             saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
-            tasaCambio: tasaRes.data.tasa,
-            nuevaTransaccion: {
-              ...prev.nuevaTransaccion,
-              tasaCambio: tasaRes.data.tasa
-            }
+            tasaCambio: tasaRes.data.tasa
           }));
         }
       } catch (error) {
@@ -271,6 +259,31 @@ const CajaInteractiva = () => {
 
     fetchInitialData();
   }, []);
+
+  // Al abrir el modal, inicializa el formulario según si es edición o nuevo
+  useEffect(() => {
+    if (state.modalOpen) {
+      if (state.editingTransaction) {
+        setNuevaTransaccion({
+          fecha: dateUtils.toUTC(state.editingTransaction.fecha),
+          concepto: state.editingTransaction.concepto,
+          moneda: state.editingTransaction.moneda,
+          tipo: state.editingTransaction.entrada > 0 ? 'entrada' : 'salida',
+          monto: (state.editingTransaction.entrada || state.editingTransaction.salida).toString(),
+          tasaCambio: state.tasaCambio
+        });
+      } else {
+        setNuevaTransaccion({
+          fecha: moment.utc().format('YYYY-MM-DD'),
+          concepto: '',
+          moneda: 'USD',
+          tipo: 'entrada',
+          monto: '',
+          tasaCambio: state.tasaCambio
+        });
+      }
+    }
+  }, [state.modalOpen, state.editingTransaction, state.tasaCambio]);
 
   const handleRegistrarMovimiento = async () => {
     try {
@@ -285,9 +298,6 @@ const CajaInteractiva = () => {
         monto: parseFloat(nuevaTransaccion.monto),
         tasaCambio: state.tasaCambio
       };
-
-      console.log('Movimiento a enviar:', movimiento);
-      console.log('ID de edición:', state.editingTransaction?._id);
 
       let res;
       if (state.editingTransaction && state.editingTransaction._id) {
@@ -304,20 +314,18 @@ const CajaInteractiva = () => {
           transacciones: res.data.transacciones,
           saldos: res.data.saldos,
           modalOpen: false,
-          nuevaTransaccion: {
-            fecha: moment.utc().format('YYYY-MM-DD'),
-            concepto: '',
-            moneda: 'USD',
-            tipo: 'entrada',
-            monto: '',
-            tasaCambio: state.tasaCambio
-          },
           editingTransaction: null
         }));
+        setNuevaTransaccion({
+          fecha: moment.utc().format('YYYY-MM-DD'),
+          concepto: '',
+          moneda: 'USD',
+          tipo: 'entrada',
+          monto: '',
+          tasaCambio: state.tasaCambio
+        });
       }
     } catch (error) {
-      console.error('Error completo:', error);
-      console.error('Respuesta del servidor:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al procesar la transacción');
     }
   };
@@ -325,11 +333,7 @@ const CajaInteractiva = () => {
   const handleTasaChange = (nuevaTasa) => {
     setState(prev => ({ 
       ...prev, 
-      tasaCambio: nuevaTasa,
-      nuevaTransaccion: {
-        ...prev.nuevaTransaccion,
-        tasaCambio: nuevaTasa
-      }
+      tasaCambio: nuevaTasa
     }));
   };
 
@@ -380,15 +384,7 @@ const CajaInteractiva = () => {
     setState(prev => ({
       ...prev,
       modalOpen: true,
-      editingTransaction: { ...transaction, _id: transactionId },
-      nuevaTransaccion: {
-        fecha: dateUtils.toUTC(transaction.fecha),
-        concepto: transaction.concepto,
-        moneda: transaction.moneda,
-        tipo: transaction.entrada > 0 ? 'entrada' : 'salida',
-        monto: (transaction.entrada || transaction.salida).toString(),
-        tasaCambio: state.tasaCambio
-      }
+      editingTransaction: { ...transaction, _id: transactionId }
     }));
   };
 
