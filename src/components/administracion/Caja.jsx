@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import axios from 'axios';
 import { 
   Container, Typography, Grid, Paper, TextField, Button,
@@ -207,6 +207,92 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
   );
 };
 
+// Formulario de nueva transacción como componente hijo
+const MovimientoForm = ({
+  open,
+  onClose,
+  onSubmit,
+  initialData,
+  tasaCambio
+}) => {
+  const [form, setForm] = useState(initialData);
+
+  useEffect(() => {
+    setForm(initialData);
+  }, [initialData, open]);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Registrar Movimiento</DialogTitle>
+      <DialogContent>
+        <Box sx={{ mt: 2 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Fecha"
+                type="date"
+                fullWidth
+                value={form.fecha}
+                onChange={(e) => setForm(prev => ({ ...prev, fecha: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Concepto"
+                fullWidth
+                value={form.concepto}
+                onChange={(e) => setForm(prev => ({ ...prev, concepto: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Moneda</InputLabel>
+                <Select
+                  value={form.moneda}
+                  onChange={(e) => setForm(prev => ({ ...prev, moneda: e.target.value }))}
+                >
+                  <MenuItem value="USD">USD</MenuItem>
+                  <MenuItem value="Bs">Bs</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Tipo de Movimiento</InputLabel>
+                <Select
+                  value={form.tipo}
+                  onChange={(e) => setForm(prev => ({ ...prev, tipo: e.target.value }))}
+                >
+                  <MenuItem value="entrada">Entrada</MenuItem>
+                  <MenuItem value="salida">Salida</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Monto"
+                type="number"
+                fullWidth
+                inputProps={{ min: 0 }}
+                value={form.monto}
+                onChange={(e) => setForm(prev => ({ ...prev, monto: e.target.value }))}
+              />
+            </Grid>
+          </Grid>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="secondary">Cancelar</Button>
+        <Button onClick={() => onSubmit(form)} color="primary" variant="contained">Registrar</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Memoizar la tabla de transacciones
+const MemoTransactionTable = memo(TransactionTable);
+
 const CajaInteractiva = () => {
   const [state, setState] = useState({
     transacciones: [],
@@ -285,17 +371,17 @@ const CajaInteractiva = () => {
     }
   }, [state.modalOpen, state.editingTransaction, state.tasaCambio]);
 
-  const handleRegistrarMovimiento = async () => {
+  const handleRegistrarMovimiento = async (formData) => {
     try {
-      if (!nuevaTransaccion.monto || parseFloat(nuevaTransaccion.monto) <= 0) {
+      if (!formData.monto || parseFloat(formData.monto) <= 0) {
         toast.error('El monto debe ser mayor a 0');
         return;
       }
 
       const movimiento = {
-        ...nuevaTransaccion,
-        fecha: dateUtils.toUTC(nuevaTransaccion.fecha),
-        monto: parseFloat(nuevaTransaccion.monto),
+        ...formData,
+        fecha: dateUtils.toUTC(formData.fecha),
+        monto: parseFloat(formData.monto),
         tasaCambio: state.tasaCambio
       };
 
@@ -610,7 +696,7 @@ const CajaInteractiva = () => {
               </Box>
             </Box>
             
-            <TransactionTable 
+            <MemoTransactionTable 
               transactions={state.transacciones}
               currencyFilter={state.filtros.moneda}
               dateFilter={state.filtros.fecha}
@@ -622,101 +708,13 @@ const CajaInteractiva = () => {
         </Grid>
       </Grid>
 
-      <Dialog open={state.modalOpen} onClose={() => setState(prev => ({ ...prev, modalOpen: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ 
-          bgcolor: theme.palette.background.paper,
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1 
-        }}>
-          <Receipt /> 
-          <span>Registrar Movimiento</span>
-        </DialogTitle>
-        <DialogContent sx={{ bgcolor: theme.palette.background.paper }}>
-          <Box sx={{ mt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Fecha"
-                  type="date"
-                  fullWidth
-                  value={nuevaTransaccion.fecha}
-                  onChange={(e) => {
-                    const fechaSeleccionada = e.target.value;
-                    setNuevaTransaccion(prev => ({ 
-                      ...prev, 
-                      fecha: fechaSeleccionada 
-                    }));
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Concepto"
-                  fullWidth
-                  value={nuevaTransaccion.concepto}
-                  onChange={(e) => setNuevaTransaccion(prev => ({
-                    ...prev,
-                    concepto: e.target.value
-                  }))}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Moneda</InputLabel>
-                  <Select
-                    value={nuevaTransaccion.moneda}
-                    onChange={(e) => setNuevaTransaccion(prev => ({ 
-                      ...prev, 
-                      moneda: e.target.value 
-                    }))}
-                  >
-                    <MenuItem value="USD">USD</MenuItem>
-                    <MenuItem value="Bs">Bs</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Tipo de Movimiento</InputLabel>
-                  <Select
-                    value={nuevaTransaccion.tipo}
-                    onChange={(e) => setNuevaTransaccion(prev => ({ 
-                      ...prev, 
-                      tipo: e.target.value 
-                    }))}
-                  >
-                    <MenuItem value="entrada">Entrada</MenuItem>
-                    <MenuItem value="salida">Salida</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Monto"
-                  type="number"
-                  fullWidth
-                  inputProps={{ min: 0 }}
-                  value={nuevaTransaccion.monto}
-                  onChange={(e) => setNuevaTransaccion(prev => ({
-                    ...prev,
-                    monto: e.target.value
-                  }))}
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ bgcolor: theme.palette.background.paper }}>
-          <Button onClick={() => setState(prev => ({ ...prev, modalOpen: false }))} color="secondary">
-            Cancelar
-          </Button>
-          <Button onClick={handleRegistrarMovimiento} color="primary" variant="contained">
-            Registrar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <MovimientoForm
+        open={state.modalOpen}
+        onClose={() => setState(prev => ({ ...prev, modalOpen: false }))}
+        onSubmit={handleRegistrarMovimiento}
+        initialData={nuevaTransaccion}
+        tasaCambio={state.tasaCambio}
+      />
     </Container>
   );
 };
