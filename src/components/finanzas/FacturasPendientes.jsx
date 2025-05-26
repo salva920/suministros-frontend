@@ -246,7 +246,8 @@ const FacturasPendientes = () => {
     if (!monto || !tasaCambio) return 0;
     const montoNumerico = parseFloat(monto);
     if (monedaOrigen === monedaDestino) return montoNumerico;
-    return monedaOrigen === 'USD' ? montoNumerico * tasaCambio : montoNumerico / tasaCambio;
+    const resultado = monedaOrigen === 'USD' ? montoNumerico * tasaCambio : montoNumerico / tasaCambio;
+    return parseFloat(resultado.toFixed(2));
   };
   
   // Registrar abono
@@ -257,10 +258,10 @@ const FacturasPendientes = () => {
     }
 
     const montoEnBs = convertirMonto(montoAbono, monedaAbono, 'Bs');
-    const saldoEnBs = facturaSeleccionada.saldo;
+    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(2));
     
     // Validar que el monto en Bs no supere el saldo
-    if (montoEnBs > saldoEnBs) {
+    if (montoEnBs > saldoEnBs + 0.01) { // Permitir una pequeña diferencia por redondeo
       setErrorAbono(`El abono no puede superar el saldo pendiente de ${formatearMoneda(saldoEnBs)}`);
       return;
     }
