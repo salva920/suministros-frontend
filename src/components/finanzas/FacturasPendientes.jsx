@@ -154,7 +154,7 @@ const FacturasPendientes = () => {
   };
   
   // Función para formatear moneda
-  const formatearMoneda = (valor, moneda = 'Bs') => {
+  const formatearMoneda = (valor, moneda = 'Bs', monedaAbono = 'Bs') => {
     const formateado = new Intl.NumberFormat('es-VE', {
       style: 'currency',
       currency: 'VES',
@@ -165,6 +165,22 @@ const FacturasPendientes = () => {
     if (moneda === 'Bs' && tasaCambio > 0) {
       const equivalenteUSD = valor / tasaCambio;
       return `${formateado} (Ref: $ ${equivalenteUSD.toFixed(6)})`;
+    }
+    return formateado;
+  };
+  
+  // Función para formatear abono con moneda
+  const formatearAbono = (valor, monedaAbono) => {
+    const formateado = new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'VES',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6
+    }).format(valor);
+
+    if (monedaAbono === 'USD') {
+      const equivalenteUSD = valor / tasaCambio;
+      return `$ ${equivalenteUSD.toFixed(6)}`;
     }
     return formateado;
   };
@@ -263,7 +279,6 @@ const FacturasPendientes = () => {
     const montoEnBs = convertirMonto(montoAbono, monedaAbono, 'Bs');
     const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(6));
     
-    // Validar que el monto en Bs no supere el saldo con una tolerancia de 0.000001
     if (montoEnBs > saldoEnBs + 0.000001) {
       setErrorAbono(`El abono no puede superar el saldo pendiente de ${formatearMoneda(saldoEnBs)}`);
       return;
@@ -271,14 +286,14 @@ const FacturasPendientes = () => {
     
     setLoading(true);
     try {
-      // Asegurar que todos los valores sean números válidos con 6 decimales
       const datosAbono = {
         monto: Number(montoEnBs.toFixed(6)),
         moneda: monedaAbono,
-        tasaCambio: Number(tasaCambio.toFixed(6))
+        tasaCambio: Number(tasaCambio.toFixed(6)),
+        monedaAbono: monedaAbono // Agregar la moneda del abono
       };
 
-      console.log('Enviando datos de abono:', datosAbono); // Para debugging
+      console.log('Enviando datos de abono:', datosAbono);
       
       await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, datosAbono);
       
@@ -702,7 +717,9 @@ const FacturasPendientes = () => {
                           <TableCell>{factura.proveedor || '-'}</TableCell>
                           <TableCell>{factura.numeroFactura || '-'}</TableCell>
                           <TableCell align="right">{formatearMoneda(factura.monto)}</TableCell>
-                          <TableCell align="right">{formatearMoneda(factura.abono)}</TableCell>
+                          <TableCell align="right">
+                            {formatearAbono(factura.abono, factura.monedaAbono || 'Bs')}
+                          </TableCell>
                           <TableCell align="right">
                             <motion.div whileHover={{ scale: 1.05 }}>
                               <Chip 
@@ -871,7 +888,7 @@ const FacturasPendientes = () => {
                       <Grid item xs={6}>
                         <Typography variant="subtitle2" color="text.secondary">Total Abonado:</Typography>
                         <Typography variant="body1" gutterBottom color="success.main">
-                          {formatearMoneda(facturaSeleccionada.abono)}
+                          {formatearAbono(facturaSeleccionada.abono, facturaSeleccionada.monedaAbono || 'Bs')}
                         </Typography>
                       </Grid>
                       
