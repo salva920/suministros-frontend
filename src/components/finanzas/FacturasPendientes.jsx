@@ -153,17 +153,27 @@ const FacturasPendientes = () => {
     }
   };
   
+  // Función para verificar si una factura está pagada
+  const esFacturaPagada = (saldo) => {
+    return Math.abs(saldo) < 0.0001; // Considerar pagada si el saldo es menor a 0.0001
+  };
+  
   // Función para formatear moneda
   const formatearMoneda = (valor, moneda = 'Bs', monedaAbono = 'Bs') => {
+    // Si el valor es muy pequeño, considerarlo como cero
+    if (Math.abs(valor) < 0.01) {
+      valor = 0;
+    }
+
     const formateado = new Intl.NumberFormat('es-VE', {
       style: 'currency',
       currency: 'VES',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 8
+      maximumFractionDigits: 2
     }).format(valor);
 
     if (moneda === 'Bs' && tasaCambio > 0) {
-      const equivalenteUSD = (valor / tasaCambio).toFixed(8);
+      const equivalenteUSD = (valor / tasaCambio).toFixed(2);
       return `${formateado} (Ref: $ ${equivalenteUSD})`;
     }
     return formateado;
@@ -171,15 +181,20 @@ const FacturasPendientes = () => {
   
   // Función para formatear abono con moneda
   const formatearAbono = (valor, monedaAbono) => {
+    // Si el valor es muy pequeño, considerarlo como cero
+    if (Math.abs(valor) < 0.01) {
+      valor = 0;
+    }
+
     const formateado = new Intl.NumberFormat('es-VE', {
       style: 'currency',
       currency: 'VES',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 8
+      maximumFractionDigits: 2
     }).format(valor);
 
     if (monedaAbono === 'USD') {
-      const equivalenteUSD = (valor / tasaCambio).toFixed(8);
+      const equivalenteUSD = (valor / tasaCambio).toFixed(2);
       return `$ ${equivalenteUSD}`;
     }
     return formateado;
@@ -265,10 +280,10 @@ const FacturasPendientes = () => {
     const montoNumerico = parseFloat(monto);
     if (monedaOrigen === monedaDestino) return montoNumerico;
     
-    // Para evitar errores de redondeo, primero convertimos a string con muchos decimales
+    // Redondear a 2 decimales para evitar números largos
     const resultado = monedaOrigen === 'USD' 
-      ? (montoNumerico * tasaCambio).toFixed(8)
-      : (montoNumerico / tasaCambio).toFixed(8);
+      ? (montoNumerico * tasaCambio).toFixed(2)
+      : (montoNumerico / tasaCambio).toFixed(2);
     
     return parseFloat(resultado);
   };
@@ -281,17 +296,23 @@ const FacturasPendientes = () => {
     }
 
     const montoEnBs = convertirMonto(montoAbono, monedaAbono, 'Bs');
-    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(8));
+    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(2));
     
     // Si el monto en Bs es mayor que el saldo, ajustamos al saldo exacto
     const montoFinal = montoEnBs > saldoEnBs ? saldoEnBs : montoEnBs;
     
+    // Si el saldo restante sería muy pequeño, considerarlo como cero
+    const saldoRestante = saldoEnBs - montoFinal;
+    if (Math.abs(saldoRestante) < 0.01) {
+      montoFinal = saldoEnBs;
+    }
+    
     setLoading(true);
     try {
       const datosAbono = {
-        monto: Number(montoFinal.toFixed(8)),
+        monto: Number(montoFinal.toFixed(2)),
         moneda: monedaAbono,
-        tasaCambio: Number(tasaCambio.toFixed(8)),
+        tasaCambio: Number(tasaCambio.toFixed(2)),
         monedaAbono: monedaAbono
       };
 
@@ -316,11 +337,11 @@ const FacturasPendientes = () => {
   
   // Modificar el botón de 100%
   const handleAbono100 = () => {
-    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(8));
+    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(2));
     if (monedaAbono === 'Bs') {
-      setMontoAbono(saldoEnBs.toFixed(8));
+      setMontoAbono(saldoEnBs.toFixed(2));
     } else {
-      const saldoEnUSD = (saldoEnBs / tasaCambio).toFixed(8);
+      const saldoEnUSD = (saldoEnBs / tasaCambio).toFixed(2);
       setMontoAbono(saldoEnUSD);
     }
   };
@@ -697,7 +718,7 @@ const FacturasPendientes = () => {
                           exit={{ opacity: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.02 }}
                           component={StyledTableRow}
-                          className={factura.saldo === 0 ? 'pagada' : ''}
+                          className={esFacturaPagada(factura.saldo) ? 'pagada' : ''}
                           layout
                         >
                           <TableCell>{formatearFechaSimple(factura.fecha)}</TableCell>
@@ -709,7 +730,7 @@ const FacturasPendientes = () => {
                                   overflow: 'hidden', 
                                   textOverflow: 'ellipsis', 
                                   whiteSpace: 'nowrap',
-                                  fontWeight: factura.saldo === 0 ? 'normal' : 'medium'
+                                  fontWeight: esFacturaPagada(factura.saldo) ? 'normal' : 'medium'
                                 }}
                               >
                                 {factura.concepto}
@@ -726,11 +747,11 @@ const FacturasPendientes = () => {
                             <motion.div whileHover={{ scale: 1.05 }}>
                               <Chip 
                                 label={formatearMoneda(factura.saldo)}
-                                color={factura.saldo === 0 ? 'success' : factura.abono > 0 ? 'warning' : 'error'}
-                                variant={factura.saldo === 0 ? 'filled' : 'outlined'}
+                                color={esFacturaPagada(factura.saldo) ? 'success' : factura.abono > 0 ? 'warning' : 'error'}
+                                variant={esFacturaPagada(factura.saldo) ? 'filled' : 'outlined'}
                                 sx={{ 
                                   fontWeight: 'bold',
-                                  boxShadow: factura.saldo === 0 ? '0 2px 5px rgba(76, 175, 80, 0.4)' : 'none'
+                                  boxShadow: esFacturaPagada(factura.saldo) ? '0 2px 5px rgba(76, 175, 80, 0.4)' : 'none'
                                 }}
                               />
                             </motion.div>
