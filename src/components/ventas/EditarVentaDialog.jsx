@@ -49,6 +49,7 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
 
   useEffect(() => {
     if (venta) {
+      console.log('Venta recibida:', venta); // Debug log
       setFormData({
         fecha: venta.fecha ? moment(venta.fecha).format('YYYY-MM-DDTHH:mm') : '',
         total: venta.total || 0,
@@ -82,19 +83,36 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!venta || !venta._id) {
+      toast.error('ID de venta no válido');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Validar que todos los campos requeridos estén presentes
+      if (!formData.fecha || !formData.total || !formData.montoAbonado || !formData.tipoPago || !formData.metodoPago) {
+        toast.error('Por favor complete todos los campos requeridos');
+        setLoading(false);
+        return;
+      }
+
       const ventaActualizada = {
-        ...venta,
+        _id: venta._id,
+        cliente: venta.cliente?._id || venta.cliente,
         fecha: formData.fecha ? new Date(formData.fecha).toISOString() : venta.fecha,
         total: parseFloat(formData.total),
         montoAbonado: parseFloat(formData.montoAbonado),
         saldoPendiente: parseFloat(formData.saldoPendiente),
         tipoPago: formData.tipoPago,
         metodoPago: formData.metodoPago,
-        estadoCredito: parseFloat(formData.saldoPendiente) > 0 ? 'vigente' : 'pagado'
+        estadoCredito: parseFloat(formData.saldoPendiente) > 0 ? 'vigente' : 'pagado',
+        productos: venta.productos || []
       };
+
+      console.log('Enviando datos al backend:', ventaActualizada); // Debug log
 
       const response = await axios.put(`${API_URL}/ventas/${venta._id}`, ventaActualizada);
 
@@ -105,6 +123,11 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
       }
     } catch (error) {
       console.error('Error al actualizar venta:', error);
+      console.error('Detalles del error:', {
+        mensaje: error.message,
+        respuesta: error.response?.data,
+        estado: error.response?.status
+      });
       toast.error(error.response?.data?.error || 'Error al actualizar la venta');
     } finally {
       setLoading(false);
