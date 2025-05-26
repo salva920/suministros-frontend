@@ -268,18 +268,27 @@ const FacturasPendientes = () => {
     
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, {
-        monto: montoEnBs,
+      // Asegurar que todos los valores sean números válidos
+      const datosAbono = {
+        monto: Number(montoEnBs.toFixed(2)),
         moneda: monedaAbono,
-        tasaCambio: tasaCambio
-      });
+        tasaCambio: Number(tasaCambio.toFixed(2))
+      };
+
+      console.log('Enviando datos de abono:', datosAbono); // Para debugging
+      
+      await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, datosAbono);
       
       toast.success('Abono registrado correctamente');
       setOpenAbonoModal(false);
       cargarFacturas();
     } catch (error) {
       console.error('Error al registrar abono:', error);
-      toast.error('Error al registrar el abono');
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Error al registrar el abono');
+      }
     } finally {
       setLoading(false);
     }
