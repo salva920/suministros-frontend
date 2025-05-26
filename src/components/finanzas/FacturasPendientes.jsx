@@ -159,12 +159,12 @@ const FacturasPendientes = () => {
       style: 'currency',
       currency: 'VES',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 6
+      maximumFractionDigits: 8
     }).format(valor);
 
     if (moneda === 'Bs' && tasaCambio > 0) {
-      const equivalenteUSD = valor / tasaCambio;
-      return `${formateado} (Ref: $ ${equivalenteUSD.toFixed(6)})`;
+      const equivalenteUSD = (valor / tasaCambio).toFixed(8);
+      return `${formateado} (Ref: $ ${equivalenteUSD})`;
     }
     return formateado;
   };
@@ -175,12 +175,12 @@ const FacturasPendientes = () => {
       style: 'currency',
       currency: 'VES',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 6
+      maximumFractionDigits: 8
     }).format(valor);
 
     if (monedaAbono === 'USD') {
-      const equivalenteUSD = valor / tasaCambio;
-      return `$ ${equivalenteUSD.toFixed(6)}`;
+      const equivalenteUSD = (valor / tasaCambio).toFixed(8);
+      return `$ ${equivalenteUSD}`;
     }
     return formateado;
   };
@@ -264,9 +264,13 @@ const FacturasPendientes = () => {
     if (!monto || !tasaCambio) return 0;
     const montoNumerico = parseFloat(monto);
     if (monedaOrigen === monedaDestino) return montoNumerico;
-    const resultado = monedaOrigen === 'USD' ? montoNumerico * tasaCambio : montoNumerico / tasaCambio;
-    // Redondear a 6 decimales para mayor precisión con montos pequeños
-    return Math.round(resultado * 1000000) / 1000000;
+    
+    // Para evitar errores de redondeo, primero convertimos a string con muchos decimales
+    const resultado = monedaOrigen === 'USD' 
+      ? (montoNumerico * tasaCambio).toFixed(8)
+      : (montoNumerico / tasaCambio).toFixed(8);
+    
+    return parseFloat(resultado);
   };
   
   // Registrar abono
@@ -277,20 +281,18 @@ const FacturasPendientes = () => {
     }
 
     const montoEnBs = convertirMonto(montoAbono, monedaAbono, 'Bs');
-    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(6));
+    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(8));
     
-    if (montoEnBs > saldoEnBs + 0.000001) {
-      setErrorAbono(`El abono no puede superar el saldo pendiente de ${formatearMoneda(saldoEnBs)}`);
-      return;
-    }
+    // Si el monto en Bs es mayor que el saldo, ajustamos al saldo exacto
+    const montoFinal = montoEnBs > saldoEnBs ? saldoEnBs : montoEnBs;
     
     setLoading(true);
     try {
       const datosAbono = {
-        monto: Number(montoEnBs.toFixed(6)),
+        monto: Number(montoFinal.toFixed(8)),
         moneda: monedaAbono,
-        tasaCambio: Number(tasaCambio.toFixed(6)),
-        monedaAbono: monedaAbono // Agregar la moneda del abono
+        tasaCambio: Number(tasaCambio.toFixed(8)),
+        monedaAbono: monedaAbono
       };
 
       console.log('Enviando datos de abono:', datosAbono);
@@ -314,11 +316,11 @@ const FacturasPendientes = () => {
   
   // Modificar el botón de 100%
   const handleAbono100 = () => {
-    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(6));
+    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(8));
     if (monedaAbono === 'Bs') {
-      setMontoAbono(saldoEnBs.toFixed(6));
+      setMontoAbono(saldoEnBs.toFixed(8));
     } else {
-      const saldoEnUSD = (saldoEnBs / tasaCambio).toFixed(6);
+      const saldoEnUSD = (saldoEnBs / tasaCambio).toFixed(8);
       setMontoAbono(saldoEnUSD);
     }
   };
