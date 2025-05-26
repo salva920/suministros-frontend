@@ -124,6 +124,7 @@ const FacturasPendientes = () => {
   const [openAbonoModal, setOpenAbonoModal] = useState(false);
   const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
   const [montoAbono, setMontoAbono] = useState('');
+  const [monedaAbono, setMonedaAbono] = useState('Bs');
   const [errorAbono, setErrorAbono] = useState('');
   
   // Estados para modal de nueva factura
@@ -240,12 +241,12 @@ const FacturasPendientes = () => {
     setPage(0);
   };
   
-  // Abrir modal de abono
-  const abrirModalAbono = (factura) => {
-    setFacturaSeleccionada(factura);
-    setMontoAbono('');
-    setErrorAbono('');
-    setOpenAbonoModal(true);
+  // Función para convertir monto según moneda
+  const convertirMonto = (monto, monedaOrigen, monedaDestino) => {
+    if (!monto || !tasaCambio) return 0;
+    const montoNumerico = parseFloat(monto);
+    if (monedaOrigen === monedaDestino) return montoNumerico;
+    return monedaOrigen === 'USD' ? montoNumerico * tasaCambio : montoNumerico / tasaCambio;
   };
   
   // Registrar abono
@@ -254,8 +255,10 @@ const FacturasPendientes = () => {
       setErrorAbono('Ingrese un monto válido');
       return;
     }
+
+    const montoEnBs = convertirMonto(montoAbono, monedaAbono, 'Bs');
     
-    if (parseFloat(montoAbono) > facturaSeleccionada.saldo) {
+    if (montoEnBs > facturaSeleccionada.saldo) {
       setErrorAbono('El abono no puede superar el saldo pendiente');
       return;
     }
@@ -263,7 +266,9 @@ const FacturasPendientes = () => {
     setLoading(true);
     try {
       await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, {
-        monto: parseFloat(montoAbono)
+        monto: montoEnBs,
+        moneda: monedaAbono,
+        tasaCambio: tasaCambio
       });
       
       toast.success('Abono registrado correctamente');
@@ -695,7 +700,13 @@ const FacturasPendientes = () => {
                                   >
                                     <IconButton 
                                       color="primary"
-                                      onClick={() => abrirModalAbono(factura)}
+                                      onClick={() => {
+                                        setFacturaSeleccionada(factura);
+                                        setMontoAbono('');
+                                        setMonedaAbono('Bs');
+                                        setErrorAbono('');
+                                        setOpenAbonoModal(true);
+                                      }}
                                       size="small"
                                       sx={{ 
                                         boxShadow: '0 2px 5px rgba(33, 150, 243, 0.3)',
@@ -802,37 +813,13 @@ const FacturasPendientes = () => {
                   <CloseIcon />
                 </IconButton>
               </DialogTitle>
-              <DialogContent sx={{ 
-                pt: 3, 
-                px: 3, 
-                pb: 2,
-                bgcolor: '#ffffff', // Fondo blanco explícito
-                position: 'relative',
-                '&:before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: '#ffffff',
-                  zIndex: -1
-                }
-              }}>
+              <DialogContent sx={{ pt: 3, px: 3, pb: 2 }}>
                 <Box>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
                     Detalles de la Factura
                   </Typography>
                   
-                  <Paper 
-                    elevation={0} 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: '#f8f9fa',
-                      borderRadius: '10px',
-                      border: '1px solid rgba(0,0,0,0.05)'
-                    }}
-                  >
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.05)' }}>
                     <Grid container spacing={2}>
                       <Grid item xs={12}>
                         <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Concepto:</Typography>
@@ -871,64 +858,93 @@ const FacturasPendientes = () => {
                     </Grid>
                   </Paper>
                   
-                  <TextField
-                    fullWidth
-                    label="Monto a Abonar"
-                    type="number"
-                    value={montoAbono}
-                    onChange={(e) => setMontoAbono(e.target.value)}
-                    error={!!errorAbono}
-                    helperText={errorAbono}
-                    margin="normal"
-                    variant="outlined"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">Bs.</InputAdornment>
-                      ),
-                      sx: { borderRadius: '10px' }
-                    }}
-                    sx={{ mt: 3 }}
-                  />
+                  <Grid container spacing={2} sx={{ mt: 3 }}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Monto a Abonar"
+                        type="number"
+                        value={montoAbono}
+                        onChange={(e) => setMontoAbono(e.target.value)}
+                        error={!!errorAbono}
+                        helperText={errorAbono}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              {monedaAbono === 'Bs' ? 'Bs.' : '$'}
+                            </InputAdornment>
+                          ),
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Moneda"
+                        value={monedaAbono}
+                        onChange={(e) => setMonedaAbono(e.target.value)}
+                        variant="outlined"
+                        InputProps={{
+                          sx: { borderRadius: '10px' }
+                        }}
+                      >
+                        <MenuItem value="Bs">Bolívares (Bs)</MenuItem>
+                        <MenuItem value="USD">Dólares ($)</MenuItem>
+                      </TextField>
+                    </Grid>
+                  </Grid>
+
+                  {montoAbono && (
+                    <Box sx={{ mt: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: '10px' }}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Equivalente en {monedaAbono === 'Bs' ? 'Dólares' : 'Bolívares'}:
+                      </Typography>
+                      <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                        {monedaAbono === 'Bs' 
+                          ? `$ ${convertirMonto(montoAbono, 'Bs', 'USD').toFixed(2)}`
+                          : `Bs. ${convertirMonto(montoAbono, 'USD', 'Bs').toFixed(2)}`
+                        }
+                      </Typography>
+                    </Box>
+                  )}
                   
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    mt: 2,
-                    gap: 2
-                  }}>
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      style={{ flex: 1 }}
-                    >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, gap: 2 }}>
+                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} style={{ flex: 1 }}>
                       <Button
                         variant="outlined"
                         fullWidth
-                        onClick={() => setMontoAbono((facturaSeleccionada.saldo / 2).toFixed(2))}
-                        sx={{ 
-                          borderRadius: '10px',
-                          py: 1
+                        onClick={() => {
+                          const monto50 = facturaSeleccionada.saldo / 2;
+                          setMontoAbono(monedaAbono === 'Bs' ? monto50.toFixed(2) : (monto50 / tasaCambio).toFixed(2));
                         }}
+                        sx={{ borderRadius: '10px', py: 1 }}
                       >
-                        50% ({formatearMoneda(facturaSeleccionada.saldo / 2)})
+                        50% ({monedaAbono === 'Bs' 
+                          ? formatearMoneda(facturaSeleccionada.saldo / 2)
+                          : `$ ${(facturaSeleccionada.saldo / (2 * tasaCambio)).toFixed(2)}`
+                        })
                       </Button>
                     </motion.div>
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      style={{ flex: 1 }}
-                    >
+                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} style={{ flex: 1 }}>
                       <Button
                         variant="outlined"
                         color="success"
                         fullWidth
-                        onClick={() => setMontoAbono(facturaSeleccionada.saldo.toFixed(2))}
-                        sx={{ 
-                          borderRadius: '10px',
-                          py: 1
+                        onClick={() => {
+                          setMontoAbono(monedaAbono === 'Bs' 
+                            ? facturaSeleccionada.saldo.toFixed(2)
+                            : (facturaSeleccionada.saldo / tasaCambio).toFixed(2)
+                          );
                         }}
+                        sx={{ borderRadius: '10px', py: 1 }}
                       >
-                        100% ({formatearMoneda(facturaSeleccionada.saldo)})
+                        100% ({monedaAbono === 'Bs'
+                          ? formatearMoneda(facturaSeleccionada.saldo)
+                          : `$ ${(facturaSeleccionada.saldo / tasaCambio).toFixed(2)}`
+                        })
                       </Button>
                     </motion.div>
                   </Box>
