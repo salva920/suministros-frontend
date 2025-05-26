@@ -158,6 +158,11 @@ const FacturasPendientes = () => {
     return Math.abs(saldo) < 0.0001; // Considerar pagada si el saldo es menor a 0.0001
   };
   
+  // Función para redondear a 2 decimales
+  const redondear = (valor) => {
+    return Math.round(valor * 100) / 100;
+  };
+  
   // Función para formatear moneda
   const formatearMoneda = (valor, moneda = 'Bs', monedaAbono = 'Bs') => {
     // Si el valor es muy pequeño, considerarlo como cero
@@ -165,16 +170,17 @@ const FacturasPendientes = () => {
       valor = 0;
     }
 
+    const valorRedondeado = redondear(valor);
     const formateado = new Intl.NumberFormat('es-VE', {
       style: 'currency',
       currency: 'VES',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(valor);
+    }).format(valorRedondeado);
 
     if (moneda === 'Bs' && tasaCambio > 0) {
-      const equivalenteUSD = (valor / tasaCambio).toFixed(2);
-      return `${formateado} (Ref: $ ${equivalenteUSD})`;
+      const equivalenteUSD = redondear(valorRedondeado / tasaCambio);
+      return `${formateado} (Ref: $ ${equivalenteUSD.toFixed(2)})`;
     }
     return formateado;
   };
@@ -186,16 +192,17 @@ const FacturasPendientes = () => {
       valor = 0;
     }
 
+    const valorRedondeado = redondear(valor);
     const formateado = new Intl.NumberFormat('es-VE', {
       style: 'currency',
       currency: 'VES',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(valor);
+    }).format(valorRedondeado);
 
     if (monedaAbono === 'USD') {
-      const equivalenteUSD = (valor / tasaCambio).toFixed(2);
-      return `$ ${equivalenteUSD}`;
+      const equivalenteUSD = redondear(valorRedondeado / tasaCambio);
+      return `$ ${equivalenteUSD.toFixed(2)}`;
     }
     return formateado;
   };
@@ -278,14 +285,13 @@ const FacturasPendientes = () => {
   const convertirMonto = (monto, monedaOrigen, monedaDestino) => {
     if (!monto || !tasaCambio) return 0;
     const montoNumerico = parseFloat(monto);
-    if (monedaOrigen === monedaDestino) return montoNumerico;
+    if (monedaOrigen === monedaDestino) return redondear(montoNumerico);
     
-    // Redondear a 2 decimales para evitar números largos
     const resultado = monedaOrigen === 'USD' 
-      ? (montoNumerico * tasaCambio).toFixed(2)
-      : (montoNumerico / tasaCambio).toFixed(2);
+      ? montoNumerico * tasaCambio
+      : montoNumerico / tasaCambio;
     
-    return parseFloat(resultado);
+    return redondear(resultado);
   };
   
   // Registrar abono
@@ -296,13 +302,13 @@ const FacturasPendientes = () => {
     }
 
     const montoEnBs = convertirMonto(montoAbono, monedaAbono, 'Bs');
-    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(2));
+    const saldoEnBs = redondear(facturaSeleccionada.saldo);
     
     // Si el monto en Bs es mayor que el saldo, ajustamos al saldo exacto
-    const montoFinal = montoEnBs > saldoEnBs ? saldoEnBs : montoEnBs;
+    let montoFinal = montoEnBs > saldoEnBs ? saldoEnBs : montoEnBs;
     
     // Si el saldo restante sería muy pequeño, considerarlo como cero
-    const saldoRestante = saldoEnBs - montoFinal;
+    const saldoRestante = redondear(saldoEnBs - montoFinal);
     if (Math.abs(saldoRestante) < 0.01) {
       montoFinal = saldoEnBs;
     }
@@ -310,9 +316,9 @@ const FacturasPendientes = () => {
     setLoading(true);
     try {
       const datosAbono = {
-        monto: Number(montoFinal.toFixed(2)),
+        monto: redondear(montoFinal),
         moneda: monedaAbono,
-        tasaCambio: Number(tasaCambio.toFixed(2)),
+        tasaCambio: redondear(tasaCambio),
         monedaAbono: monedaAbono
       };
 
@@ -337,12 +343,12 @@ const FacturasPendientes = () => {
   
   // Modificar el botón de 100%
   const handleAbono100 = () => {
-    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(2));
+    const saldoEnBs = redondear(facturaSeleccionada.saldo);
     if (monedaAbono === 'Bs') {
       setMontoAbono(saldoEnBs.toFixed(2));
     } else {
-      const saldoEnUSD = (saldoEnBs / tasaCambio).toFixed(2);
-      setMontoAbono(saldoEnUSD);
+      const saldoEnUSD = redondear(saldoEnBs / tasaCambio);
+      setMontoAbono(saldoEnUSD.toFixed(2));
     }
   };
   
