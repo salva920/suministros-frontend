@@ -15,6 +15,7 @@ import {
 import { styled } from '@mui/material/styles';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import moment from 'moment';
 
 const API_URL = "https://suministros-backend.vercel.app/api";
 
@@ -38,6 +39,7 @@ const HeaderTitle = styled(DialogTitle)(({ theme }) => ({
 const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    fecha: '',
     total: '',
     montoAbonado: '',
     saldoPendiente: '',
@@ -48,6 +50,7 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
   useEffect(() => {
     if (venta) {
       setFormData({
+        fecha: venta.fecha ? moment(venta.fecha).format('YYYY-MM-DDTHH:mm') : '',
         total: venta.total || 0,
         montoAbonado: venta.montoAbonado || 0,
         saldoPendiente: venta.saldoPendiente || 0,
@@ -84,6 +87,7 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
     try {
       const ventaActualizada = {
         ...venta,
+        fecha: formData.fecha ? new Date(formData.fecha).toISOString() : venta.fecha,
         total: parseFloat(formData.total),
         montoAbonado: parseFloat(formData.montoAbonado),
         saldoPendiente: parseFloat(formData.saldoPendiente),
@@ -121,6 +125,21 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
         ) : (
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Fecha y Hora"
+                  name="fecha"
+                  type="datetime-local"
+                  value={formData.fecha}
+                  onChange={handleChange}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  required
+                />
+              </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
