@@ -885,7 +885,12 @@ const FacturasPendientes = () => {
                   <CloseIcon />
                 </IconButton>
               </DialogTitle>
-              <DialogContent sx={{ pt: 3, px: 3, pb: 2 }}>
+              <DialogContent sx={{ 
+                pt: 3, 
+                px: 3, 
+                pb: 2,
+                bgcolor: '#ffffff' // Fondo blanco explícito
+              }}>
                 <Box>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
                     Detalles de la Factura
@@ -930,7 +935,7 @@ const FacturasPendientes = () => {
                     </Grid>
                   </Paper>
                   
-                  <Grid container spacing={2} sx={{ mt: 3 }}>
+                  <Grid container spacing={2} sx={{ mt: 3, bgcolor: '#ffffff' }}>
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
@@ -947,7 +952,10 @@ const FacturasPendientes = () => {
                               {monedaAbono === 'Bs' ? 'Bs.' : '$'}
                             </InputAdornment>
                           ),
-                          sx: { borderRadius: '10px' }
+                          sx: { 
+                            borderRadius: '10px',
+                            bgcolor: '#ffffff'
+                          }
                         }}
                       />
                     </Grid>
@@ -960,7 +968,10 @@ const FacturasPendientes = () => {
                         onChange={(e) => setMonedaAbono(e.target.value)}
                         variant="outlined"
                         InputProps={{
-                          sx: { borderRadius: '10px' }
+                          sx: { 
+                            borderRadius: '10px',
+                            bgcolor: '#ffffff'
+                          }
                         }}
                       >
                         <MenuItem value="Bs">Bolívares (Bs)</MenuItem>
@@ -983,7 +994,7 @@ const FacturasPendientes = () => {
                     </Box>
                   )}
                   
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, gap: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, gap: 2, bgcolor: '#ffffff' }}>
                     <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} style={{ flex: 1 }}>
                       <Button
                         variant="outlined"
@@ -992,7 +1003,11 @@ const FacturasPendientes = () => {
                           const monto50 = facturaSeleccionada.saldo / 2;
                           setMontoAbono(monedaAbono === 'Bs' ? monto50.toFixed(2) : (monto50 / tasaCambio).toFixed(2));
                         }}
-                        sx={{ borderRadius: '10px', py: 1 }}
+                        sx={{ 
+                          borderRadius: '10px', 
+                          py: 1,
+                          bgcolor: '#ffffff'
+                        }}
                       >
                         50% ({monedaAbono === 'Bs' 
                           ? formatearMoneda(facturaSeleccionada.saldo / 2)
@@ -1006,7 +1021,11 @@ const FacturasPendientes = () => {
                         color="success"
                         fullWidth
                         onClick={handleAbono100}
-                        sx={{ borderRadius: '10px', py: 1 }}
+                        sx={{ 
+                          borderRadius: '10px', 
+                          py: 1,
+                          bgcolor: '#ffffff'
+                        }}
                       >
                         100% ({monedaAbono === 'Bs'
                           ? formatearMoneda(facturaSeleccionada.saldo)
