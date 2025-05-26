@@ -5,7 +5,7 @@ import {
   Typography, Chip, IconButton, Box, TableSortLabel, TextField, Grid, Button, Pagination, CircularProgress 
 } from '@mui/material';
 import { 
-  Visibility, ArrowUpward, ArrowDownward, Search, DateRange, Clear, AttachMoney, Delete, History, Print, Edit 
+  Visibility, ArrowUpward, ArrowDownward, Search, DateRange, Clear, AttachMoney, Delete, History, Print 
 } from '@mui/icons-material';
 import moment from 'moment';
 import RegistroClienteDialog from './RegistroClienteDialog';
@@ -257,12 +257,6 @@ const ListadoHistorialVentas = () => {
     );
   };
 
-  // Agregar la función handleEditarVenta
-  const handleEditarVenta = (venta) => {
-    setVentaSeleccionada(venta);
-    setMostrarRegistroCliente(true);
-  };
-
   return (
     <>
       <Paper elevation={3} sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
@@ -488,38 +482,14 @@ const ListadoHistorialVentas = () => {
                         <IconButton 
                           onClick={() => handleVerCliente(venta)}
                           color="primary"
-                          sx={{ 
-                            '&:hover': {
-                              backgroundColor: 'primary.light',
-                              color: 'white'
-                            }
-                          }}
                         >
                           <Visibility />
                         </IconButton>
                         <IconButton 
                           onClick={() => handleImprimirFactura(venta)}
                           color="secondary"
-                          sx={{ 
-                            '&:hover': {
-                              backgroundColor: 'secondary.light',
-                              color: 'white'
-                            }
-                          }}
                         >
                           <Print />
-                        </IconButton>
-                        <IconButton 
-                          onClick={() => handleEditarVenta(venta)}
-                          color="info"
-                          sx={{ 
-                            '&:hover': {
-                              backgroundColor: 'info.light',
-                              color: 'white'
-                            }
-                          }}
-                        >
-                          <Edit />
                         </IconButton>
                       </TableCell>
                     </TableRow>

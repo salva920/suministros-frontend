@@ -5,9 +5,10 @@ import {
   TableRow, TableCell, TableBody, Chip, TextField, 
   Button, IconButton, Box, Divider, InputAdornment, Paper, CircularProgress
 } from '@mui/material';
-import { Print, AttachMoney, CheckCircle, Payment } from '@mui/icons-material';
+import { Print, AttachMoney, CheckCircle, Payment, Edit } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import GenerarFactura from './GenerarFactura';
+import EditarVentaDialog from './EditarVentaDialog';
 import axios from 'axios';
 import moment from 'moment';
 import { toast } from 'react-hot-toast';
@@ -61,6 +62,7 @@ const RegistroClienteDialog = ({
   const [mostrarGenerarFactura, setMostrarGenerarFactura] = useState(false);
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [mostrarEditarVenta, setMostrarEditarVenta] = useState(false);
 
   // Actualizar ventas cuando cambia ventasCliente o clienteSeleccionado
   useEffect(() => {
@@ -244,6 +246,17 @@ const RegistroClienteDialog = ({
     }
   };
 
+  const handleEditarVenta = (venta) => {
+    setVentaSeleccionada(venta);
+    setMostrarEditarVenta(true);
+  };
+
+  const handleVentaActualizada = (ventaActualizada) => {
+    setVentas(prev => prev.map(v => 
+      v._id === ventaActualizada._id ? ventaActualizada : v
+    ));
+  };
+
   return (
     <StyledDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <HeaderTitle>
@@ -300,47 +313,61 @@ const RegistroClienteDialog = ({
                           ${(venta.saldoPendiente || 0).toFixed(2)}
                         </TableCell>
                         <TableCell>
-                          {(venta.saldoPendiente || 0) > 0 && (
-                            <Box display="flex" gap={1} alignItems="center">
-                              <TextField
-                                type="number"
-                                size="small"
-                                value={montosAbono[venta._id || venta.id] || ''}
-                                onChange={(e) => handleMontoChange(venta._id || venta.id, parseFloat(e.target.value))}
-                                InputProps={{
-                                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                                  inputProps: { 
-                                    min: 0,
-                                    max: venta.saldoPendiente,
-                                    step: 0.01
-                                  }
-                                }}
-                                sx={{ width: 120 }}
-                              />
-                              <Button 
-                                variant="contained" 
-                                onClick={() => handleAbonar(venta)}
-                                disabled={!montosAbono[venta._id || venta.id]}
-                              >
-                                Abonar
-                              </Button>
-                              <Button 
-                                variant="outlined" 
+                          <Box display="flex" gap={1} alignItems="center">
+                            {(venta.saldoPendiente || 0) > 0 && (
+                              <>
+                                <TextField
+                                  type="number"
+                                  size="small"
+                                  value={montosAbono[venta._id || venta.id] || ''}
+                                  onChange={(e) => handleMontoChange(venta._id || venta.id, parseFloat(e.target.value))}
+                                  InputProps={{
+                                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                                    inputProps: { 
+                                      min: 0,
+                                      max: venta.saldoPendiente,
+                                      step: 0.01
+                                    }
+                                  }}
+                                  sx={{ width: 120 }}
+                                />
+                                <Button 
+                                  variant="contained" 
+                                  onClick={() => handleAbonar(venta)}
+                                  disabled={!montosAbono[venta._id || venta.id]}
+                                >
+                                  Abonar
+                                </Button>
+                                <Button 
+                                  variant="outlined" 
+                                  color="success" 
+                                  onClick={() => handleSolventarDeuda(venta)}
+                                >
+                                  Pagar Total
+                                </Button>
+                              </>
+                            )}
+                            {(venta.saldoPendiente || 0) <= 0 && (
+                              <Chip 
+                                label="Pagado" 
                                 color="success" 
-                                onClick={() => handleSolventarDeuda(venta)}
-                              >
-                                Pagar Total
-                              </Button>
-                            </Box>
-                          )}
-                          {(venta.saldoPendiente || 0) <= 0 && (
-                            <Chip 
-                              label="Pagado" 
-                              color="success" 
-                              size="small" 
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          )}
+                                size="small" 
+                                sx={{ fontWeight: 'bold' }}
+                              />
+                            )}
+                            <IconButton
+                              onClick={() => handleEditarVenta(venta)}
+                              color="primary"
+                              sx={{ 
+                                '&:hover': {
+                                  backgroundColor: 'primary.light',
+                                  color: 'white'
+                                }
+                              }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -377,6 +404,15 @@ const RegistroClienteDialog = ({
         <GenerarFactura 
           venta={ventaSeleccionada} 
           onClose={() => setMostrarGenerarFactura(false)} 
+        />
+      )}
+
+      {mostrarEditarVenta && (
+        <EditarVentaDialog
+          open={mostrarEditarVenta}
+          onClose={() => setMostrarEditarVenta(false)}
+          venta={ventaSeleccionada}
+          onVentaActualizada={handleVentaActualizada}
         />
       )}
     </StyledDialog>
