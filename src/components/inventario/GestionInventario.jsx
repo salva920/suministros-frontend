@@ -160,7 +160,7 @@ const GestionInventario = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [sortConfig, setSortConfig] = useState({ 
     key: 'fechaIngreso', 
     direction: 'desc' 
@@ -820,7 +820,7 @@ const GestionInventario = () => {
           </TableContainer>
 
           <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
+            rowsPerPageOptions={[25, 50, 100, 200]}
             component="div"
             count={sortedData.length}
             rowsPerPage={rowsPerPage}
