@@ -257,9 +257,11 @@ const FacturasPendientes = () => {
     }
 
     const montoEnBs = convertirMonto(montoAbono, monedaAbono, 'Bs');
+    const saldoEnBs = facturaSeleccionada.saldo;
     
-    if (montoEnBs > facturaSeleccionada.saldo) {
-      setErrorAbono('El abono no puede superar el saldo pendiente');
+    // Validar que el monto en Bs no supere el saldo
+    if (montoEnBs > saldoEnBs) {
+      setErrorAbono(`El abono no puede superar el saldo pendiente de ${formatearMoneda(saldoEnBs)}`);
       return;
     }
     
