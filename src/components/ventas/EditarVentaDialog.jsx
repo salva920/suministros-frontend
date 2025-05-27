@@ -99,12 +99,17 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
         return;
       }
 
+      // Ajustar la fecha para compensar la zona horaria
+      const fechaSeleccionada = new Date(formData.fecha);
+      const offset = fechaSeleccionada.getTimezoneOffset();
+      const fechaAjustada = new Date(fechaSeleccionada.getTime() - (offset * 60 * 1000));
+
       // Solo enviar los campos que el backend puede actualizar
       const ventaActualizada = {
         montoAbonado: parseFloat(formData.montoAbonado),
         saldoPendiente: parseFloat(formData.saldoPendiente),
         total: parseFloat(formData.total),
-        fecha: new Date(formData.fecha).toISOString()
+        fecha: fechaAjustada.toISOString()
       };
 
       console.log('Enviando datos al backend:', ventaActualizada); // Debug log
