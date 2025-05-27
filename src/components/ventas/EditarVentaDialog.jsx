@@ -109,7 +109,9 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
         montoAbonado: parseFloat(formData.montoAbonado),
         saldoPendiente: parseFloat(formData.saldoPendiente),
         total: parseFloat(formData.total),
-        fecha: fechaAjustada.toISOString()
+        fecha: fechaAjustada.toISOString(),
+        tipoPago: formData.tipoPago,
+        metodoPago: formData.metodoPago
       };
 
       console.log('Enviando datos al backend:', ventaActualizada); // Debug log
@@ -117,8 +119,17 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
       const response = await axios.put(`${API_URL}/ventas/${venta.id}`, ventaActualizada);
 
       if (response.data) {
+        // Actualizar la venta en el estado local
+        const ventaActualizada = {
+          ...venta,
+          ...response.data,
+          fecha: new Date(response.data.fecha)
+        };
+        
+        // Llamar a la función de actualización proporcionada por el padre
+        onVentaActualizada(ventaActualizada);
+        
         toast.success('Venta actualizada correctamente');
-        onVentaActualizada(response.data);
         onClose();
       }
     } catch (error) {
