@@ -99,20 +99,12 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
         return;
       }
 
+      // Solo enviar los campos que el backend puede actualizar
       const ventaActualizada = {
-        id: venta.id,
-        cliente: venta.cliente?.id || venta.cliente?._id,
-        fecha: formData.fecha ? new Date(formData.fecha).toISOString() : venta.fecha,
-        total: parseFloat(formData.total),
         montoAbonado: parseFloat(formData.montoAbonado),
         saldoPendiente: parseFloat(formData.saldoPendiente),
-        tipoPago: formData.tipoPago,
-        metodoPago: formData.metodoPago,
-        estadoCredito: parseFloat(formData.saldoPendiente) > 0 ? 'vigente' : 'pagado',
-        productos: venta.productos?.map(p => ({
-          ...p,
-          producto: p.producto?.id || p.producto?._id
-        })) || []
+        total: parseFloat(formData.total),
+        fecha: new Date(formData.fecha).toISOString()
       };
 
       console.log('Enviando datos al backend:', ventaActualizada); // Debug log
@@ -129,7 +121,8 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
       console.error('Detalles del error:', {
         mensaje: error.message,
         respuesta: error.response?.data,
-        estado: error.response?.status
+        estado: error.response?.status,
+        datosEnviados: ventaActualizada
       });
       toast.error(error.response?.data?.error || 'Error al actualizar la venta');
     } finally {
