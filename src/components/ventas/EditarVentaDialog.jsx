@@ -84,7 +84,7 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!venta || !venta._id) {
+    if (!venta || !venta.id) {
       toast.error('ID de venta no válido');
       return;
     }
@@ -100,8 +100,8 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
       }
 
       const ventaActualizada = {
-        _id: venta._id,
-        cliente: venta.cliente?._id || venta.cliente,
+        id: venta.id,
+        cliente: venta.cliente?.id || venta.cliente?._id,
         fecha: formData.fecha ? new Date(formData.fecha).toISOString() : venta.fecha,
         total: parseFloat(formData.total),
         montoAbonado: parseFloat(formData.montoAbonado),
@@ -109,12 +109,15 @@ const EditarVentaDialog = ({ open, onClose, venta, onVentaActualizada }) => {
         tipoPago: formData.tipoPago,
         metodoPago: formData.metodoPago,
         estadoCredito: parseFloat(formData.saldoPendiente) > 0 ? 'vigente' : 'pagado',
-        productos: venta.productos || []
+        productos: venta.productos?.map(p => ({
+          ...p,
+          producto: p.producto?.id || p.producto?._id
+        })) || []
       };
 
       console.log('Enviando datos al backend:', ventaActualizada); // Debug log
 
-      const response = await axios.put(`${API_URL}/ventas/${venta._id}`, ventaActualizada);
+      const response = await axios.put(`${API_URL}/ventas/${venta.id}`, ventaActualizada);
 
       if (response.data) {
         toast.success('Venta actualizada correctamente');
