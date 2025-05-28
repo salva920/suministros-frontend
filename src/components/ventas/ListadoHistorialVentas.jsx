@@ -50,7 +50,7 @@ const ListadoHistorialVentas = () => {
 
   // Función para cargar ventas
   const cargarVentas = useCallback(async () => {
-    setCargando(true); // Iniciar estado de carga
+    setCargando(true);
     try {
       const response = await axios.get(`${API_URL}/ventas`, {
         params: {
@@ -71,30 +71,29 @@ const ListadoHistorialVentas = () => {
       }));
       setVentas(ventasConCosto);
       setTotalPaginas(response.data.pages);
-      setTotalDeudas(response.data.totalDeudas);
+      setTotalDeudas(response.data.totales?.totalSaldoPendiente || 0);
     } catch (error) {
       console.error('Error cargando ventas:', error);
+      toast.error('Error al cargar las ventas');
     } finally {
-      setCargando(false); // Finalizar estado de carga
+      setCargando(false);
     }
   }, [pagina, columnaOrden, orden, filtroDNI, mostrarDeudas, fechaInicio, fechaFin, itemsPorPagina]);
 
-  // Cambiar el useEffect de carga de ventas
+  // Efecto para cargar ventas cuando cambian los filtros
   useEffect(() => {
-    cargarVentas();
-  }, [cargarVentas]);
-
-  // Usar debounce para búsquedas por RIF
-  useEffect(() => {
-    if (timeoutId.current) clearTimeout(timeoutId.current);
-    
-    timeoutId.current = setTimeout(() => {
-      setPagina(1); // Reiniciar a la primera página al buscar
-      cargarVentas(); // Llamar a la función de carga de ventas
+    const timeoutId = setTimeout(() => {
+      setPagina(1);
+      cargarVentas();
     }, 500);
 
-    return () => clearTimeout(timeoutId.current); // Limpiar el timeout al desmontar
-  }, [filtroDNI, cargarVentas]);
+    return () => clearTimeout(timeoutId);
+  }, [filtroDNI, mostrarDeudas, fechaInicio, fechaFin, columnaOrden, orden]);
+
+  // Efecto separado para manejar cambios de página
+  useEffect(() => {
+    cargarVentas();
+  }, [pagina]);
 
   // Función para actualizar una venta
   const actualizarVenta = async (ventaActualizada) => {
