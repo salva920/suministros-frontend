@@ -295,16 +295,16 @@ const FacturasPendientes = () => {
       return;
     }
 
-    // Calcular monto en Bs con precisión
     const montoEnBs = monedaAbono === 'Bs' 
       ? parseFloat(montoAbono)
-      : parseFloat(montoAbono) * tasaCambio;
-    
-    const saldoEnBs = redondear(facturaSeleccionada.saldo);
-    let montoFinal = redondear(Math.min(montoEnBs, saldoEnBs));
+      : convertirMonto(montoAbono, 'USD', 'Bs');
 
-    // Asegurar que no quede saldo residual
-    if (Math.abs(saldoEnBs - montoFinal) < 0.01) {
+    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(2));
+    let montoFinal = Math.min(montoEnBs, saldoEnBs);
+
+    // Ajuste final para igualar saldo si la diferencia es mínima
+    const diferencia = saldoEnBs - montoFinal;
+    if (diferencia < 0.01 && diferencia > 0) {
       montoFinal = saldoEnBs;
     }
 
@@ -313,7 +313,7 @@ const FacturasPendientes = () => {
       await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, {
         monto: montoFinal,
         moneda: monedaAbono,
-        tasaCambio: tasaCambio
+        tasaCambio: parseFloat(tasaCambio.toFixed(2)) // Enviar tasa usada
       });
 
       toast.success(`Abono de ${monedaAbono} ${montoAbono} registrado correctamente`);
