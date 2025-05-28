@@ -313,12 +313,12 @@ const CajaInteractiva = () => {
   });
 
   const [nuevaTransaccion, setNuevaTransaccion] = useState({
-    fecha: moment.utc().format('YYYY-MM-DD'),
-    concepto: '',
-    moneda: 'USD',
-    tipo: 'entrada',
-    monto: '',
-    tasaCambio: 0
+      fecha: moment.utc().format('YYYY-MM-DD'),
+      concepto: '',
+      moneda: 'USD',
+      tipo: 'entrada',
+      monto: '',
+      tasaCambio: 0
   });
 
   const [loading, setLoading] = useState(false);
@@ -329,8 +329,8 @@ const CajaInteractiva = () => {
 
   const fetchData = async (page = 1, moneda = state.filtros.moneda) => {
     setLoading(true);
-    try {
-      const [cajaRes, tasaRes] = await Promise.all([
+      try {
+        const [cajaRes, tasaRes] = await Promise.all([
         axios.get(`${API_URL}/caja`, {
           params: {
             page,
@@ -338,31 +338,31 @@ const CajaInteractiva = () => {
             moneda
           }
         }),
-        axios.get(`${API_URL}/tasa-cambio`)
-      ]);
-      
-      if (cajaRes.data && Array.isArray(cajaRes.data.transacciones)) {
-        setState(prev => ({
-          ...prev,
-          transacciones: cajaRes.data.transacciones,
-          saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
-          tasaCambio: tasaRes.data.tasa,
+          axios.get(`${API_URL}/tasa-cambio`)
+        ]);
+        
+        if (cajaRes.data && Array.isArray(cajaRes.data.transacciones)) {
+          setState(prev => ({
+            ...prev,
+            transacciones: cajaRes.data.transacciones,
+            saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
+            tasaCambio: tasaRes.data.tasa,
           pagination: {
             ...prev.pagination,
             page,
             total: cajaRes.data.total,
             totalPages: cajaRes.data.totalPages
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-      toast.error('Error al cargar los datos');
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error al cargar datos:', error);
+        toast.error('Error al cargar los datos');
       setError(error.message);
     } finally {
       setLoading(false);
-    }
-  };
+      }
+    };
 
   useEffect(() => {
     fetchData();
@@ -413,12 +413,12 @@ const CajaInteractiva = () => {
           editingTransaction: null
         }));
         setNuevaTransaccion({
-          fecha: moment.utc().format('YYYY-MM-DD'),
-          concepto: '',
-          moneda: 'USD',
-          tipo: 'entrada',
-          monto: '',
-          tasaCambio: state.tasaCambio
+            fecha: moment.utc().format('YYYY-MM-DD'),
+            concepto: '',
+            moneda: 'USD',
+            tipo: 'entrada',
+            monto: '',
+            tasaCambio: state.tasaCambio
         });
       }
     } catch (error) {
@@ -429,7 +429,7 @@ const CajaInteractiva = () => {
   const handleTasaChange = (nuevaTasa) => {
     setState(prev => ({ 
       ...prev, 
-      tasaCambio: nuevaTasa
+        tasaCambio: nuevaTasa
     }));
   };
 
@@ -710,13 +710,13 @@ const CajaInteractiva = () => {
             ) : (
               <>
                 <MemoTransactionTable 
-                  transactions={state.transacciones}
-                  currencyFilter={state.filtros.moneda}
-                  dateFilter={state.filtros.fecha}
-                  tasaActual={state.tasaCambio}
-                  onEdit={handleEditTransaction}
-                  onDelete={handleDeleteTransaction}
-                />
+              transactions={state.transacciones}
+              currencyFilter={state.filtros.moneda}
+              dateFilter={state.filtros.fecha}
+              tasaActual={state.tasaCambio}
+              onEdit={handleEditTransaction}
+              onDelete={handleDeleteTransaction}
+            />
                 
                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
                   <Pagination 

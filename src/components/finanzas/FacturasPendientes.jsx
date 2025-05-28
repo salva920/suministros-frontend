@@ -187,11 +187,7 @@ const FacturasPendientes = () => {
   
   // Función para formatear abono con moneda
   const formatearAbono = (valor, monedaAbono) => {
-    // Si el valor es muy pequeño, considerarlo como cero
-    if (Math.abs(valor) < 0.01) {
-      valor = 0;
-    }
-
+    if (Math.abs(valor) < 0.01) return 'Bs 0.00';
     const valorRedondeado = redondear(valor);
     const formateado = new Intl.NumberFormat('es-VE', {
       style: 'currency',
@@ -200,11 +196,9 @@ const FacturasPendientes = () => {
       maximumFractionDigits: 2
     }).format(valorRedondeado);
 
-    if (monedaAbono === 'USD') {
-      const equivalenteUSD = redondear(valorRedondeado / tasaCambio);
-      return `$ ${equivalenteUSD.toFixed(2)}`;
-    }
-    return formateado;
+    return monedaAbono === 'USD' 
+      ? `$ ${(valorRedondeado / tasaCambio).toFixed(2)}`
+      : formateado;
   };
   
   // Cargar facturas pendientes con paginación
@@ -301,32 +295,28 @@ const FacturasPendientes = () => {
       return;
     }
 
-    const montoEnBs = convertirMonto(montoAbono, monedaAbono, 'Bs');
+    // Calcular monto en Bs con precisión
+    const montoEnBs = monedaAbono === 'Bs' 
+      ? parseFloat(montoAbono)
+      : parseFloat(montoAbono) * tasaCambio;
+    
     const saldoEnBs = redondear(facturaSeleccionada.saldo);
-    
-    // Si el monto en Bs es mayor que el saldo, ajustamos al saldo exacto
-    let montoFinal = montoEnBs > saldoEnBs ? saldoEnBs : montoEnBs;
-    
-    // Si el saldo restante sería muy pequeño, considerarlo como cero
-    const saldoRestante = redondear(saldoEnBs - montoFinal);
-    if (Math.abs(saldoRestante) < 0.01) {
+    let montoFinal = redondear(Math.min(montoEnBs, saldoEnBs));
+
+    // Asegurar que no quede saldo residual
+    if (Math.abs(saldoEnBs - montoFinal) < 0.01) {
       montoFinal = saldoEnBs;
     }
-    
+
     setLoading(true);
     try {
-      const datosAbono = {
-        monto: redondear(montoFinal),
+      await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, {
+        monto: montoFinal,
         moneda: monedaAbono,
-        tasaCambio: redondear(tasaCambio),
-        monedaAbono: monedaAbono
-      };
+        tasaCambio: tasaCambio
+      });
 
-      console.log('Enviando datos de abono:', datosAbono);
-      
-      await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, datosAbono);
-      
-      toast.success('Abono registrado correctamente');
+      toast.success(`Abono de ${monedaAbono} ${montoAbono} registrado correctamente`);
       setOpenAbonoModal(false);
       cargarFacturas();
     } catch (error) {
@@ -342,13 +332,17 @@ const FacturasPendientes = () => {
   };
   
   // Modificar el botón de 100%
+ 
   const handleAbono100 = () => {
     const saldoEnBs = redondear(facturaSeleccionada.saldo);
     if (monedaAbono === 'Bs') {
       setMontoAbono(saldoEnBs.toFixed(2));
     } else {
-      const saldoEnUSD = redondear(saldoEnBs / tasaCambio);
-      setMontoAbono(saldoEnUSD.toFixed(2));
+      // Calcular el monto exacto en USD necesario para cubrir el saldo en Bs
+      const montoUSD = saldoEnBs / tasaCambio;
+      // Redondear hacia arriba para evitar decimales faltantes
+      const montoUSDRedondeado = Math.ceil(montoUSD * 100) / 100;
+      setMontoAbono(montoUSDRedondeado.toFixed(2));
     }
   };
   
@@ -747,7 +741,12 @@ const FacturasPendientes = () => {
                           <TableCell>{factura.numeroFactura || '-'}</TableCell>
                           <TableCell align="right">{formatearMoneda(factura.monto)}</TableCell>
                           <TableCell align="right">
-                            {formatearAbono(factura.abono, factura.monedaAbono || 'Bs')}
+                            <Box>
+                              {formatearAbono(factura.abono, factura.monedaAbono || 'Bs')}
+                              <Typography variant="caption" color="textSecondary" display="block">
+                                ({factura.monedaAbono || 'Bs'})
+                              </Typography>
+                            </Box>
                           </TableCell>
                           <TableCell align="right">
                             <motion.div whileHover={{ scale: 1.05 }}>
