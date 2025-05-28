@@ -290,14 +290,18 @@ const FacturasPendientes = () => {
   
   // Registrar abono
   const handleRegistrarAbono = async () => {
-    if (!montoAbono || isNaN(montoAbono) || parseFloat(montoAbono) <= 0) {
+    // Convertir entrada a formato numérico correcto
+    const montoNumerico = parseFloat(montoAbono.replace(',', '.'));
+    
+    // Validación mejorada
+    if (isNaN(montoNumerico) || montoNumerico <= 0) {
       setErrorAbono('Ingrese un monto válido');
       return;
     }
 
     const montoEnBs = monedaAbono === 'Bs' 
-      ? parseFloat(montoAbono)
-      : convertirMonto(montoAbono, 'USD', 'Bs');
+      ? montoNumerico
+      : convertirMonto(montoNumerico, 'USD', 'Bs');
 
     const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(2));
     let montoFinal = Math.min(montoEnBs, saldoEnBs);
@@ -316,7 +320,7 @@ const FacturasPendientes = () => {
         tasaCambio: parseFloat(tasaCambio.toFixed(2)) // Enviar tasa usada
       });
 
-      toast.success(`Abono de ${monedaAbono} ${montoAbono} registrado correctamente`);
+      toast.success(`Abono de ${monedaAbono} ${montoNumerico.toFixed(2)} registrado correctamente`);
       setOpenAbonoModal(false);
       cargarFacturas();
     } catch (error) {
