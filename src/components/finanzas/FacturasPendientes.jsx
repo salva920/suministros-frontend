@@ -278,19 +278,22 @@ const FacturasPendientes = () => {
   // Función para convertir monto según moneda
   const convertirMonto = (monto, monedaOrigen, monedaDestino) => {
     if (!monto || !tasaCambio) return 0;
-    const montoNumerico = parseFloat(monto);
-    if (monedaOrigen === monedaDestino) return redondear(montoNumerico);
     
-    const resultado = monedaOrigen === 'USD' 
+    // Convertir entrada a número
+    const montoNumerico = typeof monto === 'string' 
+      ? parseFloat(monto.replace(',', '.')) 
+      : monto;
+    
+    if (monedaOrigen === monedaDestino) return montoNumerico;
+    
+    return monedaOrigen === 'USD' 
       ? montoNumerico * tasaCambio
       : montoNumerico / tasaCambio;
-    
-    return redondear(resultado);
   };
   
   // Registrar abono
   const handleRegistrarAbono = async () => {
-    // Convertir entrada a formato numérico correcto
+    // Reemplazar comas por puntos para formato numérico
     const montoNumerico = parseFloat(montoAbono.replace(',', '.'));
     
     // Validación mejorada
@@ -299,25 +302,12 @@ const FacturasPendientes = () => {
       return;
     }
 
-    const montoEnBs = monedaAbono === 'Bs' 
-      ? montoNumerico
-      : convertirMonto(montoNumerico, 'USD', 'Bs');
-
-    const saldoEnBs = parseFloat(facturaSeleccionada.saldo.toFixed(2));
-    let montoFinal = Math.min(montoEnBs, saldoEnBs);
-
-    // Ajuste final para igualar saldo si la diferencia es mínima
-    const diferencia = saldoEnBs - montoFinal;
-    if (diferencia < 0.01 && diferencia > 0) {
-      montoFinal = saldoEnBs;
-    }
-
     setLoading(true);
     try {
       await axios.post(`${API_URL}/facturaPendiente/${facturaSeleccionada._id}/abonos`, {
-        monto: montoFinal,
+        monto: montoNumerico,
         moneda: monedaAbono,
-        tasaCambio: parseFloat(tasaCambio.toFixed(2)) // Enviar tasa usada
+        tasaCambio: tasaCambio
       });
 
       toast.success(`Abono de ${monedaAbono} ${montoNumerico.toFixed(2)} registrado correctamente`);
@@ -990,8 +980,8 @@ const FacturasPendientes = () => {
                       </Typography>
                       <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
                         {monedaAbono === 'Bs' 
-                          ? `$ ${convertirMonto(montoAbono, 'Bs', 'USD').toFixed(2)}`
-                          : `Bs. ${convertirMonto(montoAbono, 'USD', 'Bs').toFixed(2)}`
+                          ? `$ ${(parseFloat(montoAbono.replace(',', '.')) / tasaCambio).toFixed(2)}`
+                          : `Bs. ${(parseFloat(montoAbono.replace(',', '.')) * tasaCambio).toFixed(2)}`
                         }
                       </Typography>
                     </Box>
