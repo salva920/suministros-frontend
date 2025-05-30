@@ -97,12 +97,12 @@ const HistorialEntradas = () => {
     }
   }, []);
 
-  const fetchHistorial = useCallback(async (pagina = 1) => {
+  const fetchHistorial = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/historial?page=${pagina}`);
+      const response = await axios.get(`${API_URL}/historial?getAll=true&tipo=entrada`);
       setHistorial(response.data.historial);
-      setTotalPaginas(response.data.pages);
-      setPaginaActual(response.data.currentPage);
+      setTotalPaginas(Math.ceil(response.data.historial.length / 10));
+      setPaginaActual(1);
     } catch (error) {
       console.error('Error cargando historial:', error);
       setError(error.response?.data?.message || 'Error al cargar el historial');
@@ -195,6 +195,7 @@ const HistorialEntradas = () => {
   const indexOfLastRow = paginaActual * 10;
   const indexOfFirstRow = indexOfLastRow - 10;
   const currentRows = filteredHistorial.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPaginas = Math.ceil(filteredHistorial.length / 10);
 
   // Estilos
   const StyledTableRow = styled(TableRow)(({ theme }) => ({
@@ -236,6 +237,11 @@ const HistorialEntradas = () => {
       </Alert>
     );
   }
+
+  // Modificar el manejador de cambio de página
+  const handlePageChange = (event, newPage) => {
+    setPaginaActual(newPage);
+  };
 
   return (
     <Paper elevation={3} sx={{ mt: 3, p: 3, borderRadius: 2, boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)' }}>
@@ -442,10 +448,7 @@ const HistorialEntradas = () => {
           <Pagination
             count={totalPaginas}
             page={paginaActual}
-            onChange={(e, newPage) => {
-              if (newPage < 1 || newPage > totalPaginas) return;
-              fetchHistorial(newPage);
-            }}
+            onChange={handlePageChange}
             color="primary"
             shape="rounded"
             showFirstButton
