@@ -23,13 +23,17 @@ const ReportesFinancieros = () => {
         let fechaInicio;
         
         if (periodo === 'mes') {
-          fechaInicio = moment().subtract(12, 'months').startOf('day').toISOString();
+          fechaInicio = moment().subtract(11, 'months').startOf('month').toISOString();
         } else if (periodo === 'semana') {
-          fechaInicio = moment().subtract(7, 'days').startOf('day').toISOString();
+          fechaInicio = moment().subtract(6, 'days').startOf('day').toISOString();
         } else {
-          // Para el filtro diario
           fechaInicio = moment().startOf('day').toISOString();
         }
+
+        console.log('Fechas de búsqueda:', {
+          fechaInicio: moment(fechaInicio).format('YYYY-MM-DD HH:mm:ss'),
+          fechaFin: moment(fechaFin).format('YYYY-MM-DD HH:mm:ss')
+        });
 
         const response = await axios.get(`${API_URL}/ventas`, {
           params: {
@@ -41,6 +45,7 @@ const ReportesFinancieros = () => {
         });
 
         if (response.data && response.data.ventas) {
+          console.log('Ventas recibidas:', response.data.ventas.length);
           setVentas(response.data.ventas);
         } else {
           throw new Error('Formato de respuesta inválido');
@@ -63,20 +68,24 @@ const ReportesFinancieros = () => {
     const ahora = moment();
 
     if (periodo === 'mes') {
-      // Últimos 12 meses
+      // Últimos 12 meses desde el mes actual
       for (let i = 11; i >= 0; i--) {
         const mes = moment().subtract(i, 'months');
-        const total = ventas
-          .filter(v => moment(v.fecha).isSame(mes, 'month'))
-          .reduce((acc, v) => acc + (v.total || 0), 0);
+        const ventasDelMes = ventas.filter(v => {
+          const fechaVenta = moment(v.fecha);
+          return fechaVenta.isSame(mes, 'month') && fechaVenta.isSame(mes, 'year');
+        });
+        
+        const total = ventasDelMes.reduce((acc, v) => acc + (v.total || 0), 0);
         
         datos.push({
           name: mes.format('MMM YYYY'),
-          Ventas: total
+          Ventas: total,
+          Cantidad: ventasDelMes.length
         });
       }
     } else if (periodo === 'semana') {
-      // Última semana
+      // Últimos 7 días desde hoy
       for (let i = 6; i >= 0; i--) {
         const dia = moment().subtract(i, 'days');
         const ventasDelDia = ventas.filter(v => {
@@ -93,7 +102,7 @@ const ReportesFinancieros = () => {
         });
       }
     } else {
-      // Ventas del día
+      // Ventas del día actual
       const ventasHoy = ventas.filter(v => {
         const fechaVenta = moment(v.fecha);
         return fechaVenta.isSame(ahora, 'day');
@@ -128,7 +137,7 @@ const ReportesFinancieros = () => {
       }
     }
 
-    console.log('Datos del gráfico:', datos); // Para depuración
+    console.log('Datos del gráfico:', datos);
     return datos;
   };
 
