@@ -311,7 +311,7 @@ const ListadoHistorialVentas = () => {
                 onClick={() => setPasswordDialogOpen(true)}
                 sx={{ borderRadius: '25px', px: 3 }}
               >
-                Desbloquear Detalles
+                
               </Button>
             )}
             <Button
