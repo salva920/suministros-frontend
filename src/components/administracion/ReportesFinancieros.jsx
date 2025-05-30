@@ -19,20 +19,15 @@ const ReportesFinancieros = () => {
       setError(null);
       try {
         // Calcular fechas para el filtro
-        let fechaInicio, fechaFin;
+        const fechaFin = moment().endOf('day').toISOString();
+        let fechaInicio;
         
         if (periodo === 'mes') {
-          // Mostrar desde enero hasta el mes actual
-          fechaInicio = moment('2025-01-01').startOf('month').toISOString();
-          fechaFin = moment('2025-01-31').endOf('day').toISOString();
+          fechaInicio = moment().subtract(11, 'months').startOf('month').toISOString();
         } else if (periodo === 'semana') {
-          // Mostrar la última semana de enero
-          fechaInicio = moment('2025-01-25').startOf('day').toISOString();
-          fechaFin = moment('2025-01-31').endOf('day').toISOString();
+          fechaInicio = moment().subtract(6, 'days').startOf('day').toISOString();
         } else {
-          // Mostrar el último día de enero
-          fechaInicio = moment('2025-01-31').startOf('day').toISOString();
-          fechaFin = moment('2025-01-31').endOf('day').toISOString();
+          fechaInicio = moment().startOf('day').toISOString();
         }
 
         console.log('Fechas de búsqueda:', {
@@ -70,25 +65,29 @@ const ReportesFinancieros = () => {
     if (!ventas || ventas.length === 0) return [];
 
     const datos = [];
+    const ahora = moment();
 
     if (periodo === 'mes') {
-      // Mostrar solo enero
-      const ventasEnero = ventas.filter(v => {
-        const fechaVenta = moment(v.fecha);
-        return fechaVenta.month() === 0 && fechaVenta.year() === 2025;
-      });
-      
-      const total = ventasEnero.reduce((acc, v) => acc + (v.total || 0), 0);
-      
-      datos.push({
-        name: 'Enero 2025',
-        Ventas: total,
-        Cantidad: ventasEnero.length
-      });
+      // Últimos 12 meses desde el mes actual
+      for (let i = 11; i >= 0; i--) {
+        const mes = moment().subtract(i, 'months');
+        const ventasDelMes = ventas.filter(v => {
+          const fechaVenta = moment(v.fecha);
+          return fechaVenta.isSame(mes, 'month') && fechaVenta.isSame(mes, 'year');
+        });
+        
+        const total = ventasDelMes.reduce((acc, v) => acc + (v.total || 0), 0);
+        
+        datos.push({
+          name: mes.format('MMM YYYY'),
+          Ventas: total,
+          Cantidad: ventasDelMes.length
+        });
+      }
     } else if (periodo === 'semana') {
-      // Última semana de enero
+      // Últimos 7 días desde hoy
       for (let i = 6; i >= 0; i--) {
-        const dia = moment('2025-01-31').subtract(i, 'days');
+        const dia = moment().subtract(i, 'days');
         const ventasDelDia = ventas.filter(v => {
           const fechaVenta = moment(v.fecha);
           return fechaVenta.isSame(dia, 'day');
@@ -97,32 +96,44 @@ const ReportesFinancieros = () => {
         const total = ventasDelDia.reduce((acc, v) => acc + (v.total || 0), 0);
         
         datos.push({
-          name: dia.format('ddd DD/01'),
+          name: dia.format('ddd DD/MM'),
           Ventas: total,
           Cantidad: ventasDelDia.length
         });
       }
     } else {
-      // Ventas del último día de enero
-      const ventasDia = ventas.filter(v => {
+      // Ventas del día actual
+      const ventasHoy = ventas.filter(v => {
         const fechaVenta = moment(v.fecha);
-        return fechaVenta.isSame(moment('2025-01-31'), 'day');
+        return fechaVenta.isSame(ahora, 'day');
       });
 
-      // Agrupar por hora
-      for (let i = 0; i < 24; i++) {
-        const ventasHora = ventasDia.filter(v => {
-          const fechaVenta = moment(v.fecha);
-          return fechaVenta.hour() === i;
-        });
-        
-        const total = ventasHora.reduce((acc, v) => acc + (v.total || 0), 0);
-        
-        datos.push({
-          name: `${i.toString().padStart(2, '0')}:00`,
-          Ventas: total,
-          Cantidad: ventasHora.length
-        });
+      // Si no hay ventas hoy, mostrar las últimas 24 horas
+      if (ventasHoy.length === 0) {
+        for (let i = 23; i >= 0; i--) {
+          const hora = moment().subtract(i, 'hours');
+          datos.push({
+            name: hora.format('HH:00'),
+            Ventas: 0,
+            Cantidad: 0
+          });
+        }
+      } else {
+        // Agrupar por hora
+        for (let i = 0; i < 24; i++) {
+          const ventasHora = ventasHoy.filter(v => {
+            const fechaVenta = moment(v.fecha);
+            return fechaVenta.hour() === i;
+          });
+          
+          const total = ventasHora.reduce((acc, v) => acc + (v.total || 0), 0);
+          
+          datos.push({
+            name: `${i.toString().padStart(2, '0')}:00`,
+            Ventas: total,
+            Cantidad: ventasHora.length
+          });
+        }
       }
     }
 
