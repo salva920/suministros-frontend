@@ -5,7 +5,7 @@ import {
   Typography, Chip, IconButton, Box, TableSortLabel, TextField, Grid, Button, Pagination, CircularProgress, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions 
 } from '@mui/material';
 import { 
-  Visibility, ArrowUpward, ArrowDownward, Search, DateRange, Clear, AttachMoney, Delete, History, Print, LockIcon 
+  Visibility, ArrowUpward, ArrowDownward, Search, DateRange, Clear, AttachMoney, Delete, History, Print, Lock 
 } from '@mui/icons-material';
 import moment from 'moment';
 import RegistroClienteDialog from './RegistroClienteDialog';
@@ -307,7 +307,7 @@ const ListadoHistorialVentas = () => {
             {!showFinancials && (
               <Button
                 variant="outlined"
-                startIcon={<LockIcon />}
+                startIcon={<Lock />}
                 onClick={() => setPasswordDialogOpen(true)}
                 sx={{ borderRadius: '25px', px: 3 }}
               >
