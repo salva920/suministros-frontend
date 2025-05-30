@@ -164,15 +164,15 @@ const HistorialSalidas = ({ productos, showFinancials }) => {
     const csvContent = [
       headers.join(','),
       ...filteredHistorial.map(salida => [
-        `"${salida.fechaFormateada}"`,
-        `"${salida.producto}"`,
-        salida.cantidad,
-        `"${salida.cliente}"`,
-        salida.precioUnitario.toFixed(2),
-        salida.total.toFixed(2),
-        `"${salida.nrFactura}"`,
-        salida.gananciaUnitaria.toFixed(2),
-        salida.gananciaTotal.toFixed(2)
+        `"${salida.fechaFormateada || ''}"`,
+        `"${salida.producto || ''}"`,
+        salida.cantidad || 0,
+        `"${salida.cliente || ''}"`,
+        (salida.precioUnitario || 0).toFixed(2),
+        (salida.totalVenta || 0).toFixed(2),
+        `"${salida.nrFactura || ''}"`,
+        (salida.gananciaUnitaria || 0).toFixed(2),
+        (salida.gananciaTotal || 0).toFixed(2)
       ].join(','))
     ].join('\n');
 
