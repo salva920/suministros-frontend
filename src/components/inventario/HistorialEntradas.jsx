@@ -60,7 +60,6 @@ const HistorialEntradas = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [totalPaginas, setTotalPaginas] = useState(1);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [dateFilter, setDateFilter] = useState({ start: null, end: null });
   const openFilter = Boolean(filterAnchorEl);
@@ -101,7 +100,6 @@ const HistorialEntradas = () => {
     try {
       const response = await axios.get(`${API_URL}/historial?getAll=true&tipo=entrada`);
       setHistorial(response.data.historial);
-      setTotalPaginas(Math.ceil(response.data.historial.length / 10));
       setPaginaActual(1);
     } catch (error) {
       console.error('Error cargando historial:', error);
