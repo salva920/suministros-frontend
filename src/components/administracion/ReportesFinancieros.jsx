@@ -1,75 +1,110 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Grid, Paper, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Container, Typography, Grid, Paper, Select, MenuItem, FormControl, InputLabel, CircularProgress, Box } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
+import moment from 'moment';
+import 'moment/locale/es';
 
-const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
+const API_URL = "https://suministros-backend.vercel.app/api";
 
 const ReportesFinancieros = () => {
   const [ventas, setVentas] = useState([]);
   const [periodo, setPeriodo] = useState('mes');
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const cargarVentas = async () => {
       setCargando(true);
+      setError(null);
       try {
-        const response = await axios.get(`${API_URL}/ventas?limit=1000`);
-        setVentas(response.data.ventas);
+        // Calcular fechas para el filtro
+        const fechaFin = moment().endOf('day').toISOString();
+        let fechaInicio;
+        
+        if (periodo === 'mes') {
+          fechaInicio = moment().subtract(12, 'months').startOf('day').toISOString();
+        } else {
+          fechaInicio = moment().subtract(7, 'days').startOf('day').toISOString();
+        }
+
+        const response = await axios.get(`${API_URL}/ventas`, {
+          params: {
+            fechaInicio,
+            fechaFin,
+            populate: 'cliente',
+            limit: 1000
+          }
+        });
+
+        if (response.data && response.data.ventas) {
+          setVentas(response.data.ventas);
+        } else {
+          throw new Error('Formato de respuesta inválido');
+        }
       } catch (error) {
         console.error('Error al cargar ventas:', error);
+        setError('Error al cargar los datos. Por favor, intente nuevamente.');
       } finally {
         setCargando(false);
       }
     };
 
     cargarVentas();
-  }, [setCargando]);
+  }, [periodo]);
 
   const getDatosGrafico = () => {
-    const ahora = new Date();
+    if (!ventas || ventas.length === 0) return [];
+
     const datos = [];
+    const ahora = moment();
 
     if (periodo === 'mes') {
-      for (let i = 0; i < 12; i++) {
-        const mes = new Date(ahora.getFullYear(), i, 1);
+      // Últimos 12 meses
+      for (let i = 11; i >= 0; i--) {
+        const mes = moment().subtract(i, 'months');
         const total = ventas
-          .filter(v => new Date(v.fecha).getMonth() === i && new Date(v.fecha).getFullYear() === ahora.getFullYear())
-          .reduce((acc, v) => acc + v.total, 0);
+          .filter(v => moment(v.fecha).isSame(mes, 'month'))
+          .reduce((acc, v) => acc + (v.total || 0), 0);
         
         datos.push({
-          name: mes.toLocaleString('default', { month: 'short' }),
+          name: mes.format('MMM YYYY'),
           Ventas: total
         });
       }
-    } else if (periodo === 'semana') {
-      for (let i = 0; i < 7; i++) {
-        const dia = new Date(ahora.setDate(ahora.getDate() - i));
+    } else {
+      // Última semana
+      for (let i = 6; i >= 0; i--) {
+        const dia = moment().subtract(i, 'days');
         const total = ventas
-          .filter(v => new Date(v.fecha).toDateString() === dia.toDateString())
-          .reduce((acc, v) => acc + v.total, 0);
+          .filter(v => moment(v.fecha).isSame(dia, 'day'))
+          .reduce((acc, v) => acc + (v.total || 0), 0);
         
         datos.push({
-          name: dia.toLocaleString('default', { weekday: 'short' }),
+          name: dia.format('ddd DD/MM'),
           Ventas: total
         });
       }
     }
 
-    return datos.reverse();
+    return datos;
   };
 
   return (
-    <Container>
-      <Typography variant="h4" gutterBottom>Reportes Financieros</Typography>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
+        Reportes Financieros
+      </Typography>
+
       <Grid container spacing={3}>
         <Grid item xs={12}>
-          <Paper style={{ padding: '1rem' }}>
+          <Paper sx={{ p: 3 }}>
             <FormControl fullWidth>
               <InputLabel>Periodo</InputLabel>
               <Select
                 value={periodo}
                 onChange={(e) => setPeriodo(e.target.value)}
+                label="Periodo"
               >
                 <MenuItem value="mes">Últimos 12 meses</MenuItem>
                 <MenuItem value="semana">Última semana</MenuItem>
@@ -77,22 +112,42 @@ const ReportesFinancieros = () => {
             </FormControl>
           </Paper>
         </Grid>
+
         <Grid item xs={12}>
-          <Paper style={{ padding: '1rem', height: '400px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              {cargando ? (
-                <p>Cargando...</p>
-              ) : (
+          <Paper sx={{ p: 3, height: '500px' }}>
+            {cargando ? (
+              <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                <Typography color="error">{error}</Typography>
+              </Box>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={getDatosGrafico()}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                    interval={0}
+                  />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip 
+                    formatter={(value) => [`$${value.toFixed(2)}`, 'Ventas']}
+                    labelFormatter={(label) => `Fecha: ${label}`}
+                  />
                   <Legend />
-                  <Bar dataKey="Ventas" fill="#8884d8" />
+                  <Bar 
+                    dataKey="Ventas" 
+                    fill="#2196f3"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
-              )}
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            )}
           </Paper>
         </Grid>
       </Grid>
