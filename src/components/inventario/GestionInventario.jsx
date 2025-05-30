@@ -177,7 +177,6 @@ const GestionInventario = () => {
   const [currentKey, setCurrentKey] = useState('');
   const [newKey, setNewKey] = useState('');
   const [loadingKey, setLoadingKey] = useState(false);
-  const [loadingCorreccion, setLoadingCorreccion] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -631,44 +630,6 @@ const GestionInventario = () => {
     // eslint-disable-next-line
   }, [entradaStock.costoInicial, entradaStock.acarreo, entradaStock.flete, entradaStock.cantidad]);
 
-  const ejecutarCorreccion = async () => {
-    try {
-      setLoadingCorreccion(true);
-      console.log('Iniciando corrección...');
-      
-      const response = await axios.post(`${API_URL}/historial/corregir-inconsistencia`, {
-        productoId: '6834774f5e6ceeeab51f6937'
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Respuesta de corrección:', response.data);
-      
-      if (response.data.error) {
-        throw new Error(response.data.error);
-      }
-      
-      toast.success(response.data.message || 'Corrección ejecutada exitosamente');
-      
-      // Recargar productos después de la corrección
-      await cargarProductos();
-    } catch (error) {
-      console.error('Error al ejecutar corrección:', error);
-      if (error.response?.data) {
-        console.error('Detalles del error:', error.response.data);
-        toast.error(error.response.data.details || error.response.data.error || 'Error al ejecutar la corrección');
-      } else if (error.message) {
-        toast.error(error.message);
-      } else {
-        toast.error('Error al ejecutar la corrección');
-      }
-    } finally {
-      setLoadingCorreccion(false);
-    }
-  };
-
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Button
@@ -756,26 +717,6 @@ const GestionInventario = () => {
             }}
           >
             Vender Producto
-          </Button>
-          <Button
-            variant="contained"
-            color="warning"
-            onClick={ejecutarCorreccion}
-            disabled={loadingCorreccion}
-            startIcon={loadingCorreccion ? <CircularProgress size={20} color="inherit" /> : <Build />}
-            sx={{ 
-              borderRadius: '8px', 
-              textTransform: 'none', 
-              fontSize: '1rem',
-              px: 3,
-              py: 1.5,
-              boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
-              '&:hover': {
-                boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.2)',
-              }
-            }}
-          >
-            {loadingCorreccion ? 'Corrigiendo...' : 'Corregir Inconsistencia'}
           </Button>
         </Box>
 
