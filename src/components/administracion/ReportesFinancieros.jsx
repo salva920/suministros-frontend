@@ -33,7 +33,7 @@ const ReportesFinancieros = () => {
             fechaInicio,
             fechaFin,
             populate: 'cliente',
-            limit: 1000
+            getAll: true
           }
         });
 
