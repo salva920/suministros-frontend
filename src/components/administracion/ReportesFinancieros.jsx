@@ -79,7 +79,11 @@ const ReportesFinancieros = () => {
       // Última semana
       for (let i = 6; i >= 0; i--) {
         const dia = moment().subtract(i, 'days');
-        const ventasDelDia = ventas.filter(v => moment(v.fecha).isSame(dia, 'day'));
+        const ventasDelDia = ventas.filter(v => {
+          const fechaVenta = moment(v.fecha);
+          return fechaVenta.isSame(dia, 'day');
+        });
+        
         const total = ventasDelDia.reduce((acc, v) => acc + (v.total || 0), 0);
         
         datos.push({
@@ -89,22 +93,42 @@ const ReportesFinancieros = () => {
         });
       }
     } else {
-      // Ventas del día por hora
-      const ventasHoy = ventas.filter(v => moment(v.fecha).isSame(ahora, 'day'));
-      
-      // Agrupar por hora
-      for (let hora = 0; hora < 24; hora++) {
-        const ventasHora = ventasHoy.filter(v => moment(v.fecha).hour() === hora);
-        const total = ventasHora.reduce((acc, v) => acc + (v.total || 0), 0);
-        
-        datos.push({
-          name: `${hora}:00`,
-          Ventas: total,
-          Cantidad: ventasHora.length
-        });
+      // Ventas del día
+      const ventasHoy = ventas.filter(v => {
+        const fechaVenta = moment(v.fecha);
+        return fechaVenta.isSame(ahora, 'day');
+      });
+
+      // Si no hay ventas hoy, mostrar las últimas 24 horas
+      if (ventasHoy.length === 0) {
+        for (let i = 23; i >= 0; i--) {
+          const hora = moment().subtract(i, 'hours');
+          datos.push({
+            name: hora.format('HH:00'),
+            Ventas: 0,
+            Cantidad: 0
+          });
+        }
+      } else {
+        // Agrupar por hora
+        for (let i = 0; i < 24; i++) {
+          const ventasHora = ventasHoy.filter(v => {
+            const fechaVenta = moment(v.fecha);
+            return fechaVenta.hour() === i;
+          });
+          
+          const total = ventasHora.reduce((acc, v) => acc + (v.total || 0), 0);
+          
+          datos.push({
+            name: `${i.toString().padStart(2, '0')}:00`,
+            Ventas: total,
+            Cantidad: ventasHora.length
+          });
+        }
       }
     }
 
+    console.log('Datos del gráfico:', datos); // Para depuración
     return datos;
   };
 
