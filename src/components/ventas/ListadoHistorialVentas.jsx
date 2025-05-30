@@ -608,10 +608,10 @@ const ListadoHistorialVentas = () => {
 
       {/* Modal de Desbloqueo */}
       <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)}>
-        <DialogTitle>Acceso a detalles financieros</DialogTitle>
+        <DialogTitle>Acceso</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Ingrese la contraseña para ver los detalles financieros (precios y ganancias)
+            Ingrese la contraseña
           </DialogContentText>
           <TextField
             autoFocus
