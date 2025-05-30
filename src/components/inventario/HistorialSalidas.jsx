@@ -64,7 +64,7 @@ const HistorialSalidas = ({ productos, showFinancials }) => {
   // Función para cargar el historial de salidas desde la API
   const cargarHistorial = async () => {
     try {
-      const response = await axios.get(`${API_URL}/ventas`);
+      const response = await axios.get(`${API_URL}/ventas?getAll=true`);
       
       const historialProcesado = response.data.ventas.flatMap(venta => 
         venta.productos.map(p => ({
