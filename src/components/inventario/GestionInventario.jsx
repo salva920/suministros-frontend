@@ -634,18 +634,29 @@ const GestionInventario = () => {
   const ejecutarCorreccion = async () => {
     try {
       setLoadingCorreccion(true);
+      console.log('Iniciando corrección...');
+      
       const response = await axios.post(`${API_URL}/historial/corregir-inconsistencia`, {
         productoId: '6834774f5e6ceeeab51f6937'
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
+      console.log('Respuesta de corrección:', response.data);
       toast.success('Corrección ejecutada exitosamente');
-      console.log('Resultado de la corrección:', response.data);
       
       // Recargar productos después de la corrección
       await cargarProductos();
     } catch (error) {
       console.error('Error al ejecutar corrección:', error);
-      toast.error('Error al ejecutar la corrección');
+      if (error.response) {
+        console.error('Detalles del error:', error.response.data);
+        toast.error(error.response.data.error || 'Error al ejecutar la corrección');
+      } else {
+        toast.error('Error al ejecutar la corrección');
+      }
     } finally {
       setLoadingCorreccion(false);
     }
