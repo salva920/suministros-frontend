@@ -98,7 +98,14 @@ const HistorialEntradas = () => {
 
   const fetchHistorial = useCallback(async () => {
     try {
+      console.log('Iniciando fetchHistorial...');
       const response = await axios.get(`${API_URL}/historial?getAll=true&tipo=entrada`);
+      console.log('Respuesta recibida:', {
+        totalRegistros: response.data.historial.length,
+        primerRegistro: response.data.historial[0],
+        ultimoRegistro: response.data.historial[response.data.historial.length - 1]
+      });
+      
       setHistorial(response.data.historial);
       setPaginaActual(1);
     } catch (error) {
@@ -188,6 +195,13 @@ const HistorialEntradas = () => {
       (!dateFilter.end || new Date(entrada.fecha) <= toUTCDate(dateFilter.end));
     
     return matchesSearch && matchesDate;
+  });
+
+  console.log('Estado actual:', {
+    totalHistorial: historial.length,
+    totalFiltrado: filteredHistorial.length,
+    paginaActual,
+    registrosPorPagina: 10
   });
 
   const indexOfLastRow = paginaActual * 10;
