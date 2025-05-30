@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { 
   TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, 
-  Typography, Chip, IconButton, Box, TableSortLabel, TextField, Grid, Button, Pagination, CircularProgress 
+  Typography, Chip, IconButton, Box, TableSortLabel, TextField, Grid, Button, Pagination, CircularProgress, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions 
 } from '@mui/material';
 import { 
-  Visibility, ArrowUpward, ArrowDownward, Search, DateRange, Clear, AttachMoney, Delete, History, Print 
+  Visibility, ArrowUpward, ArrowDownward, Search, DateRange, Clear, AttachMoney, Delete, History, Print, LockIcon 
 } from '@mui/icons-material';
 import moment from 'moment';
 import RegistroClienteDialog from './RegistroClienteDialog';
@@ -33,6 +33,10 @@ const ListadoHistorialVentas = () => {
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
   const [mostrarGenerarFactura, setMostrarGenerarFactura] = useState(false);
   const [cargando, setCargando] = useState(false); // Estado de carga
+  const [showFinancials, setShowFinancials] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
   const timeoutId = useRef(null);
 
   // Añade la función al inicio del componente
@@ -256,6 +260,28 @@ const ListadoHistorialVentas = () => {
     );
   };
 
+  // Función para manejar el desbloqueo
+  const handlePasswordSubmit = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/unlock-key`);
+      const claveActual = response.data.key;
+
+      if (passwordInput === claveActual) {
+        setShowFinancials(true);
+        setPasswordDialogOpen(false);
+        setPasswordInput('');
+        setPasswordError(false);
+        toast.success('Campos sensibles desbloqueados');
+      } else {
+        setPasswordError(true);
+        toast.error('Contraseña incorrecta');
+      }
+    } catch (error) {
+      toast.error('Error al verificar la clave');
+      setPasswordError(true);
+    }
+  };
+
   return (
     <>
       <Paper elevation={3} sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
@@ -278,15 +304,25 @@ const ListadoHistorialVentas = () => {
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            {!showFinancials && (
+              <Button
+                variant="outlined"
+                startIcon={<LockIcon />}
+                onClick={() => setPasswordDialogOpen(true)}
+                sx={{ borderRadius: '25px', px: 3 }}
+              >
+                Desbloquear Detalles
+              </Button>
+            )}
             <Button
               variant={mostrarDeudas ? "contained" : "outlined"}
               color="error"
               onClick={() => {
                 setMostrarDeudas(!mostrarDeudas);
-                setPagina(1); // Reiniciar a la primera página
-                setFiltroDNI(''); // Reiniciar filtro por RIF
-                setFechaInicio(null); // Reiniciar fecha de inicio
-                setFechaFin(null); // Reiniciar fecha de fin
+                setPagina(1);
+                setFiltroDNI('');
+                setFechaInicio(null);
+                setFechaFin(null);
               }}
               startIcon={<AttachMoney />}
               sx={{
@@ -471,7 +507,10 @@ const ListadoHistorialVentas = () => {
                                 {producto.producto?.nombre || 'Producto no disponible'}
                               </Typography>
                               <Chip 
-                                label={`${producto.cantidad} x $${producto.precioUnitario}`}
+                                label={showFinancials ? 
+                                  `${producto.cantidad} x $${producto.precioUnitario}` : 
+                                  `${producto.cantidad}`
+                                }
                                 size="small"
                                 color="primary"
                                 variant="outlined"
@@ -566,6 +605,32 @@ const ListadoHistorialVentas = () => {
           onClose={() => setMostrarGenerarFactura(false)}
         />
       )}
+
+      {/* Modal de Desbloqueo */}
+      <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)}>
+        <DialogTitle>Acceso a detalles financieros</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Ingrese la contraseña para ver los detalles financieros (precios y ganancias)
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Contraseña"
+            type="password"
+            fullWidth
+            variant="standard"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            error={passwordError}
+            helperText={passwordError ? "Contraseña incorrecta" : ""}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasswordDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={handlePasswordSubmit} color="primary">Ingresar</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
