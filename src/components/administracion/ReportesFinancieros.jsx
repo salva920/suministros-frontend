@@ -24,8 +24,11 @@ const ReportesFinancieros = () => {
         
         if (periodo === 'mes') {
           fechaInicio = moment().subtract(12, 'months').startOf('day').toISOString();
-        } else {
+        } else if (periodo === 'semana') {
           fechaInicio = moment().subtract(7, 'days').startOf('day').toISOString();
+        } else {
+          // Para el filtro diario
+          fechaInicio = moment().startOf('day').toISOString();
         }
 
         const response = await axios.get(`${API_URL}/ventas`, {
@@ -72,17 +75,32 @@ const ReportesFinancieros = () => {
           Ventas: total
         });
       }
-    } else {
+    } else if (periodo === 'semana') {
       // Última semana
       for (let i = 6; i >= 0; i--) {
         const dia = moment().subtract(i, 'days');
-        const total = ventas
-          .filter(v => moment(v.fecha).isSame(dia, 'day'))
-          .reduce((acc, v) => acc + (v.total || 0), 0);
+        const ventasDelDia = ventas.filter(v => moment(v.fecha).isSame(dia, 'day'));
+        const total = ventasDelDia.reduce((acc, v) => acc + (v.total || 0), 0);
         
         datos.push({
           name: dia.format('ddd DD/MM'),
-          Ventas: total
+          Ventas: total,
+          Cantidad: ventasDelDia.length
+        });
+      }
+    } else {
+      // Ventas del día por hora
+      const ventasHoy = ventas.filter(v => moment(v.fecha).isSame(ahora, 'day'));
+      
+      // Agrupar por hora
+      for (let hora = 0; hora < 24; hora++) {
+        const ventasHora = ventasHoy.filter(v => moment(v.fecha).hour() === hora);
+        const total = ventasHora.reduce((acc, v) => acc + (v.total || 0), 0);
+        
+        datos.push({
+          name: `${hora}:00`,
+          Ventas: total,
+          Cantidad: ventasHora.length
         });
       }
     }
@@ -108,6 +126,7 @@ const ReportesFinancieros = () => {
               >
                 <MenuItem value="mes">Últimos 12 meses</MenuItem>
                 <MenuItem value="semana">Última semana</MenuItem>
+                <MenuItem value="dia">Ventas del día</MenuItem>
               </Select>
             </FormControl>
           </Paper>
@@ -134,17 +153,30 @@ const ReportesFinancieros = () => {
                     height={70}
                     interval={0}
                   />
-                  <YAxis />
+                  <YAxis yAxisId="left" orientation="left" stroke="#2196f3" />
+                  <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
                   <Tooltip 
-                    formatter={(value) => [`$${value.toFixed(2)}`, 'Ventas']}
+                    formatter={(value, name) => {
+                      if (name === 'Ventas') return [`$${value.toFixed(2)}`, 'Ventas'];
+                      return [value, 'Cantidad de ventas'];
+                    }}
                     labelFormatter={(label) => `Fecha: ${label}`}
                   />
                   <Legend />
                   <Bar 
+                    yAxisId="left"
                     dataKey="Ventas" 
                     fill="#2196f3"
                     radius={[4, 4, 0, 0]}
                   />
+                  {(periodo === 'semana' || periodo === 'dia') && (
+                    <Bar 
+                      yAxisId="right"
+                      dataKey="Cantidad" 
+                      fill="#82ca9d"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             )}
