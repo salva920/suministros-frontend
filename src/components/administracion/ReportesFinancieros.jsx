@@ -12,43 +12,87 @@ const ReportesFinancieros = () => {
   const [periodo, setPeriodo] = useState('mes');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const [ultimoMesConVentas, setUltimoMesConVentas] = useState(null);
+
+  // Función para encontrar el último mes con ventas
+  const encontrarUltimoMesConVentas = (ventas) => {
+    if (!ventas || ventas.length === 0) return null;
+
+    const ventasPorMes = ventas.reduce((acc, venta) => {
+      const fecha = moment(venta.fecha);
+      const mesKey = fecha.format('YYYY-MM');
+      if (!acc[mesKey]) {
+        acc[mesKey] = {
+          fecha: fecha,
+          total: 0
+        };
+      }
+      acc[mesKey].total += venta.total || 0;
+      return acc;
+    }, {});
+
+    const mesesConVentas = Object.values(ventasPorMes)
+      .filter(mes => mes.total > 0)
+      .sort((a, b) => b.fecha - a.fecha);
+
+    return mesesConVentas.length > 0 ? mesesConVentas[0].fecha : null;
+  };
 
   useEffect(() => {
     const cargarVentas = async () => {
       setCargando(true);
       setError(null);
       try {
-        // Calcular fechas para el filtro
-        const fechaFin = moment().endOf('day').toISOString();
-        let fechaInicio;
-        
-        if (periodo === 'mes') {
-          fechaInicio = moment().subtract(11, 'months').startOf('month').toISOString();
-        } else if (periodo === 'semana') {
-          fechaInicio = moment().subtract(6, 'days').startOf('day').toISOString();
-        } else {
-          fechaInicio = moment().startOf('day').toISOString();
-        }
-
-        console.log('Fechas de búsqueda:', {
-          fechaInicio: moment(fechaInicio).format('YYYY-MM-DD HH:mm:ss'),
-          fechaFin: moment(fechaFin).format('YYYY-MM-DD HH:mm:ss')
-        });
-
-        const response = await axios.get(`${API_URL}/ventas`, {
+        // Primero cargar todas las ventas para encontrar el último mes
+        const responseInicial = await axios.get(`${API_URL}/ventas`, {
           params: {
-            fechaInicio,
-            fechaFin,
-            populate: 'cliente',
-            getAll: true
+            getAll: true,
+            populate: 'cliente'
           }
         });
 
-        if (response.data && response.data.ventas) {
-          console.log('Ventas recibidas:', response.data.ventas.length);
-          setVentas(response.data.ventas);
-        } else {
-          throw new Error('Formato de respuesta inválido');
+        if (responseInicial.data && responseInicial.data.ventas) {
+          const ultimoMes = encontrarUltimoMesConVentas(responseInicial.data.ventas);
+          setUltimoMesConVentas(ultimoMes);
+          
+          if (!ultimoMes) {
+            setError('No se encontraron ventas');
+            return;
+          }
+
+          // Calcular fechas para el filtro basado en el último mes con ventas
+          let fechaInicio, fechaFin;
+          
+          if (periodo === 'mes') {
+            fechaInicio = ultimoMes.clone().startOf('month').toISOString();
+            fechaFin = ultimoMes.clone().endOf('month').toISOString();
+          } else if (periodo === 'semana') {
+            fechaInicio = ultimoMes.clone().subtract(6, 'days').startOf('day').toISOString();
+            fechaFin = ultimoMes.clone().endOf('day').toISOString();
+          } else {
+            fechaInicio = ultimoMes.clone().startOf('day').toISOString();
+            fechaFin = ultimoMes.clone().endOf('day').toISOString();
+          }
+
+          console.log('Fechas de búsqueda:', {
+            fechaInicio: moment(fechaInicio).format('YYYY-MM-DD HH:mm:ss'),
+            fechaFin: moment(fechaFin).format('YYYY-MM-DD HH:mm:ss')
+          });
+
+          // Cargar ventas para el período específico
+          const response = await axios.get(`${API_URL}/ventas`, {
+            params: {
+              fechaInicio,
+              fechaFin,
+              populate: 'cliente',
+              getAll: true
+            }
+          });
+
+          if (response.data && response.data.ventas) {
+            console.log('Ventas recibidas:', response.data.ventas.length);
+            setVentas(response.data.ventas);
+          }
         }
       } catch (error) {
         console.error('Error al cargar ventas:', error);
@@ -62,32 +106,29 @@ const ReportesFinancieros = () => {
   }, [periodo]);
 
   const getDatosGrafico = () => {
-    if (!ventas || ventas.length === 0) return [];
+    if (!ventas || ventas.length === 0 || !ultimoMesConVentas) return [];
 
     const datos = [];
-    const ahora = moment();
+    const ultimoMes = moment(ultimoMesConVentas);
 
     if (periodo === 'mes') {
-      // Últimos 12 meses desde el mes actual
-      for (let i = 11; i >= 0; i--) {
-        const mes = moment().subtract(i, 'months');
-        const ventasDelMes = ventas.filter(v => {
-          const fechaVenta = moment(v.fecha);
-          return fechaVenta.isSame(mes, 'month') && fechaVenta.isSame(mes, 'year');
-        });
-        
-        const total = ventasDelMes.reduce((acc, v) => acc + (v.total || 0), 0);
-        
-        datos.push({
-          name: mes.format('MMM YYYY'),
-          Ventas: total,
-          Cantidad: ventasDelMes.length
-        });
-      }
+      // Mostrar el último mes con ventas
+      const ventasDelMes = ventas.filter(v => {
+        const fechaVenta = moment(v.fecha);
+        return fechaVenta.isSame(ultimoMes, 'month') && fechaVenta.isSame(ultimoMes, 'year');
+      });
+      
+      const total = ventasDelMes.reduce((acc, v) => acc + (v.total || 0), 0);
+      
+      datos.push({
+        name: ultimoMes.format('MMMM YYYY'),
+        Ventas: total,
+        Cantidad: ventasDelMes.length
+      });
     } else if (periodo === 'semana') {
-      // Últimos 7 días desde hoy
+      // Última semana del mes con ventas
       for (let i = 6; i >= 0; i--) {
-        const dia = moment().subtract(i, 'days');
+        const dia = ultimoMes.clone().subtract(i, 'days');
         const ventasDelDia = ventas.filter(v => {
           const fechaVenta = moment(v.fecha);
           return fechaVenta.isSame(dia, 'day');
@@ -102,38 +143,26 @@ const ReportesFinancieros = () => {
         });
       }
     } else {
-      // Ventas del día actual
-      const ventasHoy = ventas.filter(v => {
+      // Ventas del último día con ventas
+      const ventasDia = ventas.filter(v => {
         const fechaVenta = moment(v.fecha);
-        return fechaVenta.isSame(ahora, 'day');
+        return fechaVenta.isSame(ultimoMes, 'day');
       });
 
-      // Si no hay ventas hoy, mostrar las últimas 24 horas
-      if (ventasHoy.length === 0) {
-        for (let i = 23; i >= 0; i--) {
-          const hora = moment().subtract(i, 'hours');
-          datos.push({
-            name: hora.format('HH:00'),
-            Ventas: 0,
-            Cantidad: 0
-          });
-        }
-      } else {
-        // Agrupar por hora
-        for (let i = 0; i < 24; i++) {
-          const ventasHora = ventasHoy.filter(v => {
-            const fechaVenta = moment(v.fecha);
-            return fechaVenta.hour() === i;
-          });
-          
-          const total = ventasHora.reduce((acc, v) => acc + (v.total || 0), 0);
-          
-          datos.push({
-            name: `${i.toString().padStart(2, '0')}:00`,
-            Ventas: total,
-            Cantidad: ventasHora.length
-          });
-        }
+      // Agrupar por hora
+      for (let i = 0; i < 24; i++) {
+        const ventasHora = ventasDia.filter(v => {
+          const fechaVenta = moment(v.fecha);
+          return fechaVenta.hour() === i;
+        });
+        
+        const total = ventasHora.reduce((acc, v) => acc + (v.total || 0), 0);
+        
+        datos.push({
+          name: `${i.toString().padStart(2, '0')}:00`,
+          Ventas: total,
+          Cantidad: ventasHora.length
+        });
       }
     }
 
@@ -157,9 +186,9 @@ const ReportesFinancieros = () => {
                 onChange={(e) => setPeriodo(e.target.value)}
                 label="Periodo"
               >
-                <MenuItem value="mes">Últimos 12 meses</MenuItem>
-                <MenuItem value="semana">Última semana</MenuItem>
-                <MenuItem value="dia">Ventas del día</MenuItem>
+                <MenuItem value="mes">Último mes con ventas</MenuItem>
+                <MenuItem value="semana">Última semana con ventas</MenuItem>
+                <MenuItem value="dia">Último día con ventas</MenuItem>
               </Select>
             </FormControl>
           </Paper>
