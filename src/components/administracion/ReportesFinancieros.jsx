@@ -112,19 +112,22 @@ const ReportesFinancieros = () => {
     const ultimoMes = moment(ultimoMesConVentas);
 
     if (periodo === 'mes') {
-      // Mostrar el último mes con ventas
-      const ventasDelMes = ventas.filter(v => {
-        const fechaVenta = moment(v.fecha);
-        return fechaVenta.isSame(ultimoMes, 'month') && fechaVenta.isSame(ultimoMes, 'year');
-      });
-      
-      const total = ventasDelMes.reduce((acc, v) => acc + (v.total || 0), 0);
-      
-      datos.push({
-        name: ultimoMes.format('MMMM YYYY'),
-        Ventas: total,
-        Cantidad: ventasDelMes.length
-      });
+      // Mostrar los últimos 12 meses desde el último mes con ventas
+      for (let i = 11; i >= 0; i--) {
+        const mes = ultimoMes.clone().subtract(i, 'months');
+        const ventasDelMes = ventas.filter(v => {
+          const fechaVenta = moment(v.fecha);
+          return fechaVenta.isSame(mes, 'month') && fechaVenta.isSame(mes, 'year');
+        });
+        
+        const total = ventasDelMes.reduce((acc, v) => acc + (v.total || 0), 0);
+        
+        datos.push({
+          name: mes.format('MMM YYYY'),
+          Ventas: total,
+          Cantidad: ventasDelMes.length
+        });
+      }
     } else if (periodo === 'semana') {
       // Última semana del mes con ventas
       for (let i = 6; i >= 0; i--) {
@@ -186,7 +189,7 @@ const ReportesFinancieros = () => {
                 onChange={(e) => setPeriodo(e.target.value)}
                 label="Periodo"
               >
-                <MenuItem value="mes">Último mes con ventas</MenuItem>
+                <MenuItem value="mes">Últimos 12 meses</MenuItem>
                 <MenuItem value="semana">Última semana con ventas</MenuItem>
                 <MenuItem value="dia">Último día con ventas</MenuItem>
               </Select>
