@@ -100,10 +100,20 @@ const HistorialEntradas = () => {
     try {
       console.log('Iniciando fetchHistorial...');
       const response = await axios.get(`${API_URL}/historial?getAll=true&tipo=entrada`);
+      console.log('Respuesta completa:', response.data);
+      
+      if (!response.data.historial || !Array.isArray(response.data.historial)) {
+        console.error('Formato de respuesta inválido:', response.data);
+        setError('Error en el formato de la respuesta del servidor');
+        return;
+      }
+
       console.log('Respuesta recibida:', {
         totalRegistros: response.data.historial.length,
         primerRegistro: response.data.historial[0],
-        ultimoRegistro: response.data.historial[response.data.historial.length - 1]
+        ultimoRegistro: response.data.historial[response.data.historial.length - 1],
+        total: response.data.total,
+        pages: response.data.pages
       });
       
       setHistorial(response.data.historial);
@@ -201,7 +211,9 @@ const HistorialEntradas = () => {
     totalHistorial: historial.length,
     totalFiltrado: filteredHistorial.length,
     paginaActual,
-    registrosPorPagina: 10
+    registrosPorPagina: 10,
+    primerRegistro: historial[0],
+    ultimoRegistro: historial[historial.length - 1]
   });
 
   const indexOfLastRow = paginaActual * 10;
