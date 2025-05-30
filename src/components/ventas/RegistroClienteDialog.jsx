@@ -104,7 +104,7 @@ const RegistroClienteDialog = ({
       setVentas(ventasFiltradas);
     } else {
       setVentas([]);
-    }
+        }
   }, [ventasCliente, clienteSeleccionado]);
 
   // Limpiar estados cuando se cierra el diálogo
@@ -174,7 +174,7 @@ const RegistroClienteDialog = ({
         setVentas(prev => prev.map(v => 
           (v._id || v.id) === ventaId ? response.data : v
         ));
-        toast.success(`Abono de $${monto.toFixed(2)} registrado`);
+      toast.success(`Abono de $${monto.toFixed(2)} registrado`);
         return true;
       }
     } catch (error) {
@@ -229,7 +229,7 @@ const RegistroClienteDialog = ({
         setVentas(prev => prev.map(v => 
           (v._id || v.id) === ventaId ? response.data : v
         ));
-        toast.success('Deuda solventada completamente');
+      toast.success('Deuda solventada completamente');
         return true;
       }
     } catch (error) {
@@ -288,73 +288,73 @@ const RegistroClienteDialog = ({
             </Typography>
 
             {ventas.length > 0 ? (
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      {['Fecha', 'Total', 'Abonado', 'Saldo', 'Acciones'].map((header) => (
-                        <TableCell key={header} sx={{ fontWeight: 600 }}>
-                          {header}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  
-                  <TableBody>
-                    {ventas.map(venta => (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {['Fecha', 'Total', 'Abonado', 'Saldo', 'Acciones'].map((header) => (
+                      <TableCell key={header} sx={{ fontWeight: 600 }}>
+                        {header}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                
+                <TableBody>
+                  {ventas.map(venta => (
                       <TableRow key={venta._id || venta.id} hover>
-                        <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
+                      <TableCell>{moment(venta.fecha).format('DD/MM/YYYY HH:mm')}</TableCell>
                         <TableCell>${(venta.total || 0).toFixed(2)}</TableCell>
                         <TableCell>${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
-                        <TableCell sx={{ 
+                      <TableCell sx={{ 
                           color: (venta.saldoPendiente || 0) > 0 ? 'error.main' : 'success.main',
-                          fontWeight: 500
-                        }}>
+                        fontWeight: 500
+                      }}>
                           ${(venta.saldoPendiente || 0).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
+                      </TableCell>
+                      <TableCell>
                           <Box display="flex" gap={1} alignItems="center">
                             {(venta.saldoPendiente || 0) > 0 && (
                               <>
-                                <TextField
-                                  type="number"
-                                  size="small"
+                            <TextField
+                              type="number"
+                              size="small"
                                   value={montosAbono[venta._id || venta.id] || ''}
                                   onChange={(e) => handleMontoChange(venta._id || venta.id, parseFloat(e.target.value))}
-                                  InputProps={{
-                                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                                    inputProps: { 
-                                      min: 0,
-                                      max: venta.saldoPendiente,
-                                      step: 0.01
-                                    }
-                                  }}
-                                  sx={{ width: 120 }}
-                                />
-                                <Button 
-                                  variant="contained" 
-                                  onClick={() => handleAbonar(venta)}
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                                inputProps: { 
+                                  min: 0,
+                                  max: venta.saldoPendiente,
+                                  step: 0.01
+                                }
+                              }}
+                              sx={{ width: 120 }}
+                            />
+                            <Button 
+                              variant="contained" 
+                              onClick={() => handleAbonar(venta)}
                                   disabled={!montosAbono[venta._id || venta.id]}
-                                >
-                                  Abonar
-                                </Button>
-                                <Button 
-                                  variant="outlined" 
-                                  color="success" 
-                                  onClick={() => handleSolventarDeuda(venta)}
-                                >
-                                  Pagar Total
-                                </Button>
+                            >
+                              Abonar
+                            </Button>
+                            <Button 
+                              variant="outlined" 
+                              color="success" 
+                              onClick={() => handleSolventarDeuda(venta)}
+                            >
+                              Pagar Total
+                            </Button>
                               </>
-                            )}
+                        )}
                             {(venta.saldoPendiente || 0) <= 0 && (
-                              <Chip 
-                                label="Pagado" 
-                                color="success" 
-                                size="small" 
-                                sx={{ fontWeight: 'bold' }}
-                              />
-                            )}
+                          <Chip 
+                            label="Pagado" 
+                            color="success" 
+                            size="small" 
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        )}
                             <IconButton
                               onClick={() => handleEditarVenta(venta)}
                               color="primary"
@@ -368,12 +368,12 @@ const RegistroClienteDialog = ({
                               <Edit />
                             </IconButton>
                           </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
             ) : (
               <Box textAlign="center" p={4}>
                 <Typography variant="body1" color="textSecondary">

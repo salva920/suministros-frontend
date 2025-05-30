@@ -7,7 +7,7 @@ import {
   DialogContentText
 } from '@mui/material';
 import { toast } from 'react-toastify';
-import { Delete, Edit, AddShoppingCart, Inventory, Clear, Search, ArrowUpward, ArrowDownward, Input as InputIcon, PointOfSale, Lock, LockOpen } from '@mui/icons-material';
+import { Delete, Edit, AddShoppingCart, Inventory, Clear, Search, ArrowUpward, ArrowDownward, Input as InputIcon, PointOfSale, Lock, LockOpen, Build } from '@mui/icons-material';
 import AgregarProducto from '../AgregarProducto';
 import { useNavigate } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -23,6 +23,7 @@ import axios from 'axios';
 import TasaCambio from '../TasaCambio';
 import { VpnKey } from '@mui/icons-material';
 import { Lock as LockIcon } from '@mui/icons-material';
+import { CircularProgress } from '@mui/material';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -176,6 +177,7 @@ const GestionInventario = () => {
   const [currentKey, setCurrentKey] = useState('');
   const [newKey, setNewKey] = useState('');
   const [loadingKey, setLoadingKey] = useState(false);
+  const [loadingCorreccion, setLoadingCorreccion] = useState(false);
 
   // PIN válido (puedes cambiarlo o obtenerlo desde el backend)
   const PIN_VALIDO = '1234';
@@ -629,6 +631,26 @@ const GestionInventario = () => {
     // eslint-disable-next-line
   }, [entradaStock.costoInicial, entradaStock.acarreo, entradaStock.flete, entradaStock.cantidad]);
 
+  const ejecutarCorreccion = async () => {
+    try {
+      setLoadingCorreccion(true);
+      const response = await axios.post(`${API_URL}/historial/corregir-inconsistencia`, {
+        productoId: '6834774f5e6ceeeab51f6937'
+      });
+      
+      toast.success('Corrección ejecutada exitosamente');
+      console.log('Resultado de la corrección:', response.data);
+      
+      // Recargar productos después de la corrección
+      await cargarProductos();
+    } catch (error) {
+      console.error('Error al ejecutar corrección:', error);
+      toast.error('Error al ejecutar la corrección');
+    } finally {
+      setLoadingCorreccion(false);
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Button
@@ -716,6 +738,26 @@ const GestionInventario = () => {
             }}
           >
             Vender Producto
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={ejecutarCorreccion}
+            disabled={loadingCorreccion}
+            startIcon={loadingCorreccion ? <CircularProgress size={20} color="inherit" /> : <Build />}
+            sx={{ 
+              borderRadius: '8px', 
+              textTransform: 'none', 
+              fontSize: '1rem',
+              px: 3,
+              py: 1.5,
+              boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+              '&:hover': {
+                boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.2)',
+              }
+            }}
+          >
+            {loadingCorreccion ? 'Corrigiendo...' : 'Corregir Inconsistencia'}
           </Button>
         </Box>
 
