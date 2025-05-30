@@ -645,15 +645,22 @@ const GestionInventario = () => {
       });
       
       console.log('Respuesta de corrección:', response.data);
-      toast.success('Corrección ejecutada exitosamente');
+      
+      if (response.data.error) {
+        throw new Error(response.data.error);
+      }
+      
+      toast.success(response.data.message || 'Corrección ejecutada exitosamente');
       
       // Recargar productos después de la corrección
       await cargarProductos();
     } catch (error) {
       console.error('Error al ejecutar corrección:', error);
-      if (error.response) {
+      if (error.response?.data) {
         console.error('Detalles del error:', error.response.data);
-        toast.error(error.response.data.error || 'Error al ejecutar la corrección');
+        toast.error(error.response.data.details || error.response.data.error || 'Error al ejecutar la corrección');
+      } else if (error.message) {
+        toast.error(error.message);
       } else {
         toast.error('Error al ejecutar la corrección');
       }
