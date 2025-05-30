@@ -424,6 +424,7 @@ const ListadoHistorialVentas = () => {
                     </TableSortLabel>
                   </TableCell>
                   <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Cliente</TableCell>
+                  <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }}>Productos</TableCell>
                   <TableCell sx={{ color: 'common.white', fontWeight: 'bold' }} align="right">
                     <TableSortLabel
                       active={columnaOrden === 'total'}
@@ -462,6 +463,23 @@ const ListadoHistorialVentas = () => {
                           </Box>
                         ) : 'Cliente no registrado'}
                       </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {venta.productos?.map((producto, index) => (
+                            <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="body2">
+                                {producto.producto?.nombre || 'Producto no disponible'}
+                              </Typography>
+                              <Chip 
+                                label={`${producto.cantidad} x $${producto.precioUnitario}`}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                              />
+                            </Box>
+                          ))}
+                        </Box>
+                      </TableCell>
                       <TableCell align="right">${(venta.total || 0).toFixed(2)}</TableCell>
                       <TableCell align="right">${(venta.montoAbonado || 0).toFixed(2)}</TableCell>
                       <TableCell align="right" sx={{ 
@@ -495,7 +513,7 @@ const ListadoHistorialVentas = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="textSecondary">
                         No se encontraron ventas con los filtros aplicados
                       </Typography>
