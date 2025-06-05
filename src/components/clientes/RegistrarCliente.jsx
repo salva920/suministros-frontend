@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Button, Container, TextField, Typography, Grid, 
   Paper, IconButton, Chip, Box,
@@ -228,17 +228,32 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     setClientesFiltrados(filtered);
   }, [filtrarClientes]);
 
-  const handleChange = (e) => {
-    setCliente({ ...cliente, [e.target.name]: e.target.value });
-  };
-
-  const handleChangeColorMunicipio = (e) => {
-    setColorMunicipio(e.target.value);
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
     setCliente(prev => ({
       ...prev,
-      municipioColor: e.target.value
+      [name]: value
     }));
-  };
+  }, []);
+
+  const handleChangeColorMunicipio = useCallback((e) => {
+    const newColor = e.target.value;
+    setColorMunicipio(newColor);
+    setCliente(prev => ({
+      ...prev,
+      municipioColor: newColor
+    }));
+  }, []);
+
+  const handleCheckboxChange = useCallback((e) => {
+    const { value, checked } = e.target;
+    setCliente(prev => ({
+      ...prev,
+      categorias: checked 
+        ? [...(prev.categorias || []), value]
+        : (prev.categorias || []).filter(cat => cat !== value)
+    }));
+  }, []);
 
   const validarCampos = () => {
     const nuevosErrores = {
@@ -407,21 +422,6 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     setMostrarRegistroDialog(true);
   };
 
-  const handleCheckboxChange = (e) => {
-    const { value, checked } = e.target;
-    if (checked) {
-      setCliente(prev => ({
-        ...prev,
-        categorias: [...(prev.categorias || []), value]
-      }));
-    } else {
-      setCliente(prev => ({
-        ...prev,
-        categorias: (prev.categorias || []).filter(cat => cat !== value)
-      }));
-    }
-  };
-
   const manejarCambioPagina = (event, value) => {
     // No necesitamos cambiar la página ya que todos los registros están en la página 1
     // Mantenemos esta función por compatibilidad con la interfaz
@@ -437,6 +437,199 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
 
   const municipiosDisponibles = [...new Set(clientes.map(c => c.municipio).filter(Boolean))];
   const categoriasDisponibles = ['Agente Retención', 'Alto Riesgo', 'Cliente Frecuente', 'Cliente VIP', 'Desconocido'];
+
+  const formFields = useMemo(() => (
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          label="Nombre del Cliente"
+          name="nombre"
+          value={cliente.nombre || ''}
+          onChange={handleChange}
+          variant="outlined"
+          required
+          error={!!errores.nombre}
+          helperText={errores.nombre}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <BadgeIcon color="primary" />
+              </InputAdornment>
+            ),
+            sx: { borderRadius: '10px' }
+          }}
+        />
+      </Grid>
+      
+      <Grid item xs={12} md={6}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <FormControl sx={{ width: '30%' }}>
+            <InputLabel>Tipo</InputLabel>
+            <Select
+              value={prefijoRif}
+              onChange={(e) => setPrefijoRif(e.target.value)}
+              label="Tipo"
+              sx={{ borderRadius: '10px' }}
+            >
+              <MenuItem value="V">V</MenuItem>
+              <MenuItem value="E">E</MenuItem>
+              <MenuItem value="J">J</MenuItem>
+              <MenuItem value="G">G</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <TextField
+            fullWidth
+            label="Cédula/RIF"
+            name="rif"
+            value={cliente.rif || ''}
+            onChange={handleChange}
+            variant="outlined"
+            required
+            error={!!errores.rif}
+            helperText={errores.rif}
+            InputProps={{
+              sx: { borderRadius: '10px' }
+            }}
+          />
+        </Box>
+      </Grid>
+      
+      <Grid item xs={12} md={6}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <FormControl sx={{ width: '30%' }}>
+            <InputLabel>Prefijo</InputLabel>
+            <Select
+              value={prefijoTelefono}
+              onChange={(e) => setPrefijoTelefono(e.target.value)}
+              label="Prefijo"
+              sx={{ borderRadius: '10px' }}
+            >
+              <MenuItem value="0412">0412</MenuItem>
+              <MenuItem value="0414">0414</MenuItem>
+              <MenuItem value="0416">0416</MenuItem>
+              <MenuItem value="0424">0424</MenuItem>
+              <MenuItem value="0426">0426</MenuItem>
+              <MenuItem value="0212">0212</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <TextField
+            fullWidth
+            label="Teléfono"
+            name="telefono"
+            value={cliente.telefono || ''}
+            onChange={handleChange}
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PhoneIcon color="primary" />
+                </InputAdornment>
+              ),
+              sx: { borderRadius: '10px' }
+            }}
+          />
+        </Box>
+      </Grid>
+      
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          label="Email"
+          name="email"
+          value={cliente.email || ''}
+          onChange={handleChange}
+          variant="outlined"
+          error={!!errores.email}
+          helperText={errores.email}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <EmailIcon color="primary" />
+              </InputAdornment>
+            ),
+            sx: { borderRadius: '10px' }
+          }}
+        />
+      </Grid>
+      
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          label="Dirección"
+          name="direccion"
+          value={cliente.direccion || ''}
+          onChange={handleChange}
+          variant="outlined"
+          multiline
+          rows={2}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LocationIcon color="primary" />
+              </InputAdornment>
+            ),
+            sx: { borderRadius: '10px' }
+          }}
+        />
+      </Grid>
+      
+      <Grid item xs={12} md={6}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TextField
+            fullWidth
+            label="Municipio"
+            name="municipio"
+            value={cliente.municipio || ''}
+            onChange={handleChange}
+            variant="outlined"
+            InputProps={{
+              sx: { borderRadius: '10px' }
+            }}
+          />
+          
+          <TextField
+            label="Color"
+            type="color"
+            value={colorMunicipio}
+            onChange={handleChangeColorMunicipio}
+            sx={{ width: '100px' }}
+            InputProps={{
+              sx: { borderRadius: '10px' }
+            }}
+          />
+        </Box>
+      </Grid>
+      
+      <Grid item xs={12}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Categorías:
+        </Typography>
+        <FormGroup row>
+          {categoriasDisponibles.map((categoria) => (
+            <FormControlLabel
+              key={categoria}
+              control={
+                <Checkbox
+                  checked={(cliente.categorias || []).includes(categoria)}
+                  onChange={handleCheckboxChange}
+                  value={categoria}
+                />
+              }
+              label={categoria}
+            />
+          ))}
+        </FormGroup>
+        {errores.categorias && (
+          <Typography color="error" variant="caption">
+            {errores.categorias}
+          </Typography>
+        )}
+      </Grid>
+    </Grid>
+  ), [cliente, errores, prefijoRif, prefijoTelefono, colorMunicipio, handleChange, handleCheckboxChange, handleChangeColorMunicipio]);
 
   return (
     <motion.div
@@ -641,241 +834,51 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                 </Typography>
                 
                 <form onSubmit={crearActualizarCliente}>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Nombre del Cliente"
-                        name="nombre"
-                        value={cliente.nombre || ''}
-                        onChange={handleChange}
+                  {formFields}
+                  <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <ActionButton
+                        type="button"
                         variant="outlined"
-                        required
-                        error={!!errores.nombre}
-                        helperText={errores.nombre}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <BadgeIcon color="primary" />
-                            </InputAdornment>
-                          ),
-                          sx: { borderRadius: '10px' }
+                        color="error"
+                        onClick={() => {
+                          setCliente({
+                            nombre: '',
+                            telefono: '',
+                            email: '',
+                            direccion: '',
+                            municipio: '',
+                            rif: '',
+                            categorias: [],
+                            municipioColor: '#ffffff'
+                          });
+                          setPrefijoRif('V');
+                          setPrefijoTelefono('0412');
+                          setColorMunicipio('#ffffff');
+                          setClienteEditando(null);
                         }}
-                      />
-                    </Grid>
+                        disabled={cargando}
+                        startIcon={<Close />}
+                      >
+                        Limpiar
+                      </ActionButton>
+                    </motion.div>
                     
-                    <Grid item xs={12} md={6}>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <FormControl sx={{ width: '30%' }}>
-                          <InputLabel>Tipo</InputLabel>
-                          <Select
-                            value={prefijoRif}
-                            onChange={(e) => setPrefijoRif(e.target.value)}
-                            label="Tipo"
-                            sx={{ borderRadius: '10px' }}
-                          >
-                            <MenuItem value="V">V</MenuItem>
-                            <MenuItem value="E">E</MenuItem>
-                            <MenuItem value="J">J</MenuItem>
-                            <MenuItem value="G">G</MenuItem>
-                          </Select>
-                        </FormControl>
-                        
-                        <TextField
-                          fullWidth
-                          label="Cédula/RIF"
-                          name="rif"
-                          value={cliente.rif || ''}
-                          onChange={handleChange}
-                          variant="outlined"
-                          required
-                          error={!!errores.rif}
-                          helperText={errores.rif}
-                          InputProps={{
-                            sx: { borderRadius: '10px' }
-                          }}
-                        />
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <FormControl sx={{ width: '30%' }}>
-                          <InputLabel>Prefijo</InputLabel>
-                          <Select
-                            value={prefijoTelefono}
-                            onChange={(e) => setPrefijoTelefono(e.target.value)}
-                            label="Prefijo"
-                            sx={{ borderRadius: '10px' }}
-                          >
-                            <MenuItem value="0412">0412</MenuItem>
-                            <MenuItem value="0414">0414</MenuItem>
-                            <MenuItem value="0416">0416</MenuItem>
-                            <MenuItem value="0424">0424</MenuItem>
-                            <MenuItem value="0426">0426</MenuItem>
-                            <MenuItem value="0212">0212</MenuItem>
-                          </Select>
-                        </FormControl>
-                        
-                        <TextField
-                          fullWidth
-                          label="Teléfono"
-                          name="telefono"
-                          value={cliente.telefono || ''}
-                          onChange={handleChange}
-                          variant="outlined"
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <PhoneIcon color="primary" />
-                              </InputAdornment>
-                            ),
-                            sx: { borderRadius: '10px' }
-                          }}
-                        />
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Email"
-                        name="email"
-                        value={cliente.email || ''}
-                        onChange={handleChange}
-                        variant="outlined"
-                        error={!!errores.email}
-                        helperText={errores.email}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <EmailIcon color="primary" />
-                            </InputAdornment>
-                          ),
-                          sx: { borderRadius: '10px' }
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <ActionButton
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        disabled={cargando}
+                        startIcon={cargando ? <CircularProgress size={24} /> : <SaveIcon />}
+                        sx={{ 
+                          background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                          boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
                         }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Dirección"
-                        name="direccion"
-                        value={cliente.direccion || ''}
-                        onChange={handleChange}
-                        variant="outlined"
-                        multiline
-                        rows={2}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <LocationIcon color="primary" />
-                            </InputAdornment>
-                          ),
-                          sx: { borderRadius: '10px' }
-                        }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <TextField
-                          fullWidth
-                          label="Municipio"
-                          name="municipio"
-                          value={cliente.municipio || ''}
-                          onChange={handleChange}
-                          variant="outlined"
-                          InputProps={{
-                            sx: { borderRadius: '10px' }
-                          }}
-                        />
-                        
-                        <TextField
-                          label="Color"
-                          type="color"
-                          value={colorMunicipio}
-                          onChange={handleChangeColorMunicipio}
-                          sx={{ width: '100px' }}
-                          InputProps={{
-                            sx: { borderRadius: '10px' }
-                          }}
-                        />
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        Categorías:
-                      </Typography>
-                      <FormGroup row>
-                        {categoriasDisponibles.map((categoria) => (
-                          <FormControlLabel
-                            key={categoria}
-                            control={
-                              <Checkbox
-                                checked={(cliente.categorias || []).includes(categoria)}
-                                onChange={handleCheckboxChange}
-                                value={categoria}
-                              />
-                            }
-                            label={categoria}
-                          />
-                        ))}
-                      </FormGroup>
-                      {errores.categorias && (
-                        <Typography color="error" variant="caption">
-                          {errores.categorias}
-                        </Typography>
-                      )}
-                    </Grid>
-                    
-                    <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <ActionButton
-                          type="button"
-                          variant="outlined"
-                          color="error"
-                          onClick={() => {
-                            setCliente({
-                              nombre: '',
-                              telefono: '',
-                              email: '',
-                              direccion: '',
-                              municipio: '',
-                              rif: '',
-                              categorias: [],
-                              municipioColor: '#ffffff'
-                            });
-                            setPrefijoRif('V');
-                            setPrefijoTelefono('0412');
-                            setColorMunicipio('#ffffff');
-                            setClienteEditando(null);
-                          }}
-                          disabled={cargando}
-                          startIcon={<Close />}
-                        >
-                          Limpiar
-                        </ActionButton>
-                      </motion.div>
-                      
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <ActionButton
-                          type="submit"
-                          variant="contained"
-                          color="primary"
-                          disabled={cargando}
-                          startIcon={cargando ? <CircularProgress size={24} /> : <SaveIcon />}
-                          sx={{ 
-                            background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                            boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
-                          }}
-                        >
-                          {cargando ? 'Guardando...' : (cliente._id ? 'Actualizar' : 'Guardar')}
-                        </ActionButton>
-                      </motion.div>
-                    </Grid>
+                      >
+                        {cargando ? 'Guardando...' : (cliente._id ? 'Actualizar' : 'Guardar')}
+                      </ActionButton>
+                    </motion.div>
                   </Grid>
                 </form>
               </FormPaper>
@@ -1210,4 +1213,4 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   );
 };
 
-export default RegistrarCliente;
+export default React.memo(RegistrarCliente);
