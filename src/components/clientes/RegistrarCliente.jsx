@@ -156,153 +156,157 @@ const clienteReducer = (state, action) => {
 };
 
 // Componente memoizado para la fila de cliente
-const ClienteRow = React.memo(({ cliente, onEditar, onEliminar, onVerVentas }) => (
-  <StyledTableRow>
-    <TableCell>
-      <Box>
+const ClienteRow = React.memo(({ cliente, onEditar, onEliminar, onVerVentas }) => {
+  const theme = useTheme();
+  
+  return (
+    <StyledTableRow>
+      <TableCell>
+        <Box>
+          <Typography 
+            fontWeight="bold"
+            sx={{
+              p: '4px 8px',
+              borderRadius: '4px',
+              display: 'inline-block',
+              backgroundColor: cliente.categorias?.includes('Agente Retención') ? 
+                'rgba(255, 235, 59, 0.2)' : cliente.categorias?.includes('Alto Riesgo') ? 
+                'rgba(244, 67, 54, 0.1)' : 'transparent',
+              color: cliente.categorias?.includes('Alto Riesgo') ? '#d32f2f' : 'inherit'
+            }}
+          >
+            {cliente.nombre}
+          </Typography>
+          <Chip 
+            label={`CI: ${cliente.rif}`} 
+            size="small" 
+            color="info" 
+            variant="outlined"
+            sx={{ mt: 1, borderRadius: '8px' }}
+          />
+        </Box>
+        {cliente.categorias && cliente.categorias.length > 0 && (
+          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            {cliente.categorias.map(cat => (
+              <CategoryChip 
+                key={cat}
+                label={cat}
+                size="small"
+                color={
+                  cat === "Alto Riesgo" ? "error" : 
+                  cat === "Agente Retención" ? "warning" : 
+                  cat === "Preferencial" ? "success" : "default"
+                }
+                variant="filled"
+              />
+            ))}
+          </Box>
+        )}
+      </TableCell>
+      <TableCell>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {cliente.telefono && (
+            <Typography 
+              variant="body2"
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                color: 'text.secondary'
+              }}
+            >
+              <PhoneIcon fontSize="small" color="primary" />
+              {cliente.telefono}
+            </Typography>
+          )}
+          {cliente.email && (
+            <Typography 
+              variant="body2"
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                color: 'text.secondary'
+              }}
+            >
+              <EmailIcon fontSize="small" color="primary" />
+              {cliente.email}
+            </Typography>
+          )}
+        </Box>
+      </TableCell>
+      <TableCell>
         <Typography 
-          fontWeight="bold"
-          sx={{
-            p: '4px 8px',
-            borderRadius: '4px',
-            display: 'inline-block',
-            backgroundColor: cliente.categorias?.includes('Agente Retención') ? 
-              'rgba(255, 235, 59, 0.2)' : cliente.categorias?.includes('Alto Riesgo') ? 
-              'rgba(244, 67, 54, 0.1)' : 'transparent',
-            color: cliente.categorias?.includes('Alto Riesgo') ? '#d32f2f' : 'inherit'
+          variant="body2" 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1 
           }}
         >
-          {cliente.nombre}
+          <LocationIcon fontSize="small" color="primary" />
+          {cliente.direccion || "No registrada"}
         </Typography>
-        <Chip 
-          label={`CI: ${cliente.rif}`} 
-          size="small" 
-          color="info" 
-          variant="outlined"
-          sx={{ mt: 1, borderRadius: '8px' }}
-        />
-      </Box>
-      {cliente.categorias && cliente.categorias.length > 0 && (
-        <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-          {cliente.categorias.map(cat => (
-            <CategoryChip 
-              key={cat}
-              label={cat}
-              size="small"
-              color={
-                cat === "Alto Riesgo" ? "error" : 
-                cat === "Agente Retención" ? "warning" : 
-                cat === "Preferencial" ? "success" : "default"
-              }
-              variant="filled"
-            />
-          ))}
+      </TableCell>
+      <TableCell>
+        <Box
+          sx={{
+            backgroundColor: cliente.municipioColor || '#f0f0f0',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            display: 'inline-block',
+            fontWeight: 'medium',
+            color: theme.palette.getContrastText(cliente.municipioColor || '#f0f0f0'),
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+            border: '1px solid rgba(0,0,0,0.05)'
+          }}
+        >
+          {cliente.municipio || "No registrado"}
         </Box>
-      )}
-    </TableCell>
-    <TableCell>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {cliente.telefono && (
-          <Typography 
-            variant="body2"
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              color: 'text.secondary'
-            }}
-          >
-            <PhoneIcon fontSize="small" color="primary" />
-            {cliente.telefono}
-          </Typography>
-        )}
-        {cliente.email && (
-          <Typography 
-            variant="body2"
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              color: 'text.secondary'
-            }}
-          >
-            <EmailIcon fontSize="small" color="primary" />
-            {cliente.email}
-          </Typography>
-        )}
-      </Box>
-    </TableCell>
-    <TableCell>
-      <Typography 
-        variant="body2" 
-        sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1 
-        }}
-      >
-        <LocationIcon fontSize="small" color="primary" />
-        {cliente.direccion || "No registrada"}
-      </Typography>
-    </TableCell>
-    <TableCell>
-      <Box
-        sx={{
-          backgroundColor: cliente.municipioColor || '#f0f0f0',
-          padding: '6px 12px',
-          borderRadius: '8px',
-          display: 'inline-block',
-          fontWeight: 'medium',
-          color: theme.palette.getContrastText(cliente.municipioColor || '#f0f0f0'),
-          boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-          border: '1px solid rgba(0,0,0,0.05)'
-        }}
-      >
-        {cliente.municipio || "No registrado"}
-      </Box>
-    </TableCell>
-    <TableCell align="center">
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-        <Tooltip title="Editar Cliente">
-          <IconButton 
-            color="primary"
-            onClick={() => onEditar(cliente)}
-            sx={{ 
-              backgroundColor: 'rgba(33, 150, 243, 0.1)',
-              '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.2)' }
-            }}
-          >
-            <Edit />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Eliminar Cliente">
-          <IconButton 
-            color="error"
-            onClick={() => onEliminar(cliente.id || cliente._id)}
-            sx={{ 
-              backgroundColor: 'rgba(244, 67, 54, 0.1)',
-              '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.2)' }
-            }}
-          >
-            <Delete />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Ver Historial de Ventas">
-          <IconButton
-            color="info"
-            onClick={() => onVerVentas(cliente)}
-            sx={{ 
-              backgroundColor: 'rgba(3, 169, 244, 0.1)',
-              '&:hover': { backgroundColor: 'rgba(3, 169, 244, 0.2)' }
-            }}
-          >
-            <Receipt />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    </TableCell>
-  </StyledTableRow>
-));
+      </TableCell>
+      <TableCell align="center">
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+          <Tooltip title="Editar Cliente">
+            <IconButton 
+              color="primary"
+              onClick={() => onEditar(cliente)}
+              sx={{ 
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.2)' }
+              }}
+            >
+              <Edit />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar Cliente">
+            <IconButton 
+              color="error"
+              onClick={() => onEliminar(cliente.id || cliente._id)}
+              sx={{ 
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.2)' }
+              }}
+            >
+              <Delete />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Ver Historial de Ventas">
+            <IconButton
+              color="info"
+              onClick={() => onVerVentas(cliente)}
+              sx={{ 
+                backgroundColor: 'rgba(3, 169, 244, 0.1)',
+                '&:hover': { backgroundColor: 'rgba(3, 169, 244, 0.2)' }
+              }}
+            >
+              <Receipt />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </TableCell>
+    </StyledTableRow>
+  );
+});
 
 // Componente memoizado para los campos del formulario
 const FormFields = React.memo(({ 
