@@ -314,7 +314,9 @@ const FormFields = React.memo(({
   prefijoTelefono, 
   setPrefijoTelefono,
   handleCheckboxChange,
-  categoriasDisponibles
+  categoriasDisponibles,
+  colorMunicipio,
+  handleChangeColorMunicipio
 }) => (
   <Grid container spacing={3}>
     <Grid item xs={12} md={6}>
@@ -471,7 +473,7 @@ const FormFields = React.memo(({
           label="Color"
           type="color"
           value={colorMunicipio}
-          onChange={handleChange}
+          onChange={handleChangeColorMunicipio}
           sx={{ width: '100px' }}
           InputProps={{
             sx: { borderRadius: '10px' }
@@ -1054,6 +1056,8 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                     setPrefijoTelefono={setPrefijoTelefono}
                     handleCheckboxChange={handleCheckboxChange}
                     categoriasDisponibles={categoriasDisponibles}
+                    colorMunicipio={colorMunicipio}
+                    handleChangeColorMunicipio={handleChangeColorMunicipio}
                   />
                   <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
