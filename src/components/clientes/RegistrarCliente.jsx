@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Button, Container, TextField, Typography, Grid, 
   Paper, IconButton, Chip, Box,
@@ -24,8 +24,6 @@ import Pagination from '@mui/material/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'react-toastify/dist/ReactToastify.css';
 import RegistroClienteDialog from '../ventas/RegistroClienteDialog';
-import debounce from 'lodash.debounce';
-import { FixedSizeList as List } from 'react-window';
 
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL del backend en Vercel
@@ -125,405 +123,10 @@ const ActionButton = styled(Button)(({ theme }) => ({
   transition: 'all 0.2s ease'
 }));
 
-// Definimos el estado inicial
-const initialState = {
-  _id: '',
-  nombre: '',
-  telefono: '',
-  email: '',
-  direccion: '',
-  municipio: '',
-  rif: '',
-  categorias: [],
-  municipioColor: '#ffffff'
-};
-
-// Reducer para manejar el estado del cliente
-const clienteReducer = (state, action) => {
-  switch (action.type) {
-    case 'UPDATE_FIELD':
-      return {
-        ...state,
-        [action.field]: action.value
-      };
-    case 'RESET':
-      return initialState;
-    case 'SET_CLIENTE':
-      return action.payload;
-    default:
-      return state;
-  }
-};
-
-// Componente memoizado para la fila de cliente
-const ClienteRow = React.memo(({ cliente, onEditar, onEliminar, onVerVentas }) => {
-  const theme = useTheme();
-  
-  return (
-    <StyledTableRow>
-      <TableCell>
-        <Box>
-          <Typography 
-            fontWeight="bold"
-            sx={{
-              p: '4px 8px',
-              borderRadius: '4px',
-              display: 'inline-block',
-              backgroundColor: cliente.categorias?.includes('Agente Retención') ? 
-                'rgba(255, 235, 59, 0.2)' : cliente.categorias?.includes('Alto Riesgo') ? 
-                'rgba(244, 67, 54, 0.1)' : 'transparent',
-              color: cliente.categorias?.includes('Alto Riesgo') ? '#d32f2f' : 'inherit'
-            }}
-          >
-            {cliente.nombre}
-          </Typography>
-          <Chip 
-            label={`CI: ${cliente.rif}`} 
-            size="small" 
-            color="info" 
-            variant="outlined"
-            sx={{ mt: 1, borderRadius: '8px' }}
-          />
-        </Box>
-        {cliente.categorias && cliente.categorias.length > 0 && (
-          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {cliente.categorias.map(cat => (
-              <CategoryChip 
-                key={cat}
-                label={cat}
-                size="small"
-                color={
-                  cat === "Alto Riesgo" ? "error" : 
-                  cat === "Agente Retención" ? "warning" : 
-                  cat === "Preferencial" ? "success" : "default"
-                }
-                variant="filled"
-              />
-            ))}
-          </Box>
-        )}
-      </TableCell>
-      <TableCell>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {cliente.telefono && (
-            <Typography 
-              variant="body2"
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                color: 'text.secondary'
-              }}
-            >
-              <PhoneIcon fontSize="small" color="primary" />
-              {cliente.telefono}
-            </Typography>
-          )}
-          {cliente.email && (
-            <Typography 
-              variant="body2"
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                color: 'text.secondary'
-              }}
-            >
-              <EmailIcon fontSize="small" color="primary" />
-              {cliente.email}
-            </Typography>
-          )}
-        </Box>
-      </TableCell>
-      <TableCell>
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1 
-          }}
-        >
-          <LocationIcon fontSize="small" color="primary" />
-          {cliente.direccion || "No registrada"}
-        </Typography>
-      </TableCell>
-      <TableCell>
-        <Box
-          sx={{
-            backgroundColor: cliente.municipioColor || '#f0f0f0',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            display: 'inline-block',
-            fontWeight: 'medium',
-            color: theme.palette.getContrastText(cliente.municipioColor || '#f0f0f0'),
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-            border: '1px solid rgba(0,0,0,0.05)'
-          }}
-        >
-          {cliente.municipio || "No registrado"}
-        </Box>
-      </TableCell>
-      <TableCell align="center">
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-          <Tooltip title="Editar Cliente">
-            <IconButton 
-              color="primary"
-              onClick={() => onEditar(cliente)}
-              sx={{ 
-                backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.2)' }
-              }}
-            >
-              <Edit />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Eliminar Cliente">
-            <IconButton 
-              color="error"
-              onClick={() => onEliminar(cliente.id || cliente._id)}
-              sx={{ 
-                backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.2)' }
-              }}
-            >
-              <Delete />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Ver Historial de Ventas">
-            <IconButton
-              color="info"
-              onClick={() => onVerVentas(cliente)}
-              sx={{ 
-                backgroundColor: 'rgba(3, 169, 244, 0.1)',
-                '&:hover': { backgroundColor: 'rgba(3, 169, 244, 0.2)' }
-              }}
-            >
-              <Receipt />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </TableCell>
-    </StyledTableRow>
-  );
-});
-
-// Componente memoizado para los campos del formulario
-const FormFields = React.memo(({ 
-  cliente, 
-  errores, 
-  handleChange, 
-  prefijoRif, 
-  setPrefijoRif, 
-  prefijoTelefono, 
-  setPrefijoTelefono,
-  handleCheckboxChange,
-  categoriasDisponibles,
-  colorMunicipio,
-  handleChangeColorMunicipio
-}) => (
-  <Grid container spacing={3}>
-    <Grid item xs={12} md={6}>
-      <TextField
-        fullWidth
-        label="Nombre del Cliente"
-        name="nombre"
-        value={cliente.nombre || ''}
-        onChange={handleChange}
-        variant="outlined"
-        required
-        error={!!errores.nombre}
-        helperText={errores.nombre}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <BadgeIcon color="primary" />
-            </InputAdornment>
-          ),
-          sx: { borderRadius: '10px' }
-        }}
-      />
-    </Grid>
-    
-    <Grid item xs={12} md={6}>
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <FormControl sx={{ width: '30%' }}>
-          <InputLabel>Tipo</InputLabel>
-          <Select
-            value={prefijoRif}
-            onChange={(e) => setPrefijoRif(e.target.value)}
-            label="Tipo"
-            sx={{ borderRadius: '10px' }}
-          >
-            <MenuItem value="V">V</MenuItem>
-            <MenuItem value="E">E</MenuItem>
-            <MenuItem value="J">J</MenuItem>
-            <MenuItem value="G">G</MenuItem>
-          </Select>
-        </FormControl>
-        
-        <TextField
-          fullWidth
-          label="Cédula/RIF"
-          name="rif"
-          value={cliente.rif || ''}
-          onChange={handleChange}
-          variant="outlined"
-          required
-          error={!!errores.rif}
-          helperText={errores.rif}
-          InputProps={{
-            sx: { borderRadius: '10px' }
-          }}
-        />
-      </Box>
-    </Grid>
-    
-    <Grid item xs={12} md={6}>
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <FormControl sx={{ width: '30%' }}>
-          <InputLabel>Prefijo</InputLabel>
-          <Select
-            value={prefijoTelefono}
-            onChange={(e) => setPrefijoTelefono(e.target.value)}
-            label="Prefijo"
-            sx={{ borderRadius: '10px' }}
-          >
-            <MenuItem value="0412">0412</MenuItem>
-            <MenuItem value="0414">0414</MenuItem>
-            <MenuItem value="0416">0416</MenuItem>
-            <MenuItem value="0424">0424</MenuItem>
-            <MenuItem value="0426">0426</MenuItem>
-            <MenuItem value="0212">0212</MenuItem>
-          </Select>
-        </FormControl>
-        
-        <TextField
-          fullWidth
-          label="Teléfono"
-          name="telefono"
-          value={cliente.telefono || ''}
-          onChange={handleChange}
-          variant="outlined"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <PhoneIcon color="primary" />
-              </InputAdornment>
-            ),
-            sx: { borderRadius: '10px' }
-          }}
-        />
-      </Box>
-    </Grid>
-    
-    <Grid item xs={12} md={6}>
-      <TextField
-        fullWidth
-        label="Email"
-        name="email"
-        value={cliente.email || ''}
-        onChange={handleChange}
-        variant="outlined"
-        error={!!errores.email}
-        helperText={errores.email}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <EmailIcon color="primary" />
-            </InputAdornment>
-          ),
-          sx: { borderRadius: '10px' }
-        }}
-      />
-    </Grid>
-    
-    <Grid item xs={12} md={6}>
-      <TextField
-        fullWidth
-        label="Dirección"
-        name="direccion"
-        value={cliente.direccion || ''}
-        onChange={handleChange}
-        variant="outlined"
-        multiline
-        rows={2}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <LocationIcon color="primary" />
-            </InputAdornment>
-          ),
-          sx: { borderRadius: '10px' }
-        }}
-      />
-    </Grid>
-    
-    <Grid item xs={12} md={6}>
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <TextField
-          fullWidth
-          label="Municipio"
-          name="municipio"
-          value={cliente.municipio || ''}
-          onChange={handleChange}
-          variant="outlined"
-          InputProps={{
-            sx: { borderRadius: '10px' }
-          }}
-        />
-        
-        <TextField
-          label="Color"
-          type="color"
-          value={colorMunicipio}
-          onChange={handleChangeColorMunicipio}
-          sx={{ width: '100px' }}
-          InputProps={{
-            sx: { borderRadius: '10px' }
-          }}
-        />
-      </Box>
-    </Grid>
-    
-    <Grid item xs={12}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-        Categorías:
-      </Typography>
-      <FormGroup row>
-        {categoriasDisponibles.map((categoria) => (
-          <FormControlLabel
-            key={categoria}
-            control={
-              <Checkbox
-                checked={(cliente.categorias || []).includes(categoria)}
-                onChange={handleCheckboxChange}
-                value={categoria}
-              />
-            }
-            label={categoria}
-          />
-        ))}
-      </FormGroup>
-      {errores.categorias && (
-        <Typography color="error" variant="caption">
-          {errores.categorias}
-        </Typography>
-      )}
-    </Grid>
-  </Grid>
-));
-
 const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClose }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  
-  // Estado inicial con useReducer
-  const [cliente, dispatch] = useReducer(clienteReducer, {
-    ...initialState,
-    rif: dniPrecargado || ''
-  });
   
   const [clientes, setClientes] = useState([]);
   const [clientesFiltrados, setClientesFiltrados] = useState([]);
@@ -531,6 +134,17 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [porPagina, setPorPagina] = useState(1000);
   const [totalClientes, setTotalClientes] = useState(0);
   const [cargando, setCargando] = useState(false);
+  const [cliente, setCliente] = useState({
+    _id: '',
+    nombre: '',
+    telefono: '',
+    email: '',
+    direccion: '',
+    municipio: '',
+    rif: dniPrecargado || '',
+    categorias: [],
+    municipioColor: '#ffffff'
+  });
   const [showForm, setShowForm] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [errores, setErrores] = useState({
@@ -543,6 +157,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     categorias: ''
   });
   const [clienteEditando, setClienteEditando] = useState(null);
+  const [ventas] = useState([]);
   const [filtroMunicipio, setFiltroMunicipio] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [mostrarModalVentas, setMostrarModalVentas] = useState(false);
@@ -554,96 +169,76 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
 
-  // Función de búsqueda con debounce
-  const debouncedBusqueda = useCallback(
-    debounce((valor) => {
-      setBusqueda(valor);
-    }, 300),
-    []
-  );
-
-  // Función de filtrado memoizada
-  const filtrarClientes = useCallback(() => {
-    return clientes.filter(cliente => {
-      const busquedaMatch = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-                           cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
-      
-      const categoriaMatch = filtroCategoria ? 
-                            cliente.categorias?.includes(filtroCategoria) : 
-                            true;
-
-      const municipioMatch = filtroMunicipio ? 
-                            cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase() : 
-                            true;
-
-      return busquedaMatch && categoriaMatch && municipioMatch;
-    });
-  }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
-
-  // Cargar clientes con caché
   const cargarClientes = useCallback(async (page = 1, limit = 1000) => {
     setCargando(true);
     try {
-      const cacheKey = `clientes_${page}_${limit}`;
-      const cachedData = sessionStorage.getItem(cacheKey);
+      // Si hay filtros activos, intentamos cargar todos los registros para filtrar en el cliente
+      const hayFiltrosActivos = busqueda || filtroMunicipio || filtroCategoria;
       
-      if (cachedData) {
-        const { data, timestamp } = JSON.parse(cachedData);
-        if (Date.now() - timestamp < 5 * 60 * 1000) {
-          setClientes(data.clientes);
-          setTotalClientes(data.total);
-          return;
-        }
-      }
-
-      const response = await axios.get(`${API_URL}/clientes?page=1&limit=1000`);
+      // URL de la API (siempre usando un límite de 1000 para obtener todos los registros)
+      const url = `${API_URL}/clientes?page=1&limit=1000`;
+      
+      const response = await axios.get(url);
       setClientes(response.data.clientes);
       setTotalClientes(response.data.total);
       
-      sessionStorage.setItem(cacheKey, JSON.stringify({
-        data: response.data,
-        timestamp: Date.now()
-      }));
+      // Siempre mantenemos la página en 1
+      setPagina(1);
     } catch (error) {
       console.error(error);
       toast.error('Error al cargar clientes');
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [busqueda, filtroMunicipio, filtroCategoria]);
 
-  // Handlers memoizados
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    dispatch({ type: 'UPDATE_FIELD', field: name, value });
-  }, []);
-
-  const handleChangeColorMunicipio = useCallback((e) => {
-    const newColor = e.target.value;
-    setColorMunicipio(newColor);
-    dispatch({ type: 'UPDATE_FIELD', field: 'municipioColor', value: newColor });
-  }, []);
-
-  const handleCheckboxChange = useCallback((e) => {
-    const { value, checked } = e.target;
-    dispatch({
-      type: 'UPDATE_FIELD',
-      field: 'categorias',
-      value: checked 
-        ? [...(cliente.categorias || []), value]
-        : (cliente.categorias || []).filter(cat => cat !== value)
-    });
-  }, [cliente.categorias]);
-
-  // Efectos
   useEffect(() => {
     cargarClientes(pagina, porPagina);
   }, [cargarClientes, pagina, porPagina]);
 
   useEffect(() => {
+    // Este efecto se ejecuta cuando cambian los filtros
+    setPagina(1); // Resetear a página 1
+    cargarClientes(1, porPagina); // Cargar clientes forzando página 1
+  }, [busqueda, filtroMunicipio, filtroCategoria]);
+
+  const filtrarClientes = useCallback(() => {
+    return clientes.filter(cliente => {
+      // Comparación de búsqueda en nombre y RIF
+      const busquedaMatch = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+                            cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
+      
+      // Filtrado por categoría
+      const categoriaMatch = filtroCategoria ? 
+                             cliente.categorias?.includes(filtroCategoria) : 
+                             true;
+
+      // Comparación case-insensitive para municipio
+      const municipioMatch = filtroMunicipio ? 
+                             cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase() : 
+                             true;
+
+      // Retornar true si coincide con todos los filtros
+      return busquedaMatch && categoriaMatch && municipioMatch;
+    });
+  }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
+
+  useEffect(() => {
     const filtered = filtrarClientes();
     setClientesFiltrados(filtered);
   }, [filtrarClientes]);
+
+  const handleChange = (e) => {
+    setCliente({ ...cliente, [e.target.name]: e.target.value });
+  };
+
+  const handleChangeColorMunicipio = (e) => {
+    setColorMunicipio(e.target.value);
+    setCliente(prev => ({
+      ...prev,
+      municipioColor: e.target.value
+    }));
+  };
 
   const validarCampos = () => {
     const nuevosErrores = {
@@ -720,7 +315,18 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
         toast.success('Cliente registrado correctamente');
       }
 
-      dispatch({ type: 'RESET' });
+      setCliente({
+        nombre: '',
+        telefono: '',
+        email: '',
+        direccion: '',
+        municipio: '',
+        rif: '',
+        categorias: [],
+        municipioColor: '#ffffff'
+      });
+      
+      setShowForm(false);
       setPrefijoRif('V');
       setPrefijoTelefono('0412');
       cargarClientes();
@@ -768,12 +374,12 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     }
     setPrefijoTelefono(prefTelefono);
     
-    dispatch({ type: 'SET_CLIENTE', payload: {
+    setCliente({
       ...cliente,
       rif: numero,
       telefono: numTelefono,
       municipioColor: cliente.municipioColor || '#ffffff'
-    } });
+    });
     
     setColorMunicipio(cliente.municipioColor || '#ffffff');
     setClienteEditando(cliente);
@@ -801,6 +407,21 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     setMostrarRegistroDialog(true);
   };
 
+  const handleCheckboxChange = (e) => {
+    const { value, checked } = e.target;
+    if (checked) {
+      setCliente(prev => ({
+        ...prev,
+        categorias: [...(prev.categorias || []), value]
+      }));
+    } else {
+      setCliente(prev => ({
+        ...prev,
+        categorias: (prev.categorias || []).filter(cat => cat !== value)
+      }));
+    }
+  };
+
   const manejarCambioPagina = (event, value) => {
     // No necesitamos cambiar la página ya que todos los registros están en la página 1
     // Mantenemos esta función por compatibilidad con la interfaz
@@ -816,34 +437,6 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
 
   const municipiosDisponibles = [...new Set(clientes.map(c => c.municipio).filter(Boolean))];
   const categoriasDisponibles = ['Agente Retención', 'Alto Riesgo', 'Cliente Frecuente', 'Cliente VIP', 'Desconocido'];
-
-  // Renderizado virtualizado de la tabla
-  const VirtualizedTable = useMemo(() => {
-    const Row = ({ index, style }) => {
-      const cliente = clientesFiltrados[index];
-      return (
-        <div style={style}>
-          <ClienteRow 
-            cliente={cliente}
-            onEditar={handleEditarCliente}
-            onEliminar={handleEliminarCliente}
-            onVerVentas={handleVerVentas}
-          />
-        </div>
-      );
-    };
-
-    return (
-      <List
-        height={400}
-        itemCount={clientesFiltrados.length}
-        itemSize={100}
-        width="100%"
-      >
-        {Row}
-      </List>
-    );
-  }, [clientesFiltrados, handleEditarCliente, handleEliminarCliente, handleVerVentas]);
 
   return (
     <motion.div
@@ -958,9 +551,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       label="Buscar por nombre o RIF"
                       variant="outlined"
                       value={busqueda}
-                      onChange={(e) => {
-                        debouncedBusqueda(e.target.value);
-                      }}
+                      onChange={(e) => setBusqueda(e.target.value)}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -1050,54 +641,241 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                 </Typography>
                 
                 <form onSubmit={crearActualizarCliente}>
-                  <FormFields 
-                    cliente={cliente}
-                    errores={errores}
-                    handleChange={handleChange}
-                    prefijoRif={prefijoRif}
-                    setPrefijoRif={setPrefijoRif}
-                    prefijoTelefono={prefijoTelefono}
-                    setPrefijoTelefono={setPrefijoTelefono}
-                    handleCheckboxChange={handleCheckboxChange}
-                    categoriasDisponibles={categoriasDisponibles}
-                    colorMunicipio={colorMunicipio}
-                    handleChangeColorMunicipio={handleChangeColorMunicipio}
-                  />
-                  <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <ActionButton
-                        type="button"
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Nombre del Cliente"
+                        name="nombre"
+                        value={cliente.nombre || ''}
+                        onChange={handleChange}
                         variant="outlined"
-                        color="error"
-                        onClick={() => {
-                          dispatch({ type: 'RESET' });
-                          setPrefijoRif('V');
-                          setPrefijoTelefono('0412');
-                          setColorMunicipio('#ffffff');
-                          setClienteEditando(null);
+                        required
+                        error={!!errores.nombre}
+                        helperText={errores.nombre}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <BadgeIcon color="primary" />
+                            </InputAdornment>
+                          ),
+                          sx: { borderRadius: '10px' }
                         }}
-                        disabled={cargando}
-                        startIcon={<Close />}
-                      >
-                        Limpiar
-                      </ActionButton>
-                    </motion.div>
+                      />
+                    </Grid>
                     
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <ActionButton
-                        type="submit"
-                        variant="contained"
-                        color="primary"
-                        disabled={cargando}
-                        startIcon={cargando ? <CircularProgress size={24} /> : <SaveIcon />}
-                        sx={{ 
-                          background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                          boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <FormControl sx={{ width: '30%' }}>
+                          <InputLabel>Tipo</InputLabel>
+                          <Select
+                            value={prefijoRif}
+                            onChange={(e) => setPrefijoRif(e.target.value)}
+                            label="Tipo"
+                            sx={{ borderRadius: '10px' }}
+                          >
+                            <MenuItem value="V">V</MenuItem>
+                            <MenuItem value="E">E</MenuItem>
+                            <MenuItem value="J">J</MenuItem>
+                            <MenuItem value="G">G</MenuItem>
+                          </Select>
+                        </FormControl>
+                        
+                        <TextField
+                          fullWidth
+                          label="Cédula/RIF"
+                          name="rif"
+                          value={cliente.rif || ''}
+                          onChange={handleChange}
+                          variant="outlined"
+                          required
+                          error={!!errores.rif}
+                          helperText={errores.rif}
+                          InputProps={{
+                            sx: { borderRadius: '10px' }
+                          }}
+                        />
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <FormControl sx={{ width: '30%' }}>
+                          <InputLabel>Prefijo</InputLabel>
+                          <Select
+                            value={prefijoTelefono}
+                            onChange={(e) => setPrefijoTelefono(e.target.value)}
+                            label="Prefijo"
+                            sx={{ borderRadius: '10px' }}
+                          >
+                            <MenuItem value="0412">0412</MenuItem>
+                            <MenuItem value="0414">0414</MenuItem>
+                            <MenuItem value="0416">0416</MenuItem>
+                            <MenuItem value="0424">0424</MenuItem>
+                            <MenuItem value="0426">0426</MenuItem>
+                            <MenuItem value="0212">0212</MenuItem>
+                          </Select>
+                        </FormControl>
+                        
+                        <TextField
+                          fullWidth
+                          label="Teléfono"
+                          name="telefono"
+                          value={cliente.telefono || ''}
+                          onChange={handleChange}
+                          variant="outlined"
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <PhoneIcon color="primary" />
+                              </InputAdornment>
+                            ),
+                            sx: { borderRadius: '10px' }
+                          }}
+                        />
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Email"
+                        name="email"
+                        value={cliente.email || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                        error={!!errores.email}
+                        helperText={errores.email}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <EmailIcon color="primary" />
+                            </InputAdornment>
+                          ),
+                          sx: { borderRadius: '10px' }
                         }}
-                      >
-                        {cargando ? 'Guardando...' : (cliente._id ? 'Actualizar' : 'Guardar')}
-                      </ActionButton>
-                    </motion.div>
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Dirección"
+                        name="direccion"
+                        value={cliente.direccion || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                        multiline
+                        rows={2}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <LocationIcon color="primary" />
+                            </InputAdornment>
+                          ),
+                          sx: { borderRadius: '10px' }
+                        }}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                          fullWidth
+                          label="Municipio"
+                          name="municipio"
+                          value={cliente.municipio || ''}
+                          onChange={handleChange}
+                          variant="outlined"
+                          InputProps={{
+                            sx: { borderRadius: '10px' }
+                          }}
+                        />
+                        
+                        <TextField
+                          label="Color"
+                          type="color"
+                          value={colorMunicipio}
+                          onChange={handleChangeColorMunicipio}
+                          sx={{ width: '100px' }}
+                          InputProps={{
+                            sx: { borderRadius: '10px' }
+                          }}
+                        />
+                      </Box>
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        Categorías:
+                      </Typography>
+                      <FormGroup row>
+                        {categoriasDisponibles.map((categoria) => (
+                          <FormControlLabel
+                            key={categoria}
+                            control={
+                              <Checkbox
+                                checked={(cliente.categorias || []).includes(categoria)}
+                                onChange={handleCheckboxChange}
+                                value={categoria}
+                              />
+                            }
+                            label={categoria}
+                          />
+                        ))}
+                      </FormGroup>
+                      {errores.categorias && (
+                        <Typography color="error" variant="caption">
+                          {errores.categorias}
+                        </Typography>
+                      )}
+                    </Grid>
+                    
+                    <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <ActionButton
+                          type="button"
+                          variant="outlined"
+                          color="error"
+                          onClick={() => {
+                            setCliente({
+                              nombre: '',
+                              telefono: '',
+                              email: '',
+                              direccion: '',
+                              municipio: '',
+                              rif: '',
+                              categorias: [],
+                              municipioColor: '#ffffff'
+                            });
+                            setPrefijoRif('V');
+                            setPrefijoTelefono('0412');
+                            setColorMunicipio('#ffffff');
+                            setClienteEditando(null);
+                          }}
+                          disabled={cargando}
+                          startIcon={<Close />}
+                        >
+                          Limpiar
+                        </ActionButton>
+                      </motion.div>
+                      
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <ActionButton
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          disabled={cargando}
+                          startIcon={cargando ? <CircularProgress size={24} /> : <SaveIcon />}
+                          sx={{ 
+                            background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                            boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                          }}
+                        >
+                          {cargando ? 'Guardando...' : (cliente._id ? 'Actualizar' : 'Guardar')}
+                        </ActionButton>
+                      </motion.div>
+                    </Grid>
                   </Grid>
                 </form>
               </FormPaper>
@@ -1160,7 +938,162 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {VirtualizedTable}
+                  <AnimatePresence>
+                    {clientesFiltrados.map((cliente) => (
+                      <motion.tr
+                        key={cliente.id || cliente._id}
+                        variants={itemVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit={{ opacity: 0, y: 20 }}
+                        component={StyledTableRow}
+                      >
+                        <TableCell>
+                          <Box>
+                            <Typography 
+                              fontWeight="bold"
+                              sx={{
+                                p: '4px 8px',
+                                borderRadius: '4px',
+                                display: 'inline-block',
+                                backgroundColor: cliente.categorias?.includes('Agente Retención') ? 
+                                  'rgba(255, 235, 59, 0.2)' : cliente.categorias?.includes('Alto Riesgo') ? 
+                                  'rgba(244, 67, 54, 0.1)' : 'transparent',
+                                color: cliente.categorias?.includes('Alto Riesgo') ? '#d32f2f' : 'inherit'
+                              }}
+                            >
+                              {cliente.nombre}
+                            </Typography>
+                            <Chip 
+                              label={`CI: ${cliente.rif}`} 
+                              size="small" 
+                              color="info" 
+                              variant="outlined"
+                              sx={{ mt: 1, borderRadius: '8px' }}
+                            />
+                          </Box>
+                          {cliente.categorias && cliente.categorias.length > 0 && (
+                            <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {cliente.categorias.map(cat => (
+                                <CategoryChip 
+                                  key={cat}
+                                  label={cat}
+                                  size="small"
+                                  color={
+                                    cat === "Alto Riesgo" ? "error" : 
+                                    cat === "Agente Retención" ? "warning" : 
+                                    cat === "Preferencial" ? "success" : "default"
+                                  }
+                                  variant="filled"
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            {cliente.telefono && (
+                              <Typography 
+                                variant="body2"
+                                sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: 1,
+                                  color: 'text.secondary'
+                                }}
+                              >
+                                <PhoneIcon fontSize="small" color="primary" />
+                                {cliente.telefono}
+                              </Typography>
+                            )}
+                            {cliente.email && (
+                              <Typography 
+                                variant="body2"
+                                sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: 1,
+                                  color: 'text.secondary'
+                                }}
+                              >
+                                <EmailIcon fontSize="small" color="primary" />
+                                {cliente.email}
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 1 
+                            }}
+                          >
+                            <LocationIcon fontSize="small" color="primary" />
+                            {cliente.direccion || "No registrada"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              backgroundColor: cliente.municipioColor || '#f0f0f0',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              display: 'inline-block',
+                              fontWeight: 'medium',
+                              color: theme.palette.getContrastText(cliente.municipioColor || '#f0f0f0'),
+                              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                              border: '1px solid rgba(0,0,0,0.05)'
+                            }}
+                          >
+                            {cliente.municipio || "No registrado"}
+                          </Box>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                            <Tooltip title="Editar Cliente">
+                              <IconButton 
+                                color="primary"
+                                onClick={() => handleEditarCliente(cliente)}
+                                sx={{ 
+                                  backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                  '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.2)' }
+                                }}
+                              >
+                                <Edit />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Eliminar Cliente">
+                              <IconButton 
+                                color="error"
+                                onClick={() => handleEliminarCliente(cliente.id || cliente._id)}
+                                sx={{ 
+                                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                  '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.2)' }
+                                }}
+                              >
+                                <Delete />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Ver Historial de Ventas">
+                              <IconButton
+                                color="info"
+                                onClick={() => handleVerVentas(cliente)}
+                                sx={{ 
+                                  backgroundColor: 'rgba(3, 169, 244, 0.1)',
+                                  '&:hover': { backgroundColor: 'rgba(3, 169, 244, 0.2)' }
+                                }}
+                              >
+                                <Receipt />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
                 </TableBody>
               </Table>
             </TableContainer>
@@ -1277,4 +1210,4 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   );
 };
 
-export default React.memo(RegistrarCliente);
+export default RegistrarCliente;
