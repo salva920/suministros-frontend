@@ -212,14 +212,27 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     []
   );
 
-  // Optimizar el handleChange
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    if (name === 'nombre' || name === 'rif') {
-      debouncedBusqueda(value);
-    }
-    setCliente(prev => ({ ...prev, [name]: value }));
+  // Optimizar el handleChange para campos de búsqueda
+  const handleSearchChange = useCallback((e) => {
+    const { value } = e.target;
+    debouncedBusqueda(value);
   }, [debouncedBusqueda]);
+
+  // Optimizar el handleChange para campos del formulario
+  const handleFormChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setCliente(prev => ({ ...prev, [name]: value }));
+  }, []);
+
+  // Optimizar el handleChange para campos de filtro
+  const handleFilterChange = useCallback((e) => {
+    const { name, value } = e.target;
+    if (name === 'municipio') {
+      setFiltroMunicipio(value);
+    } else if (name === 'categoria') {
+      setFiltroCategoria(value);
+    }
+  }, []);
 
   const cargarClientes = useCallback(async (page = 1, limit = 1000) => {
     setCargando(true);
@@ -575,7 +588,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       label="Buscar por nombre o RIF"
                       variant="outlined"
                       value={busqueda}
-                      onChange={handleChange}
+                      onChange={handleSearchChange}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -592,7 +605,8 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       <InputLabel>Filtrar por municipio</InputLabel>
                       <Select
                         value={filtroMunicipio}
-                        onChange={(e) => setFiltroMunicipio(e.target.value)}
+                        onChange={handleFilterChange}
+                        name="municipio"
                         label="Filtrar por municipio"
                         sx={{ borderRadius: '10px' }}
                       >
@@ -609,7 +623,8 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       <InputLabel>Filtrar por categoría</InputLabel>
                       <Select
                         value={filtroCategoria}
-                        onChange={(e) => setFiltroCategoria(e.target.value)}
+                        onChange={handleFilterChange}
+                        name="categoria"
                         label="Filtrar por categoría"
                         sx={{ borderRadius: '10px' }}
                       >
@@ -672,7 +687,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                         label="Nombre del Cliente"
                         name="nombre"
                         value={cliente.nombre || ''}
-                        onChange={handleChange}
+                        onChange={handleFormChange}
                         variant="outlined"
                         required
                         error={!!errores.nombre}
@@ -710,7 +725,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                           label="Cédula/RIF"
                           name="rif"
                           value={cliente.rif || ''}
-                          onChange={handleChange}
+                          onChange={handleFormChange}
                           variant="outlined"
                           required
                           error={!!errores.rif}
@@ -746,7 +761,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                           label="Teléfono"
                           name="telefono"
                           value={cliente.telefono || ''}
-                          onChange={handleChange}
+                          onChange={handleFormChange}
                           variant="outlined"
                           InputProps={{
                             startAdornment: (
@@ -766,7 +781,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                         label="Email"
                         name="email"
                         value={cliente.email || ''}
-                        onChange={handleChange}
+                        onChange={handleFormChange}
                         variant="outlined"
                         error={!!errores.email}
                         helperText={errores.email}
@@ -787,7 +802,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                         label="Dirección"
                         name="direccion"
                         value={cliente.direccion || ''}
-                        onChange={handleChange}
+                        onChange={handleFormChange}
                         variant="outlined"
                         multiline
                         rows={2}
@@ -809,7 +824,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                           label="Municipio"
                           name="municipio"
                           value={cliente.municipio || ''}
-                          onChange={handleChange}
+                          onChange={handleFormChange}
                           variant="outlined"
                           InputProps={{
                             sx: { borderRadius: '10px' }
@@ -1234,5 +1249,12 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   );
 };
 
-// Agregar memo para evitar re-renderizados innecesarios
-export default React.memo(RegistrarCliente);
+// Optimizar el componente con memo y comparación personalizada
+export default React.memo(RegistrarCliente, (prevProps, nextProps) => {
+  return (
+    prevProps.onClienteRegistrado === nextProps.onClienteRegistrado &&
+    prevProps.dniPrecargado === nextProps.dniPrecargado &&
+    prevProps.modoModal === nextProps.modoModal &&
+    prevProps.onClose === nextProps.onClose
+  );
+});
