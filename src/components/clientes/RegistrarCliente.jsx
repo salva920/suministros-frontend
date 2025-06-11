@@ -221,8 +221,30 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   // Optimizar el handleChange para campos del formulario
   const handleFormChange = useCallback((e) => {
     const { name, value } = e.target;
-    setCliente(prev => ({ ...prev, [name]: value }));
+    setCliente(prev => {
+      const newCliente = { ...prev };
+      newCliente[name] = value;
+      return newCliente;
+    });
   }, []);
+
+  // Memoizar el estado del cliente para evitar re-renders innecesarios
+  const clienteMemo = useMemo(() => ({
+    ...cliente,
+    rif: prefijoRif + cliente.rif,
+    telefono: prefijoTelefono && cliente.telefono ? `${prefijoTelefono}-${cliente.telefono}` : cliente.telefono,
+    categorias: Array.isArray(cliente.categorias) ? cliente.categorias : []
+  }), [cliente, prefijoRif, prefijoTelefono]);
+
+  // Memoizar los handlers de los campos del formulario
+  const handlers = useMemo(() => ({
+    handleNombreChange: (e) => handleFormChange(e),
+    handleRifChange: (e) => handleFormChange(e),
+    handleTelefonoChange: (e) => handleFormChange(e),
+    handleEmailChange: (e) => handleFormChange(e),
+    handleDireccionChange: (e) => handleFormChange(e),
+    handleMunicipioChange: (e) => handleFormChange(e)
+  }), [handleFormChange]);
 
   // Optimizar el handleChange para campos de filtro
   const handleFilterChange = useCallback((e) => {
@@ -332,9 +354,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     }
 
     const clienteData = {
-      ...cliente,
-      rif: prefijoRif + cliente.rif,
-      telefono: prefijoTelefono && cliente.telefono ? `${prefijoTelefono}-${cliente.telefono}` : cliente.telefono,
+      ...clienteMemo,
       categorias: Array.isArray(cliente.categorias) ? cliente.categorias : []
     };
 
@@ -683,7 +703,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                         label="Nombre del Cliente"
                         name="nombre"
                         value={cliente.nombre || ''}
-                        onChange={handleFormChange}
+                        onChange={handlers.handleNombreChange}
                         variant="outlined"
                         required
                         error={!!errores.nombre}
@@ -721,7 +741,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                           label="Cédula/RIF"
                           name="rif"
                           value={cliente.rif || ''}
-                          onChange={handleFormChange}
+                          onChange={handlers.handleRifChange}
                           variant="outlined"
                           required
                           error={!!errores.rif}
@@ -757,7 +777,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                           label="Teléfono"
                           name="telefono"
                           value={cliente.telefono || ''}
-                          onChange={handleFormChange}
+                          onChange={handlers.handleTelefonoChange}
                           variant="outlined"
                           InputProps={{
                             startAdornment: (
@@ -777,7 +797,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                         label="Email"
                         name="email"
                         value={cliente.email || ''}
-                        onChange={handleFormChange}
+                        onChange={handlers.handleEmailChange}
                         variant="outlined"
                         error={!!errores.email}
                         helperText={errores.email}
@@ -798,7 +818,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                         label="Dirección"
                         name="direccion"
                         value={cliente.direccion || ''}
-                        onChange={handleFormChange}
+                        onChange={handlers.handleDireccionChange}
                         variant="outlined"
                         multiline
                         rows={2}
@@ -820,7 +840,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                           label="Municipio"
                           name="municipio"
                           value={cliente.municipio || ''}
-                          onChange={handleFormChange}
+                          onChange={handlers.handleMunicipioChange}
                           variant="outlined"
                           InputProps={{
                             sx: { borderRadius: '10px' }
