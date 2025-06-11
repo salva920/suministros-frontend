@@ -357,8 +357,10 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     setCargando(true);
     try {
       let response;
-      if (cliente._id) {
-        response = await axios.put(`${API_URL}/clientes/${cliente._id}`, clienteData);
+      if (cliente._id || cliente.id) {
+        // Usar el ID correcto para la actualización
+        const clienteId = cliente._id || cliente.id;
+        response = await axios.put(`${API_URL}/clientes/${clienteId}`, clienteData);
         toast.success('Cliente actualizado correctamente');
       } else {
         response = await axios.post(`${API_URL}/clientes`, clienteData);
@@ -389,7 +391,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
         onClose();
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error al procesar el cliente:', error);
       if (error.response?.data?.mensaje) {
         toast.error(error.response.data.mensaje);
       } else {
@@ -424,8 +426,11 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     }
     setPrefijoTelefono(prefTelefono);
     
+    // Asegurarnos de que el ID se guarde correctamente
     setCliente({
       ...cliente,
+      _id: cliente._id || cliente.id, // Guardar el ID en _id para consistencia
+      id: cliente._id || cliente.id,  // También guardar en id por compatibilidad
       rif: numero,
       telefono: numTelefono,
       municipioColor: cliente.municipioColor || '#ffffff'
