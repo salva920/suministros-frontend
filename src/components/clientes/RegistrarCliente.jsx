@@ -353,20 +353,22 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
       return;
     }
 
+    // Preparar los datos según el modelo
     const clienteData = {
-      ...clienteMemo,
-      categorias: Array.isArray(cliente.categorias) ? cliente.categorias : []
+      ...cliente,
+      rif: prefijoRif + cliente.rif, // Asegurar formato correcto del RIF
+      telefono: prefijoTelefono && cliente.telefono ? `${prefijoTelefono}-${cliente.telefono}` : cliente.telefono,
+      categorias: cliente.categorias.filter(cat => ['Alto Riesgo', 'Agente Retención'].includes(cat)), // Filtrar solo categorías válidas
+      municipioColor: colorMunicipio
     };
 
     setCargando(true);
     try {
       let response;
-      // Si estamos editando
       if (cliente._id) {
         response = await axios.put(`${API_URL}/clientes/${cliente._id}`, clienteData);
         toast.success('Cliente actualizado correctamente');
       } else {
-        // Si estamos creando uno nuevo
         response = await axios.post(`${API_URL}/clientes`, clienteData);
         toast.success('Cliente registrado correctamente');
       }
@@ -396,7 +398,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
       }
     } catch (error) {
       console.error(error);
-      if (error.response && error.response.data && error.response.data.mensaje) {
+      if (error.response?.data?.mensaje) {
         toast.error(error.response.data.mensaje);
       } else {
         toast.error('Error al procesar el cliente');
