@@ -176,39 +176,15 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   );
 
   const categoriasDisponibles = useMemo(() => 
-    ['Agente Retención', 'Alto Riesgo', 'Cliente Frecuente', 'Cliente VIP', 'Desconocido'],
+    ['Agente Retención', 'Alto Riesgo'],
     []
   );
 
-  // Memoizar la función de filtrado
-  const filtrarClientes = useCallback(() => {
-    return clientes.filter(cliente => {
-      const busquedaMatch = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-                          cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
-      
-      const categoriaMatch = filtroCategoria ? 
-                           cliente.categorias?.includes(filtroCategoria) : 
-                           true;
-
-      const municipioMatch = filtroMunicipio ? 
-                           cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase() : 
-                           true;
-
-      return busquedaMatch && categoriaMatch && municipioMatch;
-    });
-  }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
-
-  // Memoizar los clientes filtrados
-  const clientesFiltrados = useMemo(() => 
-    filtrarClientes(),
-    [filtrarClientes]
-  );
-
-  // Debounce para la búsqueda
+  // Optimizar el debounce para la búsqueda
   const debouncedBusqueda = useCallback(
     debounce((value) => {
       setBusqueda(value);
-    }, 300),
+    }, 500),
     []
   );
 
@@ -221,20 +197,11 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   // Optimizar el handleChange para campos del formulario
   const handleFormChange = useCallback((e) => {
     const { name, value } = e.target;
-    setCliente(prev => {
-      const newCliente = { ...prev };
-      newCliente[name] = value;
-      return newCliente;
-    });
+    setCliente(prev => ({
+      ...prev,
+      [name]: value
+    }));
   }, []);
-
-  // Memoizar el estado del cliente para evitar re-renders innecesarios
-  const clienteMemo = useMemo(() => ({
-    ...cliente,
-    rif: prefijoRif + cliente.rif,
-    telefono: prefijoTelefono && cliente.telefono ? `${prefijoTelefono}-${cliente.telefono}` : cliente.telefono,
-    categorias: Array.isArray(cliente.categorias) ? cliente.categorias : []
-  }), [cliente, prefijoRif, prefijoTelefono]);
 
   // Memoizar los handlers de los campos del formulario
   const handlers = useMemo(() => ({
@@ -246,15 +213,40 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     handleMunicipioChange: (e) => handleFormChange(e)
   }), [handleFormChange]);
 
-  // Optimizar el handleChange para campos de filtro
-  const handleFilterChange = useCallback((e) => {
-    const { name, value } = e.target;
-    if (name === 'municipio') {
-      setFiltroMunicipio(value);
-    } else if (name === 'categoria') {
-      setFiltroCategoria(value);
+  // Optimizar la función de filtrado
+  const filtrarClientes = useCallback(() => {
+    if (!busqueda && !filtroMunicipio && !filtroCategoria) {
+      return clientes;
     }
-  }, []);
+
+    return clientes.filter(cliente => {
+      const busquedaMatch = !busqueda || 
+        cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+        cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
+      
+      const categoriaMatch = !filtroCategoria || 
+        cliente.categorias?.includes(filtroCategoria);
+
+      const municipioMatch = !filtroMunicipio || 
+        cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase();
+
+      return busquedaMatch && categoriaMatch && municipioMatch;
+    });
+  }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
+
+  // Memoizar los clientes filtrados
+  const clientesFiltrados = useMemo(() => 
+    filtrarClientes(),
+    [filtrarClientes]
+  );
+
+  // Memoizar el estado del cliente para evitar re-renders innecesarios
+  const clienteMemo = useMemo(() => ({
+    ...cliente,
+    rif: prefijoRif + cliente.rif,
+    telefono: prefijoTelefono && cliente.telefono ? `${prefijoTelefono}-${cliente.telefono}` : cliente.telefono,
+    categorias: Array.isArray(cliente.categorias) ? cliente.categorias : []
+  }), [cliente, prefijoRif, prefijoTelefono]);
 
   const cargarClientes = useCallback(async (page = 1, limit = 1000) => {
     setCargando(true);
@@ -605,7 +597,6 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       fullWidth
                       label="Buscar por nombre o RIF"
                       variant="outlined"
-                      value={busqueda}
                       onChange={handleSearchChange}
                       InputProps={{
                         startAdornment: (
@@ -623,7 +614,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       <InputLabel>Filtrar por municipio</InputLabel>
                       <Select
                         value={filtroMunicipio}
-                        onChange={handleFilterChange}
+                        onChange={(e) => setFiltroMunicipio(e.target.value)}
                         name="municipio"
                         label="Filtrar por municipio"
                         sx={{ borderRadius: '10px' }}
@@ -641,7 +632,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       <InputLabel>Filtrar por categoría</InputLabel>
                       <Select
                         value={filtroCategoria}
-                        onChange={handleFilterChange}
+                        onChange={(e) => setFiltroCategoria(e.target.value)}
                         name="categoria"
                         label="Filtrar por categoría"
                         sx={{ borderRadius: '10px' }}
