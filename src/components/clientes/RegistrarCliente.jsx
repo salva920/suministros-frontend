@@ -267,11 +267,6 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     cargarClientes(1, porPagina); // Cargar clientes forzando página 1
   }, [busqueda, filtroMunicipio, filtroCategoria]);
 
-  useEffect(() => {
-    const filtered = filtrarClientes();
-    setClientesFiltrados(filtered);
-  }, [filtrarClientes]);
-
   const handleChangeColorMunicipio = (e) => {
     setColorMunicipio(e.target.value);
     setCliente(prev => ({
