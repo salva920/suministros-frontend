@@ -334,7 +334,8 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     const clienteData = {
       ...cliente,
       rif: prefijoRif + cliente.rif,
-      telefono: prefijoTelefono && cliente.telefono ? `${prefijoTelefono}-${cliente.telefono}` : cliente.telefono
+      telefono: prefijoTelefono && cliente.telefono ? `${prefijoTelefono}-${cliente.telefono}` : cliente.telefono,
+      categorias: Array.isArray(cliente.categorias) ? cliente.categorias : []
     };
 
     setCargando(true);
