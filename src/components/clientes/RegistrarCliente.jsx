@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Button, Container, TextField, Typography, Grid, 
   Paper, IconButton, Chip, Box,
@@ -24,6 +24,7 @@ import Pagination from '@mui/material/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'react-toastify/dist/ReactToastify.css';
 import RegistroClienteDialog from '../ventas/RegistroClienteDialog';
+import { debounce } from 'lodash';
 
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL del backend en Vercel
@@ -129,7 +130,6 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
   const [clientes, setClientes] = useState([]);
-  const [clientesFiltrados, setClientesFiltrados] = useState([]);
   const [pagina, setPagina] = useState(1);
   const [porPagina, setPorPagina] = useState(1000);
   const [totalClientes, setTotalClientes] = useState(0);
@@ -169,6 +169,58 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
 
+  // Memoizar los valores calculados
+  const municipiosDisponibles = useMemo(() => 
+    [...new Set(clientes.map(c => c.municipio).filter(Boolean))],
+    [clientes]
+  );
+
+  const categoriasDisponibles = useMemo(() => 
+    ['Agente Retención', 'Alto Riesgo', 'Cliente Frecuente', 'Cliente VIP', 'Desconocido'],
+    []
+  );
+
+  // Memoizar la función de filtrado
+  const filtrarClientes = useCallback(() => {
+    return clientes.filter(cliente => {
+      const busquedaMatch = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+                          cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
+      
+      const categoriaMatch = filtroCategoria ? 
+                           cliente.categorias?.includes(filtroCategoria) : 
+                           true;
+
+      const municipioMatch = filtroMunicipio ? 
+                           cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase() : 
+                           true;
+
+      return busquedaMatch && categoriaMatch && municipioMatch;
+    });
+  }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
+
+  // Memoizar los clientes filtrados
+  const clientesFiltrados = useMemo(() => 
+    filtrarClientes(),
+    [filtrarClientes]
+  );
+
+  // Debounce para la búsqueda
+  const debouncedBusqueda = useCallback(
+    debounce((value) => {
+      setBusqueda(value);
+    }, 300),
+    []
+  );
+
+  // Optimizar el handleChange
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
+    if (name === 'nombre' || name === 'rif') {
+      debouncedBusqueda(value);
+    }
+    setCliente(prev => ({ ...prev, [name]: value }));
+  }, [debouncedBusqueda]);
+
   const cargarClientes = useCallback(async (page = 1, limit = 1000) => {
     setCargando(true);
     try {
@@ -202,35 +254,10 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     cargarClientes(1, porPagina); // Cargar clientes forzando página 1
   }, [busqueda, filtroMunicipio, filtroCategoria]);
 
-  const filtrarClientes = useCallback(() => {
-    return clientes.filter(cliente => {
-      // Comparación de búsqueda en nombre y RIF
-      const busquedaMatch = cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-                            cliente.rif.toLowerCase().includes(busqueda.toLowerCase());
-      
-      // Filtrado por categoría
-      const categoriaMatch = filtroCategoria ? 
-                             cliente.categorias?.includes(filtroCategoria) : 
-                             true;
-
-      // Comparación case-insensitive para municipio
-      const municipioMatch = filtroMunicipio ? 
-                             cliente.municipio.toLowerCase() === filtroMunicipio.toLowerCase() : 
-                             true;
-
-      // Retornar true si coincide con todos los filtros
-      return busquedaMatch && categoriaMatch && municipioMatch;
-    });
-  }, [busqueda, filtroCategoria, filtroMunicipio, clientes]);
-
   useEffect(() => {
     const filtered = filtrarClientes();
     setClientesFiltrados(filtered);
   }, [filtrarClientes]);
-
-  const handleChange = (e) => {
-    setCliente({ ...cliente, [e.target.name]: e.target.value });
-  };
 
   const handleChangeColorMunicipio = (e) => {
     setColorMunicipio(e.target.value);
@@ -435,9 +462,6 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
     setPagina(1);
   };
 
-  const municipiosDisponibles = [...new Set(clientes.map(c => c.municipio).filter(Boolean))];
-  const categoriasDisponibles = ['Agente Retención', 'Alto Riesgo', 'Cliente Frecuente', 'Cliente VIP', 'Desconocido'];
-
   return (
     <motion.div
       initial="hidden"
@@ -551,7 +575,7 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
                       label="Buscar por nombre o RIF"
                       variant="outlined"
                       value={busqueda}
-                      onChange={(e) => setBusqueda(e.target.value)}
+                      onChange={handleChange}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -1210,4 +1234,5 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   );
 };
 
-export default RegistrarCliente;
+// Agregar memo para evitar re-renderizados innecesarios
+export default React.memo(RegistrarCliente);
