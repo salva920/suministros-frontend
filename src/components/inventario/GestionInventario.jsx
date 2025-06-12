@@ -7,7 +7,7 @@ import {
   DialogContentText
 } from '@mui/material';
 import { toast } from 'react-toastify';
-import { Delete, Edit, AddShoppingCart, Inventory, Clear, Search, ArrowUpward, ArrowDownward, Input as InputIcon, PointOfSale, Lock, LockOpen, Build } from '@mui/icons-material';
+import { Delete, Edit, AddShoppingCart, Inventory, Clear, Search, ArrowUpward, ArrowDownward, Input as InputIcon, PointOfSale, Lock, LockOpen, Build, Refresh } from '@mui/icons-material';
 import AgregarProducto from '../AgregarProducto';
 import { useNavigate } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -184,9 +184,25 @@ const GestionInventario = () => {
   // Configurar moment para usar español
   moment.locale('es');
 
-  // Memoizar la función de carga de productos
-  const cargarProductos = useCallback(async () => {
+  // Agregar estado para caché
+  const [cacheTimestamp, setCacheTimestamp] = useState(null);
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos en milisegundos
+
+  // Función para verificar si el caché es válido
+  const isCacheValid = useCallback(() => {
+    if (!cacheTimestamp) return false;
+    return Date.now() - cacheTimestamp < CACHE_DURATION;
+  }, [cacheTimestamp]);
+
+  // Memoizar la función de carga de productos con caché
+  const cargarProductos = useCallback(async (forceRefresh = false) => {
     if (cargando) return;
+    
+    // Si el caché es válido y no se fuerza la actualización, usar datos en caché
+    if (!forceRefresh && isCacheValid() && productos.length > 0) {
+      console.log('Usando datos en caché');
+      return;
+    }
     
     try {
       setCargando(true);
@@ -210,43 +226,29 @@ const GestionInventario = () => {
         });
       
       setProductos(productosTransformados);
+      setCacheTimestamp(Date.now());
     } catch (error) {
       console.error('Error al cargar productos:', error);
       toast.error('Error al cargar productos');
     } finally {
       setCargando(false);
     }
-  }, [cargando]);
+  }, [cargando, isCacheValid, productos.length]);
 
   // Cargar productos solo una vez al montar el componente
   useEffect(() => {
     cargarProductos();
   }, []); // Remover cargarProductos de las dependencias
 
-  // Memoizar los datos ordenados
-  const sortedData = useMemo(() => {
-    return [...productos].sort((a, b) => {
-      if (sortConfig.key === 'fechaIngreso') {
-        const dateA = new Date(a.fechaIngreso);
-        const dateB = new Date(b.fechaIngreso);
-        return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
-      }
-      
-      if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [productos, sortConfig]);
-
-  // Memoizar los items actuales
-  const currentItems = useMemo(() => {
-    return sortedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [sortedData, page, rowsPerPage]);
+  // Función para forzar actualización de datos
+  const actualizarDatos = useCallback(() => {
+    cargarProductos(true);
+  }, [cargarProductos]);
 
   // Optimizar la función de actualización de productos
   const actualizarListaProductos = useCallback((productoActualizado) => {
     if (!productoActualizado) {
-      cargarProductos();
+      actualizarDatos();
       return;
     }
     
@@ -254,7 +256,7 @@ const GestionInventario = () => {
       const productoTransformado = transformarProducto(productoActualizado);
       
       if (!productoTransformado) {
-        cargarProductos();
+        actualizarDatos();
         return;
       }
       
@@ -274,11 +276,14 @@ const GestionInventario = () => {
         }
       });
       
+      // Actualizar timestamp del caché
+      setCacheTimestamp(Date.now());
+      
     } catch (error) {
       console.error("Error actualizando la lista de productos:", error);
-      cargarProductos();
+      actualizarDatos();
     }
-  }, [cargando]);
+  }, [actualizarDatos]);
 
   // Optimizar la función de agregar stock
   const agregarStock = useCallback(async () => {
@@ -612,6 +617,18 @@ const GestionInventario = () => {
     // eslint-disable-next-line
   }, [entradaStock.costoInicial, entradaStock.acarreo, entradaStock.flete, entradaStock.cantidad]);
 
+  // Agregar botón de actualización manual
+  const BotonActualizar = () => (
+    <Button
+      variant="outlined"
+      onClick={actualizarDatos}
+      startIcon={<Refresh />}
+      sx={{ ml: 2 }}
+    >
+      Actualizar Datos
+    </Button>
+  );
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Button
@@ -638,24 +655,27 @@ const GestionInventario = () => {
             <Inventory fontSize="large" /> Gestión de Inventario
           </Typography>
 
-          <Tabs 
-            value={tabValue} 
-            onChange={handleChangeTab}
-            sx={{
-              '& .MuiTabs-indicator': { backgroundColor: 'primary.main', height: 3 },
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                color: 'text.secondary',
-                '&.Mui-selected': { color: 'primary.main' }
-              }
-            }}
-          >
-            <Tab label="Inventario Actual" />
-            <Tab label="Historial de Entradas" />
-            <Tab label="Historial de Salidas" />
-          </Tabs>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <BotonActualizar />
+            <Tabs 
+              value={tabValue} 
+              onChange={handleChangeTab}
+              sx={{
+                '& .MuiTabs-indicator': { backgroundColor: 'primary.main', height: 3 },
+                '& .MuiTab-root': {
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  color: 'text.secondary',
+                  '&.Mui-selected': { color: 'primary.main' }
+                }
+              }}
+            >
+              <Tab label="Inventario Actual" />
+              <Tab label="Historial de Entradas" />
+              <Tab label="Historial de Salidas" />
+            </Tabs>
+          </Box>
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
@@ -752,7 +772,7 @@ const GestionInventario = () => {
               </TableHead>
               
               <TableBody>
-                {currentItems.map((producto) => (
+                {productos.map((producto) => (
                   <StyledTableRow key={producto.id}>
                     <StyledTableCell>{producto.nombre}</StyledTableCell>
                     <StyledTableCell align="right">{producto.codigo}</StyledTableCell>
@@ -805,7 +825,7 @@ const GestionInventario = () => {
           <TablePagination
             rowsPerPageOptions={[25, 50, 100, 200]}
             component="div"
-            count={sortedData.length}
+            count={productos.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={(e, newPage) => setPage(newPage)}
