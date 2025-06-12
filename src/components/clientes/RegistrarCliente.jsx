@@ -415,35 +415,59 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
   const handleEditarCliente = (cliente) => {
     // Dividir el RIF en prefijo y número
     let prefijo = 'V';
-    let numero = cliente.rif;
+    let numero = cliente.rif || '';
     
-    if (cliente.rif && cliente.rif.length > 0) {
-      prefijo = cliente.rif.charAt(0);
-      numero = cliente.rif.substring(1);
+    // Mejorar la extracción del prefijo y número para cualquier formato de RIF
+    if (cliente.rif && cliente.rif.length > 1) {
+      // Extraer el primer carácter como prefijo si es una letra válida
+      const primerCaracter = cliente.rif.charAt(0).toUpperCase();
+      if (['V', 'E', 'J', 'G'].includes(primerCaracter)) {
+        prefijo = primerCaracter;
+        numero = cliente.rif.substring(1);
+      } else {
+        // Si no tiene un prefijo válido, asumimos que es V
+        prefijo = 'V';
+        numero = cliente.rif;
+      }
     }
+    
     setPrefijoRif(prefijo);
     
     // Dividir el teléfono en prefijo y número si existe
     let prefTelefono = '0412';
     let numTelefono = '';
     
-    if (cliente.telefono && cliente.telefono.includes('-')) {
-      const telParts = cliente.telefono.split('-');
-      prefTelefono = telParts[0];
-      numTelefono = telParts[1];
-    } else {
-      numTelefono = cliente.telefono || '';
+    if (cliente.telefono) {
+      if (cliente.telefono.includes('-')) {
+        const telParts = cliente.telefono.split('-');
+        prefTelefono = telParts[0];
+        numTelefono = telParts[1];
+      } else if (cliente.telefono.length >= 4) {
+        // Intentar extraer un prefijo de 4 dígitos
+        prefTelefono = cliente.telefono.substring(0, 4);
+        numTelefono = cliente.telefono.substring(4);
+      } else {
+        numTelefono = cliente.telefono;
+      }
     }
+    
+    // Asegurar que el prefijo de teléfono sea válido
+    if (!['0412', '0414', '0416', '0424', '0426', '0212'].includes(prefTelefono)) {
+      prefTelefono = '0412';
+    }
+    
     setPrefijoTelefono(prefTelefono);
     
-    // Asegurarnos de que el ID se guarde correctamente
+    // Asegurarnos de que el ID se guarde correctamente y limpiar posibles valores no deseados
     setCliente({
       ...cliente,
       _id: cliente._id || cliente.id, // Guardar el ID en _id para consistencia
       id: cliente._id || cliente.id,  // También guardar en id por compatibilidad
-      rif: numero,
-      telefono: numTelefono,
-      municipioColor: cliente.municipioColor || '#ffffff'
+      rif: numero.trim(),
+      telefono: numTelefono.trim(),
+      municipioColor: cliente.municipioColor || '#ffffff',
+      // Asegurarnos que las categorías sean un array
+      categorias: Array.isArray(cliente.categorias) ? cliente.categorias : []
     });
     
     setColorMunicipio(cliente.municipioColor || '#ffffff');
