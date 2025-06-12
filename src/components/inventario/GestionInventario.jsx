@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Container, Typography, Button, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, IconButton, Box, Paper, 
@@ -184,6 +184,7 @@ const GestionInventario = () => {
   // Configurar moment para usar español
   moment.locale('es');
 
+  // Memoizar la función de carga de productos
   const cargarProductos = useCallback(async () => {
     if (cargando) return;
     
@@ -217,6 +218,123 @@ const GestionInventario = () => {
     }
   }, [cargando]);
 
+  // Cargar productos solo una vez al montar el componente
+  useEffect(() => {
+    cargarProductos();
+  }, []); // Remover cargarProductos de las dependencias
+
+  // Memoizar los datos ordenados
+  const sortedData = useMemo(() => {
+    return [...productos].sort((a, b) => {
+      if (sortConfig.key === 'fechaIngreso') {
+        const dateA = new Date(a.fechaIngreso);
+        const dateB = new Date(b.fechaIngreso);
+        return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+      
+      if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [productos, sortConfig]);
+
+  // Memoizar los items actuales
+  const currentItems = useMemo(() => {
+    return sortedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [sortedData, page, rowsPerPage]);
+
+  // Optimizar la función de actualización de productos
+  const actualizarListaProductos = useCallback((productoActualizado) => {
+    if (!productoActualizado) {
+      cargarProductos();
+      return;
+    }
+    
+    try {
+      const productoTransformado = transformarProducto(productoActualizado);
+      
+      if (!productoTransformado) {
+        cargarProductos();
+        return;
+      }
+      
+      const productoId = productoTransformado._id || productoTransformado.id;
+      
+      setProductos(prevProductos => {
+        const existeProducto = prevProductos.some(p => 
+          (p._id === productoId || p.id === productoId)
+        );
+        
+        if (existeProducto) {
+          return prevProductos.map(p => 
+            (p._id === productoId || p.id === productoId) ? productoTransformado : p
+          );
+        } else {
+          return [productoTransformado, ...prevProductos];
+        }
+      });
+      
+    } catch (error) {
+      console.error("Error actualizando la lista de productos:", error);
+      cargarProductos();
+    }
+  }, [cargando]);
+
+  // Optimizar la función de agregar stock
+  const agregarStock = useCallback(async () => {
+    if (isSubmitting || !entradaStock.fechaHora) {
+      toast.error('Complete todos los campos requeridos');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const productoActual = productos.find(p => p.id === entradaStock.productoId);
+      const cantidadIngresada = Number(entradaStock.cantidad);
+      
+      const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
+        .startOf('day')
+        .toISOString();
+
+      const response = await axios.post(
+        `${API_URL}/productos/${productoActual.id}/entradas`,
+        {
+          cantidad: cantidadIngresada,
+          fechaHora: fechaUTC,
+          costoUnitario: Number(entradaStock.costoInicial),
+          acarreo: Number(entradaStock.acarreo),
+          flete: Number(entradaStock.flete),
+          costoFinalEntrada: Number(entradaStock.costoFinalEntrada)
+        }
+      );
+
+      // Actualizar estado local con la respuesta del servidor
+      actualizarListaProductos(response.data.producto);
+      
+      toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
+      
+      // Resetear formulario
+      setEntradaStock({
+        productoId: null,
+        cantidad: '',
+        proveedor: '',
+        fechaHora: '',
+        costoInicial: '',
+        acarreo: '',
+        flete: '',
+        costoFinalEntrada: ''
+      });
+
+    } catch (error) {
+      console.error('Error al agregar stock:', error);
+      toast.error('Error al agregar stock');
+    } finally {
+      setIsSubmitting(false);
+      setModalEntradaAbierto(false);
+    }
+  }, [isSubmitting, entradaStock, productos, actualizarListaProductos]);
+
   const normalizarFecha = (fecha) => {
     if (!fecha) return '';
     
@@ -230,10 +348,6 @@ const GestionInventario = () => {
     
     return `${year}-${month}-${day}`;
   };
-
-  useEffect(() => {
-    cargarProductos();
-  }, [cargarProductos]);
 
   const abrirEditar = (producto) => {
     try {
@@ -366,50 +480,6 @@ const GestionInventario = () => {
     }
   };
 
-  const actualizarListaProductos = (productoActualizado) => {
-    console.log("Actualizando lista con producto:", productoActualizado);
-    
-    if (!productoActualizado) {
-      console.warn("No se recibió un producto válido para actualizar");
-      cargarProductos();
-      return;
-    }
-    
-    try {
-      // Transformar el producto recibido para asegurar formato consistente
-      const productoTransformado = transformarProducto(productoActualizado);
-      
-      if (!productoTransformado) {
-        console.warn("No se pudo transformar el producto:", productoActualizado);
-        cargarProductos();
-        return;
-      }
-      
-      // Obtener ID del producto
-      const productoId = productoTransformado._id || productoTransformado.id;
-      
-      // Verificar si es un producto nuevo o uno existente actualizado
-      const existeProducto = productos.some(p => 
-        (p._id === productoId || p.id === productoId)
-      );
-      
-      if (existeProducto) {
-        console.log("Actualizando producto existente ID:", productoId);
-        const nuevosProductos = productos.map(p => 
-          (p._id === productoId || p.id === productoId) ? productoTransformado : p
-        );
-        setProductos([...nuevosProductos]);
-      } else {
-        console.log("Agregando nuevo producto ID:", productoId);
-        setProductos(prevProductos => [productoTransformado, ...prevProductos]);
-      }
-      
-    } catch (error) {
-      console.error("Error actualizando la lista de productos:", error);
-      cargarProductos();
-    }
-  };
-
   const abrirEntradaStock = (producto) => {
     setEntradaStock({
       productoId: producto.id,
@@ -424,80 +494,6 @@ const GestionInventario = () => {
     setModalEntradaAbierto(true);
   };
 
-  const agregarStock = async () => {
-    if (isSubmitting || !entradaStock.fechaHora) {
-      toast.error('Complete todos los campos requeridos');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      
-      const productoActual = productos.find(p => p.id === entradaStock.productoId);
-      const cantidadIngresada = Number(entradaStock.cantidad);
-      
-      const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
-        .startOf('day')
-        .toISOString();
-
-      await axios.post(
-        `${API_URL}/productos/${productoActual.id}/entradas`,
-        {
-          cantidad: cantidadIngresada,
-          fechaHora: fechaUTC,
-          costoUnitario: Number(entradaStock.costoInicial),
-          acarreo: Number(entradaStock.acarreo),
-          flete: Number(entradaStock.flete),
-          costoFinalEntrada: Number(entradaStock.costoFinalEntrada)
-        }
-      );
-
-      // Actualizar estado local
-      const nuevosProductos = productos.map(p => {
-        if (p.id === productoActual.id) {
-          return {
-            ...p,
-            stock: p.stock + cantidadIngresada,
-            cantidad: p.cantidad + cantidadIngresada
-          };
-        }
-        return p;
-      });
-      
-      setProductos(nuevosProductos);
-      
-      // Si el producto editando es el mismo, actualizar estado
-      if (productoEditando?.id === productoActual.id) {
-        setProductoEditando(prev => ({
-          ...prev,
-          stock: prev.stock + cantidadIngresada,
-          cantidad: prev.cantidad + cantidadIngresada
-        }));
-      }
-      
-      toast.success(`Se agregaron ${cantidadIngresada} unidades al stock`);
-      
-      // Resetear formulario
-      setEntradaStock({
-        productoId: null,
-        cantidad: '',
-        proveedor: '',
-        fechaHora: '',
-        costoInicial: '',
-        acarreo: '',
-        flete: '',
-        costoFinalEntrada: ''
-      });
-
-    } catch (error) {
-      console.error('Error al agregar stock:', error);
-      toast.error('Error al agregar stock');
-    } finally {
-      setIsSubmitting(false);
-      setModalEntradaAbierto(false);
-    }
-  };
-
   const handleChangeTab = (event, newValue) => {
     setTabValue(newValue);
   };
@@ -508,20 +504,6 @@ const GestionInventario = () => {
       direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
     }));
   }, []);
-
-  const sortedData = [...productos].sort((a, b) => {
-    if (sortConfig.key === 'fechaIngreso') {
-      const dateA = new Date(a.fechaIngreso);
-      const dateB = new Date(b.fechaIngreso);
-      return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
-    }
-    
-    if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  const currentItems = sortedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   // Manejar el envío del PIN
   const handlePinSubmit = () => {
