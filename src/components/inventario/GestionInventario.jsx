@@ -85,8 +85,8 @@ const transformarProducto = (producto) => {
     // Función para parsear valores numéricos
     const parseNumber = (value) => {
       if (value === undefined || value === null) return 0;
-      if (typeof value === 'number') return value;
-      return parseFloat(value) || 0;
+      if (typeof value === 'number') return parseFloat(value.toFixed(2));
+      return parseFloat(parseFloat(value).toFixed(2)) || 0;
     };
     
     // Función para parsear fechas manteniendo UTC
@@ -286,7 +286,7 @@ const GestionInventario = () => {
   }, [actualizarDatos]);
 
   // Optimizar la función de agregar stock
-  const agregarStock = useCallback(async () => {
+      const agregarStock = useCallback(async () => {
     if (isSubmitting || !entradaStock.fechaHora) {
       toast.error('Complete todos los campos requeridos');
       return;
@@ -296,7 +296,7 @@ const GestionInventario = () => {
       setIsSubmitting(true);
       
       const productoActual = productos.find(p => p.id === entradaStock.productoId);
-      const cantidadIngresada = Number(entradaStock.cantidad);
+      const cantidadIngresada = parseFloat(Number(entradaStock.cantidad).toFixed(2));
       
       const fechaUTC = moment.utc(entradaStock.fechaHora, 'YYYY-MM-DD')
         .startOf('day')
@@ -601,7 +601,7 @@ const GestionInventario = () => {
 
   useEffect(() => {
     const { costoInicial, acarreo, flete, cantidad } = entradaStock;
-    const cantidadNum = Number(cantidad) || 0;
+    const cantidadNum = parseFloat(Number(cantidad).toFixed(2)) || 0;
     const costoInicialNum = Number(costoInicial) || 0;
     const acarreoNum = Number(acarreo) || 0;
     const fleteNum = Number(flete) || 0;
@@ -786,13 +786,13 @@ const GestionInventario = () => {
                         <StyledTableCell align="right">${producto.flete.toFixed(2)}</StyledTableCell>
                       </>
                     )}
-                    <StyledTableCell align="right">{producto.cantidad}</StyledTableCell>
+                    <StyledTableCell align="right">{parseFloat(producto.cantidad).toFixed(2)}</StyledTableCell>
                     {showFinancials && (
                       <StyledTableCell align="right">${producto.costoFinal.toFixed(2)}</StyledTableCell>
                     )}
                     <StyledTableCell align="right">
                       <Chip 
-                        label={producto.stock} 
+                        label={parseFloat(producto.stock).toFixed(2)} 
                         color={producto.stock > 5 ? 'success' : 'error'}
                         variant="outlined"
                         sx={{ fontWeight: 'bold' }}
@@ -881,6 +881,7 @@ const GestionInventario = () => {
             value={entradaStock.cantidad}
             onChange={(e) => setEntradaStock({ ...entradaStock, cantidad: e.target.value })}
             margin="normal"
+            inputProps={{ step: 0.01 }}
           />
           <TextField
             fullWidth

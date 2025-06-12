@@ -95,7 +95,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
       // Manejo de campos numéricos
       if (['costoInicial', 'acarreo', 'flete', 'cantidad'].includes(name)) {
         processedValue = value === '' ? '' : Math.max(0, Number(value.replace(/[^0-9.]/g, '')));
-        if (name === 'cantidad' && processedValue < 1) processedValue = 1;
+        if (name === 'cantidad' && processedValue <= 0) processedValue = '';
       }
       
       // Validación en tiempo real para campos de texto
@@ -165,9 +165,9 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
         costoInicial: Number(producto.costoInicial),
         acarreo: Number(producto.acarreo),
         flete: Number(producto.flete),
-        cantidad: Number(producto.cantidad),
+        cantidad: parseFloat(Number(producto.cantidad).toFixed(2)), // Permitir decimales para cantidad
         costoFinal: costoFinalCalculado,
-        stock: Number(producto.cantidad),
+        stock: parseFloat(Number(producto.cantidad).toFixed(2)), // Mantener consistencia en stock
         fechaIngreso: producto.fechaIngreso
       };
 
@@ -302,7 +302,7 @@ const AgregarProducto = ({ open, onClose, productoEditando, onProductoGuardado, 
                 fullWidth
                 required
                 type="number"
-                inputProps={{ min: 1 }}
+                inputProps={{ min: 0.01, step: 0.01 }}
                 error={errores.cantidad}
                 helperText={errores.cantidad && "Debe ser mayor a 0"}
               />
