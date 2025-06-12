@@ -303,33 +303,42 @@ const RegistrarCliente = ({ onClienteRegistrado, dniPrecargado, modoModal, onClo
 
     let valido = true;
 
-    const rifCompleto = prefijoRif + cliente.rif;
-    let rifValido = true;
-
-    if (prefijoRif === 'V') {
-      if (cliente.rif.length < 8 || cliente.rif.length > 9) {
-        nuevosErrores.rif = 'Cédula venezolana debe tener 8 o 9 dígitos';
-        rifValido = false;
-      }
-    } else if (['E', 'J', 'G'].includes(prefijoRif)) {
-      if (cliente.rif.length !== 9) {
-        nuevosErrores.rif = 'RIF debe tener 9 dígitos para este tipo';
-        rifValido = false;
-      }
-    } else if (!/^[VEJG][0-9]+$/.test(rifCompleto)) {
-      nuevosErrores.rif = 'Formato de RIF inválido';
-      rifValido = false;
-    }
-
+    // Validación del nombre
     if (!cliente.nombre || cliente.nombre.trim() === '') {
       nuevosErrores.nombre = 'El nombre es requerido';
       valido = false;
     }
 
-    if (!rifValido) {
+    // Validación del RIF según el tipo de documento
+    if (!cliente.rif || cliente.rif.trim() === '') {
+      nuevosErrores.rif = 'El número de documento es requerido';
       valido = false;
+    } else {
+      const rifCompleto = prefijoRif + cliente.rif;
+      
+      // Validación específica según el tipo de documento
+      if (prefijoRif === 'V') {
+        // Cédula venezolana: entre 6 y 9 dígitos
+        if (!/^\d{6,9}$/.test(cliente.rif)) {
+          nuevosErrores.rif = 'Cédula venezolana debe tener entre 6 y 9 dígitos';
+          valido = false;
+        }
+      } else if (prefijoRif === 'E') {
+        // Extranjero: entre 6 y 9 dígitos
+        if (!/^\d{6,9}$/.test(cliente.rif)) {
+          nuevosErrores.rif = 'Cédula de extranjero debe tener entre 6 y 9 dígitos';
+          valido = false;
+        }
+      } else if (prefijoRif === 'J' || prefijoRif === 'G') {
+        // RIF jurídico o gubernamental: entre 8 y 10 dígitos
+        if (!/^\d{8,10}$/.test(cliente.rif)) {
+          nuevosErrores.rif = 'RIF debe tener entre 8 y 10 dígitos';
+          valido = false;
+        }
+      }
     }
 
+    // Validación del email si existe
     if (cliente.email && !/\S+@\S+\.\S+/.test(cliente.email)) {
       nuevosErrores.email = 'Email inválido';
       valido = false;
