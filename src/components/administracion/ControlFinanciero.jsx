@@ -151,6 +151,16 @@ const ControlFinanciero = () => {
   };
 
   const procesarDatos = () => {
+    // Filtrar ventas por fecha si hay filtros aplicados
+    const ventasFiltradas = ventas.filter(v => {
+      if (!filtroFecha.start || !filtroFecha.end) return true;
+      const fechaVenta = new Date(v.fecha);
+      const start = new Date(filtroFecha.start.setHours(0, 0, 0, 0)); // Inicio del día
+      const end = new Date(filtroFecha.end.setHours(23, 59, 59, 999)); // Fin del día
+      return fechaVenta >= start && fechaVenta <= end;
+    });
+
+    // Filtrar gastos por fecha si hay filtros aplicados
     const gastosFiltrados = gastos.filter(g => {
       if (!filtroFecha.start || !filtroFecha.end) return true;
       const fechaGasto = new Date(g.fecha);
@@ -159,7 +169,8 @@ const ControlFinanciero = () => {
       return fechaGasto >= start && fechaGasto <= end;
     });
 
-    const totalVentas = ventas.reduce((acc, v) => acc + v.total, 0);
+    // Calcular totales usando los datos filtrados
+    const totalVentas = ventasFiltradas.reduce((acc, v) => acc + v.total, 0);
     const totalGastos = gastosFiltrados.reduce((acc, g) => acc + g.monto, 0);
     const gananciaNeta = totalVentas - totalGastos;
 
