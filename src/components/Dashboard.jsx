@@ -61,14 +61,16 @@ const itemVariants = {
 
 const StatsCard = styled(Card)(({ theme }) => ({
   height: '100%',
-  borderRadius: '16px',
+  borderRadius: '12px',
   overflow: 'hidden',
-  boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-  background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%)',
-  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+  background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+  transition: 'all 0.3s ease',
+  border: '1px solid rgba(0,0,0,0.05)',
   '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 12px 28px rgba(0,0,0,0.15)'
+    transform: 'translateY(-2px)',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    borderColor: 'rgba(0,0,0,0.1)'
   }
 }));
 
@@ -619,233 +621,257 @@ const Dashboard = () => {
           ))}
         </Grid>
 
-        {lowStockProducts && lowStockProducts.length > 0 && (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Paper elevation={3} sx={{ 
-                p: 3, 
+
+
+        {/* Dashboard Principal - Layout Compacto */}
+        <Grid container spacing={3} sx={{ my: 3 }}>
+          {/* Columna Izquierda - Estadísticas y Últimas Ventas */}
+          <Grid item xs={12} lg={8}>
+            <Grid container spacing={3}>
+              {/* Tarjetas de Estadísticas - Layout Horizontal Compacto */}
+              <Grid item xs={12}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={4}>
+                    <motion.div variants={itemVariants}>
+                      <StatsCard sx={{ height: '120px' }}>
+                        <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                              Ventas Totales
+                            </Typography>
+                            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                              {formatCurrency(dashboardData.ventas)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <TrendingUpIcon sx={{ color: dashboardData.porcentajeCrecimiento >= 0 ? 'success.main' : 'error.main', fontSize: '0.9rem' }} />
+                            <Typography variant="caption" color={dashboardData.porcentajeCrecimiento >= 0 ? "success.main" : "error.main"}>
+                              {dashboardData.porcentajeCrecimiento >= 0 ? "+" : ""}
+                              {dashboardData.porcentajeCrecimiento.toFixed(1)}%
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </StatsCard>
+                    </motion.div>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={4}>
+                    <motion.div variants={itemVariants}>
+                      <StatsCard sx={{ height: '120px' }}>
+                        <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                              Total Clientes
+                            </Typography>
+                            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                              {stats.totalClientes}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <TrendingUpIcon sx={{ color: 'success.main', fontSize: '0.9rem' }} />
+                            <Typography variant="caption" color="success.main">
+                              +5 nuevos
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </StatsCard>
+                    </motion.div>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={4}>
+                    <motion.div variants={itemVariants}>
+                      <StatsCard sx={{ height: '120px' }}>
+                        <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          <Box>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                              Facturas Pendientes
+                            </Typography>
+                            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                              {dashboardData.facturasPendientes}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Receipt sx={{ color: 'warning.main', fontSize: '0.9rem' }} />
+                            <Typography variant="caption" color="warning.main">
+                              Con saldo pendiente
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </StatsCard>
+                    </motion.div>
+                  </Grid>
+                </Grid>
+              </Grid>
+
+              {/* Últimas Ventas - Layout Compacto */}
+              <Grid item xs={12}>
+                <motion.div variants={itemVariants}>
+                  <Paper sx={{ 
+                    p: 2, 
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                    maxHeight: '400px',
+                    overflow: 'hidden'
+                  }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <ShoppingCartIcon color="primary" sx={{ fontSize: '1.2rem' }} />
+                      Últimas Ventas
+                    </Typography>
+                    
+                    {cargandoUltimasVentas ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={30} />
+                      </Box>
+                    ) : stats.ultimasVentas.length === 0 ? (
+                      <Typography variant="body2" sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+                        No hay ventas recientes
+                      </Typography>
+                    ) : (
+                      <Box sx={{ maxHeight: '300px', overflow: 'auto' }}>
+                        {stats.ultimasVentas.filter(venta => venta).slice(0, 4).map((venta, index) => (
+                          <Box key={venta.id || venta._id || index}>
+                            <Box sx={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center',
+                              py: 1.5,
+                              px: 1,
+                              borderRadius: '8px',
+                              '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' },
+                              transition: 'background-color 0.2s ease'
+                            }}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                  {venta.cliente?.nombre || venta.cliente || 'Cliente sin nombre'}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {new Date(venta.fecha).toLocaleDateString('es-ES', { 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  })}
+                                </Typography>
+                              </Box>
+                              
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <StatusChip
+                                  label={venta.estado === 'completada' ? 'Completada' : 'Pendiente'}
+                                  color={venta.estado === 'completada' ? 'success' : 'warning'}
+                                  size="small"
+                                  status={venta.estado}
+                                  sx={{ fontSize: '0.7rem', height: '20px' }}
+                                />
+                                <Typography variant="body2" sx={{ fontWeight: 'bold', minWidth: '60px', textAlign: 'right' }}>
+                                  {formatCurrency(venta.total)}
+                                </Typography>
+                              </Box>
+                            </Box>
+                            {index < Math.min(stats.ultimasVentas.length - 1, 3) && (
+                              <Divider sx={{ mx: 1 }} />
+                            )}
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                    
+                    {stats.ultimasVentas.length > 4 && (
+                      <Box sx={{ mt: 2, textAlign: 'center' }}>
+                        <Button 
+                          variant="text" 
+                          size="small"
+                          onClick={() => navigate('/ventas/historial')}
+                          sx={{ textTransform: 'none', fontSize: '0.8rem' }}
+                        >
+                          Ver todas las ventas ({stats.ultimasVentas.length})
+                        </Button>
+                      </Box>
+                    )}
+                  </Paper>
+                </motion.div>
+              </Grid>
+            </Grid>
+          </Grid>
+
+          {/* Columna Derecha - Productos con Bajo Stock */}
+          <Grid item xs={12} lg={4}>
+            <motion.div variants={itemVariants}>
+              <Paper sx={{ 
+                p: 2, 
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                height: 'fit-content',
                 borderLeft: 4, 
                 borderColor: 'warning.main',
                 bgcolor: 'warning.light'
               }}>
                 <Typography 
                   variant="h6" 
-                  gutterBottom 
                   sx={{ 
-                    color: 'error.main',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1
+                    mb: 2, 
+                    fontWeight: 'bold', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    color: 'warning.dark'
                   }}
                 >
                   <WarningIcon fontSize="inherit" />
-                  Productos con Bajo Stock ({lowStockProducts.length})
+                  Bajo Stock ({lowStockProducts.length})
                 </Typography>
                 
-                <Grid container spacing={2}>
+                <Box sx={{ maxHeight: '300px', overflow: 'auto' }}>
                   {lowStockProducts.map((producto, index) => {
                     if (!producto) return null;
                     return (
-                      <Grid item xs={12} sm={6} md={4} key={producto._id || producto.id || `producto-${index}`}>
-                        <Paper sx={{ 
-                          p: 2, 
-                          border: 1, 
+                      <Box key={producto._id || producto.id || `producto-${index}`}>
+                        <Box sx={{ 
+                          p: 1.5, 
+                          mb: 1,
+                          borderRadius: '8px',
+                          bgcolor: 'background.paper',
+                          border: 1,
                           borderColor: 'warning.light',
-                          borderRadius: 2,
-                          bgcolor: 'background.paper'
+                          '&:hover': { 
+                            bgcolor: 'rgba(255,255,255,0.8)',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          },
+                          transition: 'all 0.2s ease'
                         }}>
                           <Typography 
-                            variant="subtitle1" 
-                            sx={{ fontWeight: 'bold', color: 'warning.dark' }}
+                            variant="body2" 
+                            sx={{ 
+                              fontWeight: 'bold', 
+                              color: 'warning.dark',
+                              mb: 0.5,
+                              fontSize: '0.85rem'
+                            }}
                           >
                             {producto.nombre || producto.name || productosNombres[producto._id] || `Producto ID: ${producto._id?.slice(-6) || 'N/A'}`}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: 'error.main' }}>
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: 'error.main',
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem'
+                            }}
+                          >
                             Stock: {producto.stock || 0}
                           </Typography>
-                        </Paper>
-                      </Grid>
+                        </Box>
+                        {index < lowStockProducts.length - 1 && (
+                          <Divider sx={{ my: 0.5 }} />
+                        )}
+                      </Box>
                     );
                   })}
-                </Grid>
-              </Paper>
-            </Grid>
-          </Grid>
-        )}
-
-        <Grid container spacing={3} sx={{ my: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <motion.div variants={itemVariants}>
-              <StatsCard>
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Ventas Totales
-                  </Typography>
-                  <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {formatCurrency(dashboardData.ventas)}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TrendingUpIcon sx={{ color: dashboardData.porcentajeCrecimiento >= 0 ? 'success.main' : 'error.main', fontSize: '1rem' }} />
-                    <Typography variant="body2" color={dashboardData.porcentajeCrecimiento >= 0 ? "success.main" : "error.main"}>
-                      {dashboardData.porcentajeCrecimiento >= 0 ? "+" : ""}
-                      {dashboardData.porcentajeCrecimiento.toFixed(1)}% respecto al mes anterior
-                    </Typography>
-                  </Box>
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Mes mostrado: {formatMesReferencia(dashboardData.mesReferencia)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Mes actual: {formatCurrency(dashboardData.ventasMesActual)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Mes anterior: {formatCurrency(dashboardData.ventasMesAnterior)}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </StatsCard>
-            </motion.div>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <motion.div variants={itemVariants}>
-              <StatsCard>
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Total de Clientes
-                  </Typography>
-                  <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {stats.totalClientes}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TrendingUpIcon sx={{ color: 'success.main', fontSize: '1rem' }} />
-                    <Typography variant="body2" color="success.main">
-                      +5 nuevos este mes
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </StatsCard>
-            </motion.div>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <motion.div variants={itemVariants}>
-              <StatsCard>
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Facturas Pendientes
-                  </Typography>
-                  <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {dashboardData.facturasPendientes}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Receipt sx={{ color: 'warning.main', fontSize: '1rem' }} />
-                    <Typography variant="body2" color="warning.main">
-                      Facturas con saldo pendiente
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </StatsCard>
-            </motion.div>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <motion.div variants={itemVariants}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                mb: isMobile ? 3 : 0
-              }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ShoppingCartIcon color="primary" />
-                  Últimas Ventas
-                </Typography>
-                
-                {cargandoUltimasVentas ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                    <CircularProgress size={40} />
-                  </Box>
-                ) : stats.ultimasVentas.length === 0 ? (
-                  <Typography variant="body1" sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
-                    No hay ventas recientes para mostrar
-                  </Typography>
-                ) : (
-                  <Box sx={{ overflow: 'auto' }}>
-                    <Grid container spacing={2}>
-                      {stats.ultimasVentas.filter(venta => venta).map((venta, index) => (
-                        <Grid item xs={12} key={venta.id || venta._id || index}>
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                          >
-                            <Card sx={{ 
-                              p: 2, 
-                              borderRadius: '12px', 
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                              '&:hover': {
-                                boxShadow: '0 6px 16px rgba(0,0,0,0.1)',
-                                bgcolor: 'rgba(0,0,0,0.01)'
-                              },
-                              transition: 'all 0.3s ease'
-                            }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Box>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                    {venta.cliente?.nombre || venta.cliente || 'Cliente sin nombre'}
-                                  </Typography>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {new Date(venta.fecha).toLocaleDateString('es-ES', { 
-                                      year: 'numeric', 
-                                      month: 'short', 
-                                      day: 'numeric' 
-                                    })}
-                                  </Typography>
-                                </Box>
-                                
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                  <StatusChip
-                                    label={venta.estado === 'completada' ? 'Completada' : 'Pendiente'}
-                                    color={venta.estado === 'completada' ? 'success' : 'warning'}
-                                    size="small"
-                                    status={venta.estado}
-                                  />
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                    {formatCurrency(venta.total)}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </Card>
-                          </motion.div>
-                          {index < stats.ultimasVentas.length - 1 && (
-                            <Box sx={{ my: 1 }}>
-                              <Divider />
-                            </Box>
-                          )}
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
-                )}
-                
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button 
-                      variant="outlined" 
-                      onClick={() => navigate('/ventas/historial')}
-                      endIcon={<ArrowUpIcon />}
-                      sx={{ 
-                        borderRadius: '10px',
-                        textTransform: 'none'
-                      }}
-                    >
-                      Ver todas las ventas
-                    </Button>
-                  </motion.div>
                 </Box>
+                
+                {lowStockProducts.length === 0 && (
+                  <Typography variant="body2" sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+                    No hay productos con bajo stock
+                  </Typography>
+                )}
               </Paper>
             </motion.div>
           </Grid>
