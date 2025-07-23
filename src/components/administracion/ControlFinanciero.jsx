@@ -41,9 +41,9 @@ const ControlFinanciero = () => {
           }
         };
 
-        // Cargar datos con límite más razonable
-        const ventasRes = await axios.get(`${API_URL}/ventas?limit=100`, axiosConfig);
-        const gastosRes = await axios.get(`${API_URL}/gastos?limit=100`, axiosConfig);
+        // Cargar todos los datos para cálculos correctos
+        const ventasRes = await axios.get(`${API_URL}/ventas?getAll=true`, axiosConfig);
+        const gastosRes = await axios.get(`${API_URL}/gastos?getAll=true`, axiosConfig);
         
         console.log('Respuesta de ventas:', ventasRes.data);
         console.log('Respuesta de gastos:', gastosRes.data);
@@ -61,6 +61,13 @@ const ControlFinanciero = () => {
         
         setVentas(ventasRes.data.ventas);
         setGastos(gastosRes.data.gastos);
+        
+        console.log('Datos cargados:', {
+          totalVentas: ventasRes.data.ventas.length,
+          totalGastos: gastosRes.data.gastos.length,
+          totalVentasCalculado: ventasRes.data.ventas.reduce((acc, v) => acc + (v.total || 0), 0),
+          totalGastosCalculado: gastosRes.data.gastos.reduce((acc, g) => acc + (g.monto || 0), 0)
+        });
       } catch (error) {
         console.error('Error detallado al cargar datos:', {
           mensaje: error.message,
@@ -155,8 +162,10 @@ const ControlFinanciero = () => {
     const ventasFiltradas = ventas.filter(v => {
       if (!filtroFecha.start || !filtroFecha.end) return true;
       const fechaVenta = new Date(v.fecha);
-      const start = new Date(filtroFecha.start.setHours(0, 0, 0, 0)); // Inicio del día
-      const end = new Date(filtroFecha.end.setHours(23, 59, 59, 999)); // Fin del día
+      const start = new Date(filtroFecha.start);
+      start.setHours(0, 0, 0, 0); // Inicio del día
+      const end = new Date(filtroFecha.end);
+      end.setHours(23, 59, 59, 999); // Fin del día
       return fechaVenta >= start && fechaVenta <= end;
     });
 
@@ -164,14 +173,16 @@ const ControlFinanciero = () => {
     const gastosFiltrados = gastos.filter(g => {
       if (!filtroFecha.start || !filtroFecha.end) return true;
       const fechaGasto = new Date(g.fecha);
-      const start = new Date(filtroFecha.start.setHours(0, 0, 0, 0)); // Inicio del día
-      const end = new Date(filtroFecha.end.setHours(23, 59, 59, 999)); // Fin del día
+      const start = new Date(filtroFecha.start);
+      start.setHours(0, 0, 0, 0); // Inicio del día
+      const end = new Date(filtroFecha.end);
+      end.setHours(23, 59, 59, 999); // Fin del día
       return fechaGasto >= start && fechaGasto <= end;
     });
 
     // Calcular totales usando los datos filtrados
-    const totalVentas = ventasFiltradas.reduce((acc, v) => acc + v.total, 0);
-    const totalGastos = gastosFiltrados.reduce((acc, g) => acc + g.monto, 0);
+    const totalVentas = ventasFiltradas.reduce((acc, v) => acc + (v.total || 0), 0);
+    const totalGastos = gastosFiltrados.reduce((acc, g) => acc + (g.monto || 0), 0);
     const gananciaNeta = totalVentas - totalGastos;
 
     const categoriasGastos = [
