@@ -169,6 +169,7 @@ const Dashboard = () => {
     facturasPendientes: 0
   });
   const [productosNombres, setProductosNombres] = useState({});
+  const [cargandoUltimasVentas, setCargandoUltimasVentas] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -338,6 +339,7 @@ const Dashboard = () => {
   };
 
   const obtenerUltimasVentas = async () => {
+    setCargandoUltimasVentas(true);
     try {
       const response = await fetch(`${API_URL}/api/ventas?limit=5`);
       if (response.ok) {
@@ -346,34 +348,66 @@ const Dashboard = () => {
           console.log('Últimas ventas obtenidas desde endpoint de ventas:', data.ventas);
           
           // Procesar las ventas para obtener nombres de clientes
+          console.log('Iniciando procesamiento de ventas...');
           const ventasProcesadas = await Promise.all(
-            data.ventas.map(async (venta) => {
+            data.ventas.map(async (venta, index) => {
               let nombreCliente = 'Cliente sin nombre';
+              
+              console.log(`\n--- Procesando venta ${index + 1} ---`);
+              console.log('Datos de la venta:', {
+                id: venta.id || venta._id,
+                cliente: venta.cliente,
+                tipoCliente: typeof venta.cliente,
+                total: venta.total,
+                fecha: venta.fecha
+              });
               
               // Si el cliente es un objeto con nombre
               if (venta.cliente && typeof venta.cliente === 'object' && venta.cliente.nombre) {
                 nombreCliente = venta.cliente.nombre;
+                console.log('✅ Cliente encontrado como objeto:', nombreCliente);
               }
-              // Si el cliente es un ID, intentar obtener el nombre
+              // Si el cliente es un ID (string), intentar obtener el nombre
               else if (venta.cliente && typeof venta.cliente === 'string') {
                 try {
+                  console.log(`🔍 Obteniendo cliente por ID: ${venta.cliente}`);
                   const clienteResponse = await fetch(`${API_URL}/api/clientes/${venta.cliente}`);
+                  console.log('Respuesta del cliente:', clienteResponse.status);
+                  
                   if (clienteResponse.ok) {
                     const clienteData = await clienteResponse.json();
                     nombreCliente = clienteData.nombre || 'Cliente sin nombre';
+                    console.log('✅ Cliente obtenido exitosamente:', nombreCliente);
+                  } else {
+                    console.log('❌ Error en respuesta del cliente:', clienteResponse.status);
+                    nombreCliente = `Cliente ID: ${venta.cliente}`;
                   }
                 } catch (error) {
-                  console.error('Error obteniendo datos del cliente:', error);
+                  console.error('❌ Error obteniendo datos del cliente:', error);
+                  nombreCliente = `Cliente ID: ${venta.cliente}`;
                 }
+              } else {
+                console.log('❌ Cliente no reconocido:', venta.cliente);
+                nombreCliente = `Cliente desconocido: ${venta.cliente}`;
               }
               
-              return {
+              const ventaProcesada = {
                 ...venta,
                 cliente: nombreCliente,
                 id: venta.id || venta._id
               };
+              
+              console.log('✅ Venta procesada:', {
+                id: ventaProcesada.id,
+                cliente: ventaProcesada.cliente,
+                total: ventaProcesada.total
+              });
+              
+              return ventaProcesada;
             })
           );
+          
+          console.log('\n🎉 Todas las ventas procesadas:', ventasProcesadas);
           
           setStats(prev => ({
             ...prev,
@@ -383,6 +417,8 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error obteniendo últimas ventas:', error);
+    } finally {
+      setCargandoUltimasVentas(false);
     }
   };
 
@@ -699,7 +735,11 @@ const Dashboard = () => {
                   Últimas Ventas
                 </Typography>
                 
-                {stats.ultimasVentas.length === 0 ? (
+                {cargandoUltimasVentas ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                    <CircularProgress size={40} />
+                  </Box>
+                ) : stats.ultimasVentas.length === 0 ? (
                   <Typography variant="body1" sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
                     No hay ventas recientes para mostrar
                   </Typography>
