@@ -180,7 +180,7 @@ const Dashboard = () => {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const lowStockProducts = useMemo(() => 
-    dashboardData.productos.filter(p => p.stock < 5), 
+    dashboardData.productos.filter(p => p && p.stock < 5), 
     [dashboardData.productos]
   );
 
@@ -257,8 +257,20 @@ const Dashboard = () => {
 
       // Debug: Verificar últimas ventas
       if (result.data.ultimasVentas && Array.isArray(result.data.ultimasVentas)) {
-        console.log('Últimas ventas recibidas:', result.data.ultimasVentas);
+        console.log('Últimas ventas recibidas del dashboard:', result.data.ultimasVentas);
         console.log('Cantidad de últimas ventas:', result.data.ultimasVentas.length);
+        
+        // Procesar las ventas para asegurar que los clientes tengan nombres
+        const ventasProcesadas = result.data.ultimasVentas.map(venta => ({
+          ...venta,
+          cliente: venta.cliente?.nombre || venta.cliente || 'Cliente sin nombre',
+          id: venta.id || venta._id
+        }));
+        
+        setStats(prev => ({
+          ...prev,
+          ultimasVentas: ventasProcesadas
+        }));
       } else {
         console.log('No se recibieron últimas ventas del dashboard, obteniendo desde endpoint de ventas...');
         await obtenerUltimasVentas();
@@ -464,6 +476,20 @@ const Dashboard = () => {
     );
   }
 
+  // Validación adicional para evitar errores de renderizado
+  if (!dashboardData || !stats) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <CircularProgress size={80} />
+      </Box>
+    );
+  }
+
   if (cargando) {
     return (
       <Box sx={{ 
@@ -593,7 +619,7 @@ const Dashboard = () => {
           ))}
         </Grid>
 
-        {lowStockProducts.length > 0 && (
+        {lowStockProducts && lowStockProducts.length > 0 && (
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Paper elevation={3} sx={{ 
@@ -617,27 +643,30 @@ const Dashboard = () => {
                 </Typography>
                 
                 <Grid container spacing={2}>
-                  {lowStockProducts.map((producto) => (
-                    <Grid item xs={12} sm={6} md={4} key={producto._id}>
-                      <Paper sx={{ 
-                        p: 2, 
-                        border: 1, 
-                        borderColor: 'warning.light',
-                        borderRadius: 2,
-                        bgcolor: 'background.paper'
-                      }}>
-                        <Typography 
-                          variant="subtitle1" 
-                          sx={{ fontWeight: 'bold', color: 'warning.dark' }}
-                        >
-                          {producto.nombre || producto.name || productosNombres[producto._id] || `Producto ID: ${producto._id?.slice(-6) || 'N/A'}`}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'error.main' }}>
-                          Stock: {producto.stock}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  ))}
+                  {lowStockProducts.map((producto, index) => {
+                    if (!producto) return null;
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={producto._id || producto.id || `producto-${index}`}>
+                        <Paper sx={{ 
+                          p: 2, 
+                          border: 1, 
+                          borderColor: 'warning.light',
+                          borderRadius: 2,
+                          bgcolor: 'background.paper'
+                        }}>
+                          <Typography 
+                            variant="subtitle1" 
+                            sx={{ fontWeight: 'bold', color: 'warning.dark' }}
+                          >
+                            {producto.nombre || producto.name || productosNombres[producto._id] || `Producto ID: ${producto._id?.slice(-6) || 'N/A'}`}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'error.main' }}>
+                            Stock: {producto.stock || 0}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    );
+                  })}
                 </Grid>
               </Paper>
             </Grid>
@@ -746,7 +775,7 @@ const Dashboard = () => {
                 ) : (
                   <Box sx={{ overflow: 'auto' }}>
                     <Grid container spacing={2}>
-                      {stats.ultimasVentas.map((venta, index) => (
+                      {stats.ultimasVentas.filter(venta => venta).map((venta, index) => (
                         <Grid item xs={12} key={venta.id || venta._id || index}>
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
@@ -766,7 +795,7 @@ const Dashboard = () => {
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Box>
                                   <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                    {venta.cliente}
+                                    {venta.cliente?.nombre || venta.cliente || 'Cliente sin nombre'}
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary">
                                     {new Date(venta.fecha).toLocaleDateString('es-ES', { 
