@@ -168,6 +168,7 @@ const Dashboard = () => {
     mesReferencia: null,
     facturasPendientes: 0
   });
+  const [productosNombres, setProductosNombres] = useState({});
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -230,6 +231,19 @@ const Dashboard = () => {
         mesReferencia: result.data.mesReferencia || null,
         facturasPendientes: result.data.totalFacturasPendientes || 0
       });
+
+      // Debug: Verificar estructura de productos con bajo stock
+      if (result.data.productosBajoStock && Array.isArray(result.data.productosBajoStock)) {
+        console.log('Productos con bajo stock recibidos:', result.data.productosBajoStock);
+        console.log('Primer producto:', result.data.productosBajoStock[0]);
+        
+        // Si los productos no tienen nombre, obtenerlos por separado
+        const productosSinNombre = result.data.productosBajoStock.filter(p => !p.nombre);
+        if (productosSinNombre.length > 0) {
+          console.log('Productos sin nombre encontrados, obteniendo nombres...');
+          await obtenerNombresProductos(productosSinNombre);
+        }
+      }
 
       setStats({
         totalVentas: result.data.ventasTotales || 0,
@@ -294,6 +308,24 @@ const Dashboard = () => {
     logout();
     toast.info('Sesión cerrada correctamente');
     navigate('/');
+  };
+
+  const obtenerNombresProductos = async (productos) => {
+    try {
+      const nombres = {};
+      for (const producto of productos) {
+        if (producto._id) {
+          const response = await fetch(`${API_URL}/api/productos/${producto._id}`);
+          if (response.ok) {
+            const data = await response.json();
+            nombres[producto._id] = data.nombre || 'Producto sin nombre';
+          }
+        }
+      }
+      setProductosNombres(prev => ({ ...prev, ...nombres }));
+    } catch (error) {
+      console.error('Error obteniendo nombres de productos:', error);
+    }
   };
 
   const handleRefresh = () => {
@@ -504,7 +536,7 @@ const Dashboard = () => {
                           variant="subtitle1" 
                           sx={{ fontWeight: 'bold', color: 'warning.dark' }}
                         >
-                          {producto.nombre}
+                          {producto.nombre || producto.name || productosNombres[producto._id] || `Producto ID: ${producto._id?.slice(-6) || 'N/A'}`}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'error.main' }}>
                           Stock: {producto.stock}
