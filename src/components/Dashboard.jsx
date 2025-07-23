@@ -254,6 +254,15 @@ const Dashboard = () => {
         ultimasVentas: result.data.ultimasVentas || []
       });
 
+      // Debug: Verificar últimas ventas
+      if (result.data.ultimasVentas && Array.isArray(result.data.ultimasVentas)) {
+        console.log('Últimas ventas recibidas:', result.data.ultimasVentas);
+        console.log('Cantidad de últimas ventas:', result.data.ultimasVentas.length);
+      } else {
+        console.log('No se recibieron últimas ventas del dashboard, obteniendo desde endpoint de ventas...');
+        await obtenerUltimasVentas();
+      }
+
       setSalesData({
         labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
         values: result.data.salesData || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -325,6 +334,55 @@ const Dashboard = () => {
       setProductosNombres(prev => ({ ...prev, ...nombres }));
     } catch (error) {
       console.error('Error obteniendo nombres de productos:', error);
+    }
+  };
+
+  const obtenerUltimasVentas = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/ventas?limit=5`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ventas && Array.isArray(data.ventas)) {
+          console.log('Últimas ventas obtenidas desde endpoint de ventas:', data.ventas);
+          
+          // Procesar las ventas para obtener nombres de clientes
+          const ventasProcesadas = await Promise.all(
+            data.ventas.map(async (venta) => {
+              let nombreCliente = 'Cliente sin nombre';
+              
+              // Si el cliente es un objeto con nombre
+              if (venta.cliente && typeof venta.cliente === 'object' && venta.cliente.nombre) {
+                nombreCliente = venta.cliente.nombre;
+              }
+              // Si el cliente es un ID, intentar obtener el nombre
+              else if (venta.cliente && typeof venta.cliente === 'string') {
+                try {
+                  const clienteResponse = await fetch(`${API_URL}/api/clientes/${venta.cliente}`);
+                  if (clienteResponse.ok) {
+                    const clienteData = await clienteResponse.json();
+                    nombreCliente = clienteData.nombre || 'Cliente sin nombre';
+                  }
+                } catch (error) {
+                  console.error('Error obteniendo datos del cliente:', error);
+                }
+              }
+              
+              return {
+                ...venta,
+                cliente: nombreCliente,
+                id: venta.id || venta._id
+              };
+            })
+          );
+          
+          setStats(prev => ({
+            ...prev,
+            ultimasVentas: ventasProcesadas
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error obteniendo últimas ventas:', error);
     }
   };
 
@@ -649,7 +707,7 @@ const Dashboard = () => {
                   <Box sx={{ overflow: 'auto' }}>
                     <Grid container spacing={2}>
                       {stats.ultimasVentas.map((venta, index) => (
-                        <Grid item xs={12} key={venta.id}>
+                        <Grid item xs={12} key={venta.id || venta._id || index}>
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
