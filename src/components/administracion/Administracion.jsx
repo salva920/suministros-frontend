@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Container, Tabs, Tab, Box, Typography, Button, Paper, TextField, Backdrop } from '@mui/material';
-import { Dashboard } from '@mui/icons-material';
+import { Container, Tabs, Tab, Box, Typography, Button, Paper, TextField, Backdrop, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, CircularProgress } from '@mui/material';
+import { Dashboard, VpnKey } from '@mui/icons-material';
 import { useNavigate, Link, Outlet } from 'react-router-dom';
 import ControlFinanciero from './ControlFinanciero';
 import ReportesFinancieros from './ReportesFinancieros';
@@ -34,6 +34,10 @@ const Administracion = () => {
   const [tabValue, setTabValue] = useState(0);
   const [clave, setClave] = useState('');
   const [autenticado, setAutenticado] = useState(false);
+  const [openChangeKey, setOpenChangeKey] = useState(false);
+  const [currentKey, setCurrentKey] = useState('');
+  const [newKey, setNewKey] = useState('');
+  const [loadingKey, setLoadingKey] = useState(false);
   const navigate = useNavigate();
 
   const handleChangeTab = (event, newValue) => {
@@ -60,28 +64,165 @@ const Administracion = () => {
     }
   };
 
+  const handleChangeUnlockKey = async (e) => {
+    e.preventDefault();
+    
+    // Validaciones
+    if (!currentKey.trim()) {
+      toast.error('Debe ingresar la clave actual');
+      return;
+    }
+    
+    if (!newKey.trim()) {
+      toast.error('Debe ingresar la nueva clave');
+      return;
+    }
+    
+    if (newKey.length < 4) {
+      toast.error('La nueva clave debe tener al menos 4 caracteres');
+      return;
+    }
+    
+    if (currentKey === newKey) {
+      toast.error('La nueva clave debe ser diferente a la actual');
+      return;
+    }
+    
+    setLoadingKey(true);
+    try {
+      const res = await axios.post(`${API_URL}/unlock-key/change`, {
+        currentKey: currentKey.trim(),
+        newKey: newKey.trim()
+      });
+      
+      if (res.data.success) {
+        toast.success('Clave cambiada correctamente');
+        setOpenChangeKey(false);
+        setCurrentKey('');
+        setNewKey('');
+      } else {
+        toast.error(res.data.message || 'Error al cambiar la clave');
+      }
+    } catch (err) {
+      if (err.response?.status === 401) {
+        toast.error('Clave actual incorrecta');
+      } else if (err.response?.status === 400) {
+        toast.error(err.response.data.message || 'Datos inválidos');
+      } else {
+        toast.error('Error al cambiar la clave. Intente nuevamente.');
+      }
+      console.error('Error cambiando clave:', err);
+    } finally {
+      setLoadingKey(false);
+    }
+  };
+
+  // Limpiar campos cuando se cierre el modal de cambio de clave
+  React.useEffect(() => {
+    if (!openChangeKey) {
+      setCurrentKey('');
+      setNewKey('');
+    }
+  }, [openChangeKey]);
+
   if (!autenticado) {
     return (
-      <Backdrop open sx={{ backdropFilter: 'blur(8px)', zIndex: (theme) => theme.zIndex.modal - 1 }}>
-        <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
-          <Typography variant="h5" gutterBottom>Acceso Restringido</Typography>
-          <TextField
-            label="Clave de acceso"
-            type="password"
-            value={clave}
-            onChange={(e) => setClave(e.target.value)}
-            sx={{ mb: 2 }}
-            fullWidth
-          />
-          <Button
-            variant="contained"
-            onClick={handleSubmitClave}
-            fullWidth
-          >
-            Ingresar
-          </Button>
-        </Paper>
-      </Backdrop>
+      <>
+        <Backdrop open sx={{ backdropFilter: 'blur(8px)', zIndex: (theme) => theme.zIndex.modal - 1 }}>
+          <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
+            <Typography variant="h5" gutterBottom>Acceso Restringido</Typography>
+            <TextField
+              label="Clave de acceso"
+              type="password"
+              value={clave}
+              onChange={(e) => setClave(e.target.value)}
+              sx={{ mb: 2 }}
+              fullWidth
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Button
+                variant="contained"
+                onClick={handleSubmitClave}
+                fullWidth
+              >
+                Ingresar
+              </Button>
+              <Button
+                variant="text"
+                color="secondary"
+                onClick={() => setOpenChangeKey(true)}
+                startIcon={<VpnKey />}
+                sx={{ textTransform: 'none' }}
+              >
+                Cambiar Contraseña
+              </Button>
+            </Box>
+          </Paper>
+        </Backdrop>
+
+        {/* Modal para cambiar contraseña */}
+        <Dialog open={openChangeKey} onClose={() => setOpenChangeKey(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ 
+            bgcolor: 'primary.main', 
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}>
+            <VpnKey /> Cambiar Clave de Acceso
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3 }}>
+            <form onSubmit={handleChangeUnlockKey}>
+              <TextField
+                label="Clave actual"
+                type="password"
+                fullWidth
+                margin="normal"
+                value={currentKey}
+                onChange={e => setCurrentKey(e.target.value)}
+                required
+                variant="outlined"
+                placeholder="Ingrese la clave actual"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Nueva clave"
+                type="password"
+                fullWidth
+                margin="normal"
+                value={newKey}
+                onChange={e => setNewKey(e.target.value)}
+                required
+                variant="outlined"
+                placeholder="Ingrese la nueva clave"
+                sx={{ mb: 3 }}
+              />
+              <DialogActions sx={{ justifyContent: 'flex-end', gap: 1 }}>
+                <Button 
+                  onClick={() => {
+                    setOpenChangeKey(false);
+                    setCurrentKey('');
+                    setNewKey('');
+                  }} 
+                  variant="outlined"
+                  color="secondary"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  color="primary" 
+                  variant="contained"
+                  disabled={loadingKey || !currentKey || !newKey}
+                  startIcon={loadingKey ? <CircularProgress size={20} /> : <VpnKey />}
+                >
+                  {loadingKey ? 'Cambiando...' : 'Cambiar Clave'}
+                </Button>
+              </DialogActions>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
