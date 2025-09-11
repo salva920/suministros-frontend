@@ -13,11 +13,11 @@ const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backe
 const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: 'white',
   borderRadius: '8px',
-  padding: theme.spacing(2),
+  padding: theme.spacing(1.5),
   marginBottom: theme.spacing(2),
   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
   position: 'relative',
-  maxWidth: '300px',
+  maxWidth: '400px',
   margin: '0 auto',
   border: '1px solid #e5e7eb',
   transition: 'all 0.3s ease',
@@ -25,11 +25,6 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   '&:hover': {
     boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
     transform: 'translateY(-2px)',
-    '& .hover-form': {
-      opacity: 1,
-      maxHeight: '200px',
-      padding: theme.spacing(1, 0),
-    }
   }
 }));
 
@@ -132,141 +127,94 @@ const TasaCambio = () => {
       transition={{ duration: 0.6 }}
     >
       <StyledPaper elevation={0}>
-        <Box>
-          {/* Título principal */}
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {/* Información de la tasa */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px' }}>
             <Typography 
-              variant="h6" 
+              variant="body2" 
               sx={{ 
                 color: '#3F51B5', 
                 fontWeight: 'bold',
-                fontSize: '1rem',
+                fontSize: '0.75rem',
                 letterSpacing: '0.5px',
                 mb: 0.5
               }}
             >
               TASA DE CAMBIO
             </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: '#3F51B5', 
-                fontWeight: '500',
-                fontSize: '0.75rem',
-                letterSpacing: '0.3px'
-              }}
-            >
-              OFICIAL BCV
-            </Typography>
+            {ultimaTasa && (
+              <>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#3F51B5', 
+                    fontWeight: 'bold',
+                    fontSize: '1.5rem',
+                    lineHeight: 1
+                  }}
+                >
+                  {ultimaTasa.tasa}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: '#6b7280', 
+                    fontSize: '0.7rem'
+                  }}
+                >
+                  Bs/USD
+                </Typography>
+              </>
+            )}
           </Box>
 
-          {/* Tarjeta de última tasa */}
-          {ultimaTasa && (
-            <Box sx={{ textAlign: 'center', mb: 2 }}>
-              <Typography 
-                variant="h4" 
-                sx={{ 
-                  color: '#3F51B5', 
-                  fontWeight: 'bold',
-                  fontSize: '2rem',
-                  mb: 0.5
-                }}
-              >
-                {ultimaTasa.tasa}
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: '#3F51B5', 
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  mb: 0.5
-                }}
-              >
-                Bs/USD
-              </Typography>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: '#6b7280', 
-                  fontSize: '0.75rem'
-                }}
-              >
-                {new Date(ultimaTasa.fecha).toLocaleDateString('es-ES', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </Typography>
-            </Box>
-          )}
-
-          {/* Formulario de actualización - Solo visible en hover */}
+          {/* Formulario de actualización - Siempre visible */}
           <Box 
             component="form" 
             onSubmit={handleSubmit} 
-            className="hover-form"
             sx={{ 
-              opacity: 0,
-              maxHeight: 0,
-              overflow: 'hidden',
-              transition: 'all 0.3s ease',
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              backgroundColor: 'white',
-              borderRadius: '0 0 8px 8px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              border: '1px solid #e5e7eb',
-              borderTop: 'none',
-              zIndex: 1000,
-              minWidth: '280px',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              flex: 1
             }}
           >
-            <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'center', flexDirection: 'column' }}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: '#6b7280', 
-                  mb: 1,
-                  fontSize: '0.75rem',
-                  textAlign: 'center'
-                }}
-              >
-                Actualizar tasa de cambio
-              </Typography>
-              <StyledTextField
-                label="Nueva tasa ($/BS)"
-                type="number"
-                value={tasa}
-                onChange={(e) => setTasa(e.target.value)}
-                required
-                size="small"
-                sx={{ width: '100%' }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <AttachMoney sx={{ color: '#3F51B5', fontSize: '1rem' }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <StyledButton 
-                type="submit" 
-                startIcon={<Update />}
-                disabled={!tasa || tasa <= 0}
-                size="small"
-                sx={{ 
-                  px: 2, 
-                  py: 0.5,
-                  fontSize: '0.75rem',
-                  width: '100%'
-                }}
-              >
-                Actualizar
-              </StyledButton>
-            </Box>
+            <StyledTextField
+              label="Nueva tasa"
+              type="number"
+              value={tasa}
+              onChange={(e) => setTasa(e.target.value)}
+              required
+              size="small"
+              sx={{ 
+                width: '120px',
+                '& .MuiInputBase-input': {
+                  fontSize: '0.875rem',
+                  padding: '8px 12px'
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AttachMoney sx={{ color: '#3F51B5', fontSize: '0.875rem' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <StyledButton 
+              type="submit" 
+              startIcon={<Update />}
+              disabled={!tasa || tasa <= 0}
+              size="small"
+              sx={{ 
+                px: 2, 
+                py: 0.5,
+                fontSize: '0.75rem',
+                minWidth: '80px'
+              }}
+            >
+              Actualizar
+            </StyledButton>
           </Box>
         </Box>
       </StyledPaper>
