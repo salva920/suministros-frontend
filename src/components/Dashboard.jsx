@@ -5,6 +5,7 @@ import {
   CardContent, CircularProgress, Box, Divider, LinearProgress,
   Tooltip, Avatar, useTheme, useMediaQuery, Chip
 } from '@mui/material';
+import logoRomero from '../logoRomero.png';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
@@ -135,9 +136,9 @@ const StatsBars = ({ data, color }) => {
 };
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-DO', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'DOP',
+    currency: 'USD',
     minimumFractionDigits: 2
   }).format(amount);
 };
@@ -513,18 +514,17 @@ const Dashboard = () => {
     >
       <AppBar position="static" sx={{ bgcolor: 'primary.dark' }}>
         <Toolbar>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              flexGrow: 1, 
-              fontWeight: 'bold',
-              color: 'common.white',
-              textTransform: 'uppercase',
-              letterSpacing: 1
-            }}
-          >
-            Distribuciones y suministros Romero C.A. 
-          </Typography>
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+            <img 
+              src={logoRomero} 
+              alt="DSR Distribuciones y Suministros Romero C.A." 
+              style={{ 
+                height: '50px', 
+                width: 'auto',
+                marginRight: '16px'
+              }}
+            />
+          </Box>
           
           <TextField
             variant="outlined"
