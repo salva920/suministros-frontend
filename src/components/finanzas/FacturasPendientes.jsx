@@ -757,7 +757,7 @@ const FacturasPendientes = () => {
                               size="small"
                             />
                           </TableCell>
-                          <TableCell align="right">{formatearMoneda(factura.monto, 'Bs', 'Bs', factura.moneda, factura.tasaCambioUsada)}</TableCell>
+                          <TableCell align="right">{formatearMoneda(factura.monto, factura.moneda, 'Bs', factura.moneda, factura.tasaCambioUsada)}</TableCell>
                           <TableCell align="right">
                             <Box>
                               {formatearAbono(factura.abono, factura.monedaAbono || 'Bs')}
@@ -769,7 +769,7 @@ const FacturasPendientes = () => {
                           <TableCell align="right">
                             <motion.div whileHover={{ scale: 1.05 }}>
                               <Chip 
-                                label={formatearMoneda(factura.saldo, 'Bs', 'Bs', factura.moneda, factura.tasaCambioUsada)}
+                                label={formatearMoneda(factura.saldo, factura.moneda, 'Bs', factura.moneda, factura.tasaCambioUsada)}
                                 color={esFacturaPagada(factura.saldo) ? 'success' : factura.abono > 0 ? 'warning' : 'error'}
                                 variant={esFacturaPagada(factura.saldo) ? 'filled' : 'outlined'}
                                 sx={{ 
