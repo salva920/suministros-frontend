@@ -386,7 +386,10 @@ const FacturasPendientes = () => {
     
     setLoading(true);
     try {
-      await axios.post(API_URL + '/facturaPendiente', nuevaFactura);
+      await axios.post(API_URL + '/facturaPendiente', {
+        ...nuevaFactura,
+        tasaCambio: tasaCambio
+      });
       
       toast.success('Factura registrada correctamente');
       setOpenNuevaFacturaModal(false);
