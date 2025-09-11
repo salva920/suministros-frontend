@@ -108,14 +108,10 @@ const FacturasPendientes = () => {
   // Estados para manejar datos y UI
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   
   // Estados para filtros
   const [busqueda, setBusqueda] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('pendientes');
+  const [filtroEstado, setFiltroEstado] = useState('todas');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -182,14 +178,31 @@ const FacturasPendientes = () => {
     // Usar la tasa de cambio guardada en la factura si está disponible, sino usar la actual
     const tasaAUsar = tasaCambioUsada || tasaCambio;
 
+    // Debug: mostrar información para troubleshooting
+    if (process.env.NODE_ENV === 'development') {
+      console.log('formatearMoneda debug:', {
+        valor: valorRedondeado,
+        moneda,
+        monedaOriginal,
+        tasaCambioUsada,
+        tasaCambio,
+        tasaAUsar
+      });
+    }
+
+    // Si no hay tasa de cambio válida, no mostrar equivalencia
+    if (!tasaAUsar || tasaAUsar <= 0) {
+      return formateado;
+    }
+
     // Mostrar equivalencia si la moneda original era USD
-    if (monedaOriginal === 'USD' && tasaAUsar > 0) {
+    if (monedaOriginal === 'USD') {
       const equivalenteUSD = redondear(valorRedondeado / tasaAUsar);
       return `${formateado} (Orig: $ ${equivalenteUSD.toFixed(2)})`;
     }
     
-    // Mostrar equivalencia en USD si la moneda es Bs y hay tasa de cambio
-    if (moneda === 'Bs' && tasaAUsar > 0) {
+    // Mostrar equivalencia en USD si la moneda es Bs
+    if (moneda === 'Bs') {
       const equivalenteUSD = redondear(valorRedondeado / tasaAUsar);
       return `${formateado} (Ref: $ ${equivalenteUSD.toFixed(2)})`;
     }
@@ -212,14 +225,12 @@ const FacturasPendientes = () => {
       : formateado;
   };
   
-  // Cargar facturas pendientes con paginación
+  // Cargar facturas pendientes
   const cargarFacturas = useCallback(async () => {
     setLoading(true);
     
     try {
       const params = new URLSearchParams({
-        page: page + 1, // API usa 1-indexed pages
-        limit: rowsPerPage,
         estado: filtroEstado,
         busqueda
       });
@@ -230,36 +241,22 @@ const FacturasPendientes = () => {
       const response = await axios.get(`${API_URL}/facturaPendiente?${params.toString()}`);
       
       setFacturas(response.data.facturas);
-      setTotalItems(response.data.totalDocs);
-      setTotalPages(response.data.totalPages);
     } catch (error) {
       console.error('Error al cargar facturas pendientes:', error);
       toast.error('No se pudieron cargar las facturas pendientes');
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, filtroEstado, busqueda, fechaDesde, fechaHasta]);
+  }, [filtroEstado, busqueda, fechaDesde, fechaHasta]);
   
-  // Cargar facturas cuando cambien los filtros, página o límite
+  // Cargar facturas cuando cambien los filtros
   useEffect(() => {
     cargarFacturas();
   }, [cargarFacturas]);
   
-  // Manejador de cambio de página
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-  
-  // Manejador de cambio de filas por página
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-  
   // Función para buscar facturas (con debounce)
   const buscarFacturas = debounce((valor) => {
     setBusqueda(valor);
-    setPage(0);
   }, 500);
   
   // Manejador de cambio en búsqueda
@@ -271,19 +268,16 @@ const FacturasPendientes = () => {
   // Manejador de cambio en filtro de estado
   const handleFiltroEstadoChange = (e) => {
     setFiltroEstado(e.target.value);
-    setPage(0);
   };
   
   // Manejador de cambio en fecha desde
   const handleFechaDesdeChange = (e) => {
     setFechaDesde(e.target.value);
-    setPage(0);
   };
   
   // Manejador de cambio en fecha hasta
   const handleFechaHastaChange = (e) => {
     setFechaHasta(e.target.value);
-    setPage(0);
   };
   
   // Función para convertir monto según moneda
@@ -527,10 +521,9 @@ const FacturasPendientes = () => {
                 startIcon={<RefreshIcon />}
                 onClick={() => {
                   setBusqueda('');
-                  setFiltroEstado('pendientes');
+                  setFiltroEstado('todas');
                   setFechaDesde('');
                   setFechaHasta('');
-                  setPage(0);
                 }}
                 sx={{ textTransform: 'none' }}
               >
@@ -846,23 +839,6 @@ const FacturasPendientes = () => {
               </Table>
             </TableContainer>
             
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50]}
-              component="div"
-              count={totalItems}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Filas por página:"
-              labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
-              sx={{
-                borderTop: '1px solid rgba(224, 224, 224, 1)',
-                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                  fontWeight: 'medium'
-                }
-              }}
-            />
           </Paper>
         </motion.div>
         
