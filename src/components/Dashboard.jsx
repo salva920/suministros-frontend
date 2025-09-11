@@ -5,7 +5,7 @@ import {
   CardContent, CircularProgress, Box, Divider, LinearProgress,
   Tooltip, Avatar, useTheme, useMediaQuery, Chip
 } from '@mui/material';
-import logoRomero from '../logoRomero.png';
+import logoRomero from '../logo2.png';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
@@ -519,10 +519,11 @@ const Dashboard = () => {
               src={logoRomero} 
               alt="DSR Distribuciones y Suministros Romero C.A." 
               style={{ 
-                height: '80px', 
+                height: '70px', 
                 width: 'auto',
                 marginRight: '20px',
-                maxWidth: '300px'
+                maxWidth: '350px',
+                objectFit: 'contain'
               }}
             />
           </Box>
