@@ -480,54 +480,22 @@ const FacturasPendientes = () => {
         />
         
         <motion.div variants={itemVariants}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            mb: 4,
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: isMobile ? 2 : 0
-          }}>
-            <Typography 
-              variant="h4" 
-              component={motion.h4}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              sx={{ 
-                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontWeight: 'bold',
-                mb: isMobile ? 2 : 0
-              }}
-            >
-              Facturas Pendientes
-            </Typography>
-            
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={abrirModalNuevaFactura}
-                sx={{
-                  borderRadius: '12px',
-                  padding: '10px 20px',
-                  background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                  boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
-                  textTransform: 'none',
-                  fontWeight: 'bold',
-                  width: isMobile ? '100%' : 'auto'
-                }}
-              >
-                Nueva Factura
-              </Button>
-            </motion.div>
-          </Box>
+          <Typography 
+            variant="h4" 
+            component={motion.h4}
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            sx={{ 
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 'bold',
+              mb: 4
+            }}
+          >
+            Facturas Pendientes
+          </Typography>
         </motion.div>
         
         {/* Agregar el componente TasaCambio después del título */}
@@ -652,6 +620,41 @@ const FacturasPendientes = () => {
               </Grid>
             </Grid>
           </FilterContainer>
+        </motion.div>
+        
+        {/* Botón Nueva Factura */}
+        <motion.div
+          variants={itemVariants}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            mb: 3
+          }}>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={abrirModalNuevaFactura}
+                sx={{
+                  borderRadius: '12px',
+                  padding: '12px 24px',
+                  background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                  boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  fontSize: '1rem'
+                }}
+              >
+                Nueva Factura
+              </Button>
+            </motion.div>
+          </Box>
         </motion.div>
         
         {/* Tabla de facturas */}
