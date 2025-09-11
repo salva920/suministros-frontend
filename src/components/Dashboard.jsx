@@ -519,9 +519,10 @@ const Dashboard = () => {
               src={logoRomero} 
               alt="DSR Distribuciones y Suministros Romero C.A." 
               style={{ 
-                height: '50px', 
+                height: '80px', 
                 width: 'auto',
-                marginRight: '16px'
+                marginRight: '20px',
+                maxWidth: '300px'
               }}
             />
           </Box>
