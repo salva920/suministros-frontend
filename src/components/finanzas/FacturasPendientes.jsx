@@ -493,13 +493,13 @@ const FacturasPendientes = () => {
           </Typography>
         </motion.div>
         
-        {/* Tasa de Cambio en la esquina junto al título */}
+        {/* Tasa de Cambio en el flujo normal del documento */}
         <Box sx={{ 
-          position: 'absolute', 
-          top: 80, 
-          right: 20, 
-          zIndex: 10,
-          maxWidth: '300px'
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          mb: 3,
+          maxWidth: '300px',
+          marginLeft: 'auto'
         }}>
           <TasaCambio onTasaChange={handleTasaChange} />
         </Box>

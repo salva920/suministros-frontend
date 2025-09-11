@@ -221,6 +221,7 @@ const TasaCambio = () => {
               border: '1px solid #e5e7eb',
               borderTop: 'none',
               zIndex: 1000,
+              minWidth: '280px',
             }}
           >
             <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'center', flexDirection: 'column' }}>
