@@ -140,94 +140,69 @@ const TasaCambio = () => {
       transition={{ duration: 0.6 }}
     >
       <StyledPaper elevation={0}>
-        {/* Información básica de la tasa - Siempre visible */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-            <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1rem' }} />
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: '#1976d2', 
-                fontWeight: 'bold',
-                fontSize: '0.7rem',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase'
-              }}
-            >
-              TASA DE CAMBIO
-            </Typography>
-          </Box>
-          {ultimaTasa && (
-            <>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+          {/* Información de la tasa */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px', flex: '0 0 auto' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1rem' }} />
               <Typography 
-                variant="h6" 
+                variant="body2" 
                 sx={{ 
                   color: '#1976d2', 
                   fontWeight: 'bold',
-                  fontSize: '1.4rem',
-                  lineHeight: 1,
-                  textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
-                  mb: 0.5
-                }}
-              >
-                {ultimaTasa.tasa}
-              </Typography>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: '#666', 
                   fontSize: '0.7rem',
-                  fontWeight: 'bold',
-                  backgroundColor: '#e3f2fd',
-                  padding: '2px 6px',
-                  borderRadius: '8px',
-                  border: '1px solid #bbdefb'
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase'
                 }}
               >
-                Bs/USD
+                TASA DE CAMBIO
               </Typography>
-            </>
-          )}
-        </Box>
+            </Box>
+            {ultimaTasa && (
+              <>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#1976d2', 
+                    fontWeight: 'bold',
+                    fontSize: '1.4rem',
+                    lineHeight: 1,
+                    textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
+                    mb: 0.5
+                  }}
+                >
+                  {ultimaTasa.tasa}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: '#666', 
+                    fontSize: '0.7rem',
+                    fontWeight: '600',
+                    backgroundColor: '#e3f2fd',
+                    padding: '2px 6px',
+                    borderRadius: '8px',
+                    border: '1px solid #bbdefb'
+                  }}
+                >
+                  Bs/USD
+                </Typography>
+              </>
+            )}
+          </Box>
 
-        {/* Formulario de actualización - Solo visible en hover */}
-        <Box 
-          className="hover-form"
-          component="form" 
-          onSubmit={handleSubmit} 
-          sx={{ 
-            opacity: 0,
-            maxHeight: 0,
-            overflow: 'hidden',
-            transition: 'all 0.3s ease',
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center', 
-            gap: 1,
-            backgroundColor: 'rgba(255,255,255,0.95)',
-            borderRadius: '8px',
-            border: '1px solid #e3f2fd',
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 1000,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}
-        >
-          <Typography 
-            variant="caption" 
+          {/* Formulario de actualización - Siempre visible */}
+          <Box 
+            component="form" 
+            onSubmit={handleSubmit} 
             sx={{ 
-              color: '#1976d2', 
-              fontWeight: 'bold',
-              fontSize: '0.7rem',
-              textTransform: 'uppercase',
-              mb: 0.5
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              flex: 1,
+              minWidth: 0
             }}
           >
-            Actualizar Tasa
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
             <StyledTextField
               label="Nueva tasa"
               type="number"
@@ -236,11 +211,11 @@ const TasaCambio = () => {
               required
               size="small"
               sx={{ 
-                width: '100%',
+                width: '110px',
                 '& .MuiInputBase-input': {
                   fontSize: '0.8rem',
                   padding: '8px 10px',
-                  fontWeight: 'bold'
+                  fontWeight: '600'
                 },
                 '& .MuiInputLabel-root': {
                   fontWeight: 'bold',
@@ -261,10 +236,10 @@ const TasaCambio = () => {
               disabled={!tasa || tasa <= 0}
               size="small"
               sx={{ 
-                width: '100%',
                 px: 2, 
                 py: 0.8,
                 fontSize: '0.75rem',
+                minWidth: '80px',
                 fontWeight: 'bold'
               }}
             >
