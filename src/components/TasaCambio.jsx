@@ -133,18 +133,18 @@ const TasaCambio = () => {
       transition={{ duration: 0.6 }}
     >
       <StyledPaper elevation={0}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
           {/* Información de la tasa */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '140px' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1.2rem' }} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px', flex: '0 0 auto' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1rem' }} />
               <Typography 
                 variant="body2" 
                 sx={{ 
                   color: '#1976d2', 
                   fontWeight: 'bold',
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.8px',
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.5px',
                   textTransform: 'uppercase'
                 }}
               >
@@ -154,11 +154,11 @@ const TasaCambio = () => {
             {ultimaTasa && (
               <>
                 <Typography 
-                  variant="h5" 
+                  variant="h6" 
                   sx={{ 
                     color: '#1976d2', 
                     fontWeight: 'bold',
-                    fontSize: '1.8rem',
+                    fontSize: '1.4rem',
                     lineHeight: 1,
                     textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
                     mb: 0.5
@@ -170,11 +170,11 @@ const TasaCambio = () => {
                   variant="caption" 
                   sx={{ 
                     color: '#666', 
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     fontWeight: '600',
                     backgroundColor: '#e3f2fd',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
+                    padding: '2px 6px',
+                    borderRadius: '8px',
                     border: '1px solid #bbdefb'
                   }}
                 >
@@ -191,8 +191,9 @@ const TasaCambio = () => {
             sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: 1.5,
-              flex: 1
+              gap: 1,
+              flex: 1,
+              minWidth: 0
             }}
           >
             <StyledTextField
@@ -203,35 +204,35 @@ const TasaCambio = () => {
               required
               size="small"
               sx={{ 
-                width: '130px',
+                width: '110px',
                 '& .MuiInputBase-input': {
-                  fontSize: '0.9rem',
-                  padding: '10px 14px',
+                  fontSize: '0.8rem',
+                  padding: '8px 10px',
                   fontWeight: '600'
                 },
                 '& .MuiInputLabel-root': {
                   fontWeight: 'bold',
-                  fontSize: '0.8rem'
+                  fontSize: '0.7rem'
                 }
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <AttachMoney sx={{ color: '#1976d2', fontSize: '1rem' }} />
+                    <AttachMoney sx={{ color: '#1976d2', fontSize: '0.9rem' }} />
                   </InputAdornment>
                 ),
               }}
             />
             <StyledButton 
               type="submit" 
-              startIcon={<Update sx={{ fontSize: '1rem' }} />}
+              startIcon={<Update sx={{ fontSize: '0.9rem' }} />}
               disabled={!tasa || tasa <= 0}
               size="small"
               sx={{ 
-                px: 2.5, 
-                py: 1,
-                fontSize: '0.8rem',
-                minWidth: '90px',
+                px: 2, 
+                py: 0.8,
+                fontSize: '0.75rem',
+                minWidth: '80px',
                 fontWeight: 'bold'
               }}
             >
