@@ -142,54 +142,42 @@ const TasaCambio = () => {
       <StyledPaper elevation={0}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
           {/* Información de la tasa */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px', flex: '0 0 auto' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-              <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1rem' }} />
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: '#1976d2', 
-                  fontWeight: 'bold',
-                  fontSize: '0.7rem',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase'
-                }}
-              >
-                TASA DE CAMBIO
-              </Typography>
-            </Box>
-            {ultimaTasa && (
-              <>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: '#1976d2', 
-                    fontWeight: 'bold',
-                    fontSize: '1.4rem',
-                    lineHeight: 1,
-                    textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
-                    mb: 0.5
-                  }}
-                >
-                  {ultimaTasa.tasa}
-                </Typography>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: '#666', 
-                    fontSize: '0.7rem',
-                    fontWeight: '600',
-                    backgroundColor: '#e3f2fd',
-                    padding: '2px 6px',
-                    borderRadius: '8px',
-                    border: '1px solid #bbdefb'
-                  }}
-                >
-                  Bs/USD
-                </Typography>
-              </>
-            )}
-          </Box>
+           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px', flex: '0 0 auto' }}>
+             {/* Icono centrado */}
+             <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1.5rem', mb: 0.5 }} />
+             
+             {ultimaTasa && (
+               <>
+                 <Typography 
+                   variant="h6" 
+                   sx={{ 
+                     color: '#1976d2', 
+                     fontWeight: 'bold',
+                     fontSize: '1.4rem',
+                     lineHeight: 1,
+                     textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
+                     mb: 0.5
+                   }}
+                 >
+                   {ultimaTasa.tasa}
+                 </Typography>
+                 <Typography 
+                   variant="caption" 
+                   sx={{ 
+                     color: '#666', 
+                     fontSize: '0.7rem',
+                     fontWeight: 'bold',
+                     backgroundColor: '#e3f2fd',
+                     padding: '2px 6px',
+                     borderRadius: '8px',
+                     border: '1px solid #bbdefb'
+                   }}
+                 >
+                   Bs/USD
+                 </Typography>
+               </>
+             )}
+           </Box>
 
           {/* Formulario de actualización - Siempre visible */}
           <Box 
