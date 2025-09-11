@@ -13,11 +13,11 @@ const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backe
 const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: 'white',
   borderRadius: '12px',
-  padding: theme.spacing(2),
+  padding: theme.spacing(1.5),
   marginBottom: theme.spacing(2),
   boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
   position: 'relative',
-  maxWidth: '450px',
+  maxWidth: '200px',
   margin: '0 auto',
   border: '2px solid #e3f2fd',
   transition: 'all 0.3s ease',
@@ -27,6 +27,13 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     boxShadow: '0 10px 30px rgba(33, 150, 243, 0.2)',
     transform: 'translateY(-3px)',
     border: '2px solid #1976d2',
+    maxWidth: '400px',
+    '& .hover-form': {
+      opacity: 1,
+      maxHeight: '200px',
+      padding: theme.spacing(1.5),
+      marginTop: theme.spacing(1)
+    }
   }
 }));
 
@@ -133,69 +140,94 @@ const TasaCambio = () => {
       transition={{ duration: 0.6 }}
     >
       <StyledPaper elevation={0}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-          {/* Información de la tasa */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px', flex: '0 0 auto' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-              <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1rem' }} />
+        {/* Información básica de la tasa - Siempre visible */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1rem' }} />
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#1976d2', 
+                fontWeight: 'bold',
+                fontSize: '0.7rem',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase'
+              }}
+            >
+              TASA DE CAMBIO
+            </Typography>
+          </Box>
+          {ultimaTasa && (
+            <>
               <Typography 
-                variant="body2" 
+                variant="h6" 
                 sx={{ 
                   color: '#1976d2', 
                   fontWeight: 'bold',
-                  fontSize: '0.7rem',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase'
+                  fontSize: '1.4rem',
+                  lineHeight: 1,
+                  textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
+                  mb: 0.5
                 }}
               >
-                TASA DE CAMBIO
+                {ultimaTasa.tasa}
               </Typography>
-            </Box>
-            {ultimaTasa && (
-              <>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: '#1976d2', 
-                    fontWeight: 'bold',
-                    fontSize: '1.4rem',
-                    lineHeight: 1,
-                    textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
-                    mb: 0.5
-                  }}
-                >
-                  {ultimaTasa.tasa}
-                </Typography>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: '#666', 
-                    fontSize: '0.7rem',
-                    fontWeight: '600',
-                    backgroundColor: '#e3f2fd',
-                    padding: '2px 6px',
-                    borderRadius: '8px',
-                    border: '1px solid #bbdefb'
-                  }}
-                >
-                  Bs/USD
-                </Typography>
-              </>
-            )}
-          </Box>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#666', 
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  backgroundColor: '#e3f2fd',
+                  padding: '2px 6px',
+                  borderRadius: '8px',
+                  border: '1px solid #bbdefb'
+                }}
+              >
+                Bs/USD
+              </Typography>
+            </>
+          )}
+        </Box>
 
-          {/* Formulario de actualización - Siempre visible */}
-          <Box 
-            component="form" 
-            onSubmit={handleSubmit} 
+        {/* Formulario de actualización - Solo visible en hover */}
+        <Box 
+          className="hover-form"
+          component="form" 
+          onSubmit={handleSubmit} 
+          sx={{ 
+            opacity: 0,
+            maxHeight: 0,
+            overflow: 'hidden',
+            transition: 'all 0.3s ease',
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center', 
+            gap: 1,
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            borderRadius: '8px',
+            border: '1px solid #e3f2fd',
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
+          <Typography 
+            variant="caption" 
             sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              flex: 1,
-              minWidth: 0
+              color: '#1976d2', 
+              fontWeight: 'bold',
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+              mb: 0.5
             }}
           >
+            Actualizar Tasa
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
             <StyledTextField
               label="Nueva tasa"
               type="number"
@@ -204,11 +236,11 @@ const TasaCambio = () => {
               required
               size="small"
               sx={{ 
-                width: '110px',
+                width: '100%',
                 '& .MuiInputBase-input': {
                   fontSize: '0.8rem',
                   padding: '8px 10px',
-                  fontWeight: '600'
+                  fontWeight: 'bold'
                 },
                 '& .MuiInputLabel-root': {
                   fontWeight: 'bold',
@@ -229,10 +261,10 @@ const TasaCambio = () => {
               disabled={!tasa || tasa <= 0}
               size="small"
               sx={{ 
+                width: '100%',
                 px: 2, 
                 py: 0.8,
                 fontSize: '0.75rem',
-                minWidth: '80px',
                 fontWeight: 'bold'
               }}
             >
