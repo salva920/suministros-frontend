@@ -513,8 +513,8 @@ const Dashboard = () => {
       animate="visible"
     >
       <AppBar position="static" sx={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        background: 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 50%, #7f8c8d 100%)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
         backdropFilter: 'blur(10px)'
       }}>
         <Toolbar>
@@ -530,6 +530,19 @@ const Dashboard = () => {
                 objectFit: 'contain'
               }}
             />
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: 'black',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                fontSize: { xs: '1rem', sm: '1.2rem', md: '1.4rem' },
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              DISTRIBUCIONES Y SUMINISTROS ROMERO 
+            </Typography>
           </Box>
           
           <TextField
