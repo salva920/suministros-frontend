@@ -512,7 +512,11 @@ const Dashboard = () => {
       initial="hidden"
       animate="visible"
     >
-      <AppBar position="static" sx={{ bgcolor: 'primary.dark' }}>
+      <AppBar position="static" sx={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        backdropFilter: 'blur(10px)'
+      }}>
         <Toolbar>
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
             <img 
