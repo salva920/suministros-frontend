@@ -13,13 +13,22 @@ const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backe
 const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: 'white',
   borderRadius: '8px',
-  padding: theme.spacing(3),
+  padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
   position: 'relative',
-  maxWidth: '500px',
+  maxWidth: '300px',
   margin: '0 auto',
   border: '1px solid #e5e7eb',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+    transform: 'translateY(-2px)',
+    '& .hover-form': {
+      opacity: 1,
+      maxHeight: '200px',
+    }
+  }
 }));
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
@@ -123,13 +132,13 @@ const TasaCambio = () => {
       <StyledPaper elevation={0}>
         <Box>
           {/* Título principal */}
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Box sx={{ textAlign: 'center', mb: 2 }}>
             <Typography 
-              variant="h4" 
+              variant="h6" 
               sx={{ 
                 color: '#3F51B5', 
                 fontWeight: 'bold',
-                fontSize: '1.5rem',
+                fontSize: '1rem',
                 letterSpacing: '0.5px',
                 mb: 0.5
               }}
@@ -137,11 +146,11 @@ const TasaCambio = () => {
               TASA DE CAMBIO
             </Typography>
             <Typography 
-              variant="h6" 
+              variant="body2" 
               sx={{ 
                 color: '#3F51B5', 
                 fontWeight: '500',
-                fontSize: '1rem',
+                fontSize: '0.75rem',
                 letterSpacing: '0.3px'
               }}
             >
@@ -151,34 +160,34 @@ const TasaCambio = () => {
 
           {/* Tarjeta de última tasa */}
           {ultimaTasa && (
-            <StyledTasaCard>
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
               <Typography 
-                variant="h3" 
+                variant="h4" 
                 sx={{ 
                   color: '#3F51B5', 
                   fontWeight: 'bold',
-                  fontSize: '2.5rem',
-                  mb: 1
+                  fontSize: '2rem',
+                  mb: 0.5
                 }}
               >
                 {ultimaTasa.tasa}
               </Typography>
               <Typography 
-                variant="h6" 
+                variant="body2" 
                 sx={{ 
                   color: '#3F51B5', 
                   fontWeight: '500',
-                  fontSize: '1rem'
+                  fontSize: '0.875rem',
+                  mb: 0.5
                 }}
               >
                 Bs/USD
               </Typography>
               <Typography 
-                variant="body2" 
+                variant="caption" 
                 sx={{ 
                   color: '#6b7280', 
-                  fontSize: '0.875rem',
-                  mt: 1
+                  fontSize: '0.75rem'
                 }}
               >
                 {new Date(ultimaTasa.fecha).toLocaleDateString('es-ES', {
@@ -187,34 +196,34 @@ const TasaCambio = () => {
                   day: 'numeric'
                 })}
               </Typography>
-            </StyledTasaCard>
+            </Box>
           )}
 
-          {/* Formulario de actualización */}
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: '#6b7280', 
-                mb: 1,
-                fontSize: '0.875rem'
-              }}
-            >
-              El tipo de cambio publicado por el BCV es el promedio ponderado resultante de las operaciones diarias de las mesas de cambio activas de las instituciones bancarias participantes.
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+          {/* Formulario de actualización - Solo visible en hover */}
+          <Box 
+            component="form" 
+            onSubmit={handleSubmit} 
+            className="hover-form"
+            sx={{ 
+              opacity: 0,
+              maxHeight: 0,
+              overflow: 'hidden',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexDirection: 'column' }}>
               <StyledTextField
-                label="Nueva tasa de cambio ($/BS)"
+                label="Nueva tasa ($/BS)"
                 type="number"
                 value={tasa}
                 onChange={(e) => setTasa(e.target.value)}
                 required
                 size="small"
-                sx={{ flex: 1 }}
+                sx={{ width: '100%' }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <AttachMoney sx={{ color: '#3F51B5', fontSize: '1.1rem' }} />
+                      <AttachMoney sx={{ color: '#3F51B5', fontSize: '1rem' }} />
                     </InputAdornment>
                   ),
                 }}
@@ -226,9 +235,9 @@ const TasaCambio = () => {
                 size="small"
                 sx={{ 
                   px: 2, 
-                  py: 1,
-                  fontSize: '0.875rem',
-                  minWidth: '100px'
+                  py: 0.5,
+                  fontSize: '0.75rem',
+                  width: '100%'
                 }}
               >
                 Actualizar

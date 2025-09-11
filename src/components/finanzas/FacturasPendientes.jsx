@@ -493,8 +493,8 @@ const FacturasPendientes = () => {
           </Typography>
         </motion.div>
         
-        {/* Agregar el componente TasaCambio después del título */}
-        <Box sx={{ mb: 4 }}>
+        {/* Tasa de Cambio en la esquina junto al título */}
+        <Box sx={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
           <TasaCambio onTasaChange={handleTasaChange} />
         </Box>
         
