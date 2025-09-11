@@ -11,15 +11,16 @@ const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backe
 
 // Componentes estilizados
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)',
   borderRadius: '16px',
-  padding: theme.spacing(2.5),
+  padding: theme.spacing(3),
   marginBottom: theme.spacing(2),
-  boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+  boxShadow: '0 8px 25px rgba(30, 58, 138, 0.3)',
   position: 'relative',
   overflow: 'hidden',
   maxWidth: '500px',
   margin: '0 auto',
+  border: '2px solid rgba(255,255,255,0.1)',
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -57,19 +58,37 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+  background: 'linear-gradient(45deg, #dc2626 0%, #ef4444 100%)',
+  color: 'white',
   borderRadius: '15px',
-  padding: '12px 24px',
+  padding: theme.spacing(1, 2),
   fontWeight: 'bold',
   textTransform: 'none',
-  fontSize: '1rem',
-  boxShadow: '0 4px 15px rgba(255,107,107,0.4)',
+  boxShadow: '0 4px 15px rgba(220, 38, 38, 0.4)',
   '&:hover': {
-    background: 'linear-gradient(45deg, #FF5252 30%, #FF7043 90%)',
-    boxShadow: '0 6px 20px rgba(255,107,107,0.6)',
+    background: 'linear-gradient(45deg, #b91c1c 0%, #dc2626 100%)',
+    boxShadow: '0 6px 20px rgba(220, 38, 38, 0.6)',
     transform: 'translateY(-2px)',
   },
+  '&:disabled': {
+    background: 'rgba(255,255,255,0.3)',
+    color: 'rgba(255,255,255,0.7)',
+    boxShadow: 'none',
+  },
   transition: 'all 0.3s ease',
+}));
+
+// Tarjeta para mostrar la última tasa
+const StyledTasaCard = styled(Box)(({ theme }) => ({
+  backgroundColor: 'rgba(255,255,255,0.95)',
+  borderRadius: '12px',
+  padding: theme.spacing(2),
+  margin: theme.spacing(2, 0),
+  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+  border: '2px solid rgba(30, 58, 138, 0.2)',
+  textAlign: 'center',
+  position: 'relative',
+  zIndex: 2,
 }));
 
 const TasaCambio = () => {
@@ -119,67 +138,84 @@ const TasaCambio = () => {
     >
       <StyledPaper elevation={0}>
         <Box sx={{ position: 'relative', zIndex: 2 }}>
-          {/* Header con icono y última tasa */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-              >
-                <TrendingUp sx={{ fontSize: 24, color: 'white', mr: 1 }} />
-              </motion.div>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: 'white', 
-                  fontWeight: 'bold',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}
-              >
-                Tasa de Cambio
-              </Typography>
-            </Box>
-
-            {/* Información de la tasa actual */}
-            {ultimaTasa && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <Box sx={{ 
-                  backgroundColor: 'rgba(255,255,255,0.15)', 
-                  borderRadius: '10px', 
-                  p: 1,
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  textAlign: 'center'
-                }}>
-                  <Typography variant="caption" sx={{ color: 'white', display: 'block', fontSize: '0.75rem', mb: 0.5 }}>
-                    Última tasa:
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                    <Chip
-                      label={`${ultimaTasa.tasa} BS`}
-                      size="small"
-                      sx={{
-                        backgroundColor: 'rgba(255,255,255,0.9)',
-                        color: '#333',
-                        fontWeight: 'bold',
-                        fontSize: '0.8rem',
-                        px: 1,
-                        py: 0.25,
-                        height: '24px'
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.7rem' }}>
-                      ({new Date(ultimaTasa.fecha).toLocaleDateString()})
-                    </Typography>
-                  </Box>
-                </Box>
-              </motion.div>
-            )}
+          {/* Título principal centrado */}
+          <Box sx={{ textAlign: 'center', mb: 2 }}>
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                >
+                  <TrendingUp sx={{ fontSize: 28, color: 'white', mr: 1.5 }} />
+                </motion.div>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    color: 'white', 
+                    fontWeight: 'bold',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    fontSize: '1.8rem'
+                  }}
+                >
+                  Tasa de Cambio
+                </Typography>
+              </Box>
+            </motion.div>
           </Box>
+
+          {/* Tarjeta de última tasa */}
+          {ultimaTasa && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <StyledTasaCard>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#1e3a8a', 
+                    fontWeight: 'bold',
+                    mb: 1,
+                    fontSize: '1.1rem'
+                  }}
+                >
+                  Última Tasa
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <Chip
+                    label={`${ultimaTasa.tasa} BS`}
+                    sx={{
+                      backgroundColor: '#1e3a8a',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '1rem',
+                      px: 2,
+                      py: 1,
+                      height: '32px'
+                    }}
+                  />
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: '#64748b', 
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {new Date(ultimaTasa.fecha).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </Typography>
+              </StyledTasaCard>
+            </motion.div>
+          )}
 
           {/* Formulario de actualización - ancho completo */}
           <motion.div
