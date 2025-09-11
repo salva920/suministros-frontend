@@ -444,7 +444,7 @@ const FacturasPendientes = () => {
       variants={containerVariants}
     >
       <MainContainer maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
           <Button
             variant="contained"
             color="primary"
