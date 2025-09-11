@@ -11,26 +11,15 @@ const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backe
 
 // Componentes estilizados
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)',
-  borderRadius: '16px',
+  backgroundColor: 'white',
+  borderRadius: '8px',
   padding: theme.spacing(3),
   marginBottom: theme.spacing(2),
-  boxShadow: '0 8px 25px rgba(30, 58, 138, 0.3)',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
   position: 'relative',
-  overflow: 'hidden',
   maxWidth: '500px',
   margin: '0 auto',
-  border: '2px solid rgba(255,255,255,0.1)',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-    zIndex: 1
-  }
+  border: '1px solid #e5e7eb',
 }));
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
@@ -58,34 +47,29 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(45deg, #dc2626 0%, #ef4444 100%)',
+  backgroundColor: '#3F51B5',
   color: 'white',
-  borderRadius: '15px',
+  borderRadius: '4px',
   padding: theme.spacing(1, 2),
   fontWeight: 'bold',
   textTransform: 'none',
-  boxShadow: '0 4px 15px rgba(220, 38, 38, 0.4)',
   '&:hover': {
-    background: 'linear-gradient(45deg, #b91c1c 0%, #dc2626 100%)',
-    boxShadow: '0 6px 20px rgba(220, 38, 38, 0.6)',
-    transform: 'translateY(-2px)',
+    backgroundColor: '#303F9F',
   },
   '&:disabled': {
-    background: 'rgba(255,255,255,0.3)',
-    color: 'rgba(255,255,255,0.7)',
-    boxShadow: 'none',
+    backgroundColor: '#e0e0e0',
+    color: '#9e9e9e',
   },
-  transition: 'all 0.3s ease',
+  transition: 'all 0.2s ease',
 }));
 
 // Tarjeta para mostrar la última tasa
 const StyledTasaCard = styled(Box)(({ theme }) => ({
-  backgroundColor: 'rgba(255,255,255,0.95)',
-  borderRadius: '12px',
+  backgroundColor: 'white',
+  borderRadius: '4px',
   padding: theme.spacing(2),
   margin: theme.spacing(2, 0),
-  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-  border: '2px solid rgba(30, 58, 138, 0.2)',
+  border: '1px solid #3F51B5',
   textAlign: 'center',
   position: 'relative',
   zIndex: 2,
@@ -137,93 +121,88 @@ const TasaCambio = () => {
       transition={{ duration: 0.6 }}
     >
       <StyledPaper elevation={0}>
-        <Box sx={{ position: 'relative', zIndex: 2 }}>
-          {/* Título principal centrado */}
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+        <Box>
+          {/* Título principal */}
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                color: '#3F51B5', 
+                fontWeight: 'bold',
+                fontSize: '1.5rem',
+                letterSpacing: '0.5px',
+                mb: 0.5
+              }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                >
-                  <TrendingUp sx={{ fontSize: 28, color: 'white', mr: 1.5 }} />
-                </motion.div>
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    color: 'white', 
-                    fontWeight: 'bold',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                    fontSize: '1.8rem'
-                  }}
-                >
-                  Tasa de Cambio
-                </Typography>
-              </Box>
-            </motion.div>
+              TASA DE CAMBIO
+            </Typography>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: '#3F51B5', 
+                fontWeight: '500',
+                fontSize: '1rem',
+                letterSpacing: '0.3px'
+              }}
+            >
+              OFICIAL BCV
+            </Typography>
           </Box>
 
           {/* Tarjeta de última tasa */}
           {ultimaTasa && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <StyledTasaCard>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: '#1e3a8a', 
-                    fontWeight: 'bold',
-                    mb: 1,
-                    fontSize: '1.1rem'
-                  }}
-                >
-                  Última Tasa
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
-                  <Chip
-                    label={`${ultimaTasa.tasa} BS`}
-                    sx={{
-                      backgroundColor: '#1e3a8a',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      fontSize: '1rem',
-                      px: 2,
-                      py: 1,
-                      height: '32px'
-                    }}
-                  />
-                </Box>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: '#64748b', 
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  {new Date(ultimaTasa.fecha).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </Typography>
-              </StyledTasaCard>
-            </motion.div>
+            <StyledTasaCard>
+              <Typography 
+                variant="h3" 
+                sx={{ 
+                  color: '#3F51B5', 
+                  fontWeight: 'bold',
+                  fontSize: '2.5rem',
+                  mb: 1
+                }}
+              >
+                {ultimaTasa.tasa}
+              </Typography>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: '#3F51B5', 
+                  fontWeight: '500',
+                  fontSize: '1rem'
+                }}
+              >
+                Bs/USD
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#6b7280', 
+                  fontSize: '0.875rem',
+                  mt: 1
+                }}
+              >
+                {new Date(ultimaTasa.fecha).toLocaleDateString('es-ES', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </Typography>
+            </StyledTasaCard>
           )}
 
-          {/* Formulario de actualización - ancho completo */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+          {/* Formulario de actualización */}
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#6b7280', 
+                mb: 1,
+                fontSize: '0.875rem'
+              }}
+            >
+              El tipo de cambio publicado por el BCV es el promedio ponderado resultante de las operaciones diarias de las mesas de cambio activas de las instituciones bancarias participantes.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
               <StyledTextField
                 label="Nueva tasa de cambio ($/BS)"
                 type="number"
@@ -235,32 +214,27 @@ const TasaCambio = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <AttachMoney sx={{ color: 'rgba(0,0,0,0.6)', fontSize: '1.1rem' }} />
+                      <AttachMoney sx={{ color: '#3F51B5', fontSize: '1.1rem' }} />
                     </InputAdornment>
                   ),
                 }}
               />
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <StyledButton 
+                type="submit" 
+                startIcon={<Update />}
+                disabled={!tasa || tasa <= 0}
+                size="small"
+                sx={{ 
+                  px: 2, 
+                  py: 1,
+                  fontSize: '0.875rem',
+                  minWidth: '100px'
+                }}
               >
-                <StyledButton 
-                  type="submit" 
-                  startIcon={<Update />}
-                  disabled={!tasa || tasa <= 0}
-                  size="small"
-                  sx={{ 
-                    px: 2, 
-                    py: 1,
-                    fontSize: '0.85rem',
-                    minWidth: '100px'
-                  }}
-                >
-                  Actualizar
-                </StyledButton>
-              </motion.div>
+                Actualizar
+              </StyledButton>
             </Box>
-          </motion.div>
+          </Box>
         </Box>
       </StyledPaper>
     </motion.div>
