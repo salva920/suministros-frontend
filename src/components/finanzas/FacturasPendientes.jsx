@@ -3,7 +3,7 @@ import {
   Container, Typography, Box, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TablePagination, Button, TextField, Dialog, DialogTitle,
   DialogContent, DialogActions, Grid, MenuItem, InputAdornment, IconButton, Chip,
-  Alert, CircularProgress, Divider, Tooltip, useTheme, useMediaQuery
+  Alert, CircularProgress, Divider, Tooltip, useTheme, useMediaQuery, Autocomplete
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -137,6 +137,9 @@ const FacturasPendientes = () => {
   // Estados para tasa de cambio
   const [tasaCambio, setTasaCambio] = useState(156.37); // Tasa por defecto
   
+  // Estados para proveedores
+  const [proveedores, setProveedores] = useState([]);
+  
   // Función para formatear fecha de manera simple
   const formatearFechaSimple = (fechaString) => {
     if (!fechaString) return 'No disponible';
@@ -178,15 +181,6 @@ const FacturasPendientes = () => {
     // Usar la tasa de cambio guardada en la factura si está disponible y es válida, sino usar la actual
     const tasaAUsar = (tasaCambioUsada && tasaCambioUsada > 1) ? tasaCambioUsada : tasaCambio;
 
-    // Debug: mostrar información para troubleshooting
-    console.log('formatearMoneda debug:', {
-      valor: valorRedondeado,
-      moneda,
-      monedaOriginal,
-      tasaCambioUsada,
-      tasaCambio,
-      tasaAUsar
-    });
 
     // Si no hay tasa de cambio válida, no mostrar equivalencia
     if (!tasaAUsar || tasaAUsar <= 0) {
@@ -251,6 +245,15 @@ const FacturasPendientes = () => {
   useEffect(() => {
     cargarFacturas();
   }, [cargarFacturas]);
+
+  // Extraer proveedores únicos cuando se cargan las facturas
+  useEffect(() => {
+    const proveedoresUnicos = [...new Set(facturas
+      .map(factura => factura.proveedor)
+      .filter(proveedor => proveedor && proveedor.trim() !== '')
+    )].sort();
+    setProveedores(proveedoresUnicos);
+  }, [facturas]);
   
   // Función para buscar facturas (con debounce)
   const buscarFacturas = debounce((valor) => {
@@ -418,14 +421,10 @@ const FacturasPendientes = () => {
   useEffect(() => {
     const obtenerTasaCambio = async () => {
       try {
-        console.log('Obteniendo tasa de cambio desde:', `${API_URL}/tasa-cambio`);
         const response = await axios.get(`${API_URL}/tasa-cambio`);
-        console.log('Respuesta de tasa de cambio:', response.data);
         setTasaCambio(response.data.tasa);
-        console.log('Tasa de cambio establecida:', response.data.tasa);
       } catch (error) {
         console.error('Error al obtener la tasa de cambio:', error);
-        console.error('Detalles del error:', error.response?.data);
         toast.error('Error al obtener la tasa de cambio');
       }
     };
@@ -1157,15 +1156,37 @@ const FacturasPendientes = () => {
                     </Grid>
                     
                     <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Proveedor"
-                        name="proveedor"
+                      <Autocomplete
+                        freeSolo
+                        options={proveedores}
                         value={nuevaFactura.proveedor}
-                        onChange={handleNuevaFacturaChange}
-                        variant="outlined"
-                        InputProps={{
-                          sx: { borderRadius: '10px' }
+                        onChange={(event, newValue) => {
+                          setNuevaFactura(prev => ({ ...prev, proveedor: newValue || '' }));
+                        }}
+                        onInputChange={(event, newInputValue) => {
+                          setNuevaFactura(prev => ({ ...prev, proveedor: newInputValue }));
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Proveedor"
+                            variant="outlined"
+                            InputProps={{
+                              ...params.InputProps,
+                              sx: { borderRadius: '10px' }
+                            }}
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props}>
+                            {option}
+                          </Box>
+                        )}
+                        noOptionsText="No hay proveedores registrados"
+                        sx={{ 
+                          '& .MuiAutocomplete-inputRoot': {
+                            borderRadius: '10px'
+                          }
                         }}
                       />
                     </Grid>
