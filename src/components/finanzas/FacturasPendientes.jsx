@@ -135,7 +135,7 @@ const FacturasPendientes = () => {
   });
   
   // Estados para tasa de cambio
-  const [tasaCambio, setTasaCambio] = useState(0);
+  const [tasaCambio, setTasaCambio] = useState(156.37); // Tasa por defecto
   
   // Función para formatear fecha de manera simple
   const formatearFechaSimple = (fechaString) => {
@@ -420,10 +420,14 @@ const FacturasPendientes = () => {
   useEffect(() => {
     const obtenerTasaCambio = async () => {
       try {
+        console.log('Obteniendo tasa de cambio desde:', `${API_URL}/tasa-cambio`);
         const response = await axios.get(`${API_URL}/tasa-cambio`);
+        console.log('Respuesta de tasa de cambio:', response.data);
         setTasaCambio(response.data.tasa);
+        console.log('Tasa de cambio establecida:', response.data.tasa);
       } catch (error) {
         console.error('Error al obtener la tasa de cambio:', error);
+        console.error('Detalles del error:', error.response?.data);
         toast.error('Error al obtener la tasa de cambio');
       }
     };
