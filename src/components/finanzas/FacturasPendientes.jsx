@@ -134,6 +134,7 @@ const FacturasPendientes = () => {
     proveedor: '',
     numeroFactura: '',
     monto: '',
+    moneda: 'Bs',
     fecha: new Date().toISOString().split('T')[0]
   });
   
@@ -164,7 +165,7 @@ const FacturasPendientes = () => {
   };
   
   // Función para formatear moneda
-  const formatearMoneda = (valor, moneda = 'Bs', monedaAbono = 'Bs') => {
+  const formatearMoneda = (valor, moneda = 'Bs', monedaAbono = 'Bs', monedaOriginal = 'Bs') => {
     // Si el valor es muy pequeño, considerarlo como cero
     if (Math.abs(valor) < 0.01) {
       valor = 0;
@@ -178,6 +179,13 @@ const FacturasPendientes = () => {
       maximumFractionDigits: 2
     }).format(valorRedondeado);
 
+    // Mostrar equivalencia si la moneda original era USD
+    if (monedaOriginal === 'USD' && tasaCambio > 0) {
+      const equivalenteUSD = redondear(valorRedondeado / tasaCambio);
+      return `${formateado} (Orig: $ ${equivalenteUSD.toFixed(2)})`;
+    }
+    
+    // Mostrar equivalencia en USD si la moneda es Bs y hay tasa de cambio
     if (moneda === 'Bs' && tasaCambio > 0) {
       const equivalenteUSD = redondear(valorRedondeado / tasaCambio);
       return `${formateado} (Ref: $ ${equivalenteUSD.toFixed(2)})`;
@@ -347,6 +355,7 @@ const FacturasPendientes = () => {
       proveedor: '',
       numeroFactura: '',
       monto: '',
+      moneda: 'Bs',
       fecha: new Date().toISOString().split('T')[0]
     });
     setOpenNuevaFacturaModal(true);
@@ -660,6 +669,7 @@ const FacturasPendientes = () => {
                     <StyledTableCell>Concepto</StyledTableCell>
                     <StyledTableCell>Proveedor</StyledTableCell>
                     <StyledTableCell>N° Factura</StyledTableCell>
+                    <StyledTableCell align="center">Moneda</StyledTableCell>
                     <StyledTableCell align="right">Monto (Bs)</StyledTableCell>
                     <StyledTableCell align="right">Abonado (Bs)</StyledTableCell>
                     <StyledTableCell align="right">Saldo (Bs)</StyledTableCell>
@@ -670,7 +680,7 @@ const FacturasPendientes = () => {
                   <AnimatePresence>
                     {loading && facturas.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                        <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <motion.div
                               animate={{ rotate: 360 }}
@@ -684,7 +694,7 @@ const FacturasPendientes = () => {
                       </TableRow>
                     ) : facturas.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                        <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                           <Alert 
                             severity="info" 
                             icon={<ReceiptIcon fontSize="inherit" />}
@@ -733,7 +743,15 @@ const FacturasPendientes = () => {
                           </TableCell>
                           <TableCell>{factura.proveedor || '-'}</TableCell>
                           <TableCell>{factura.numeroFactura || '-'}</TableCell>
-                          <TableCell align="right">{formatearMoneda(factura.monto)}</TableCell>
+                          <TableCell align="center">
+                            <Chip 
+                              label={factura.moneda || 'Bs'} 
+                              color={factura.moneda === 'USD' ? 'primary' : 'secondary'} 
+                              variant="outlined" 
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="right">{formatearMoneda(factura.monto, 'Bs', 'Bs', factura.moneda)}</TableCell>
                           <TableCell align="right">
                             <Box>
                               {formatearAbono(factura.abono, factura.monedaAbono || 'Bs')}
@@ -745,7 +763,7 @@ const FacturasPendientes = () => {
                           <TableCell align="right">
                             <motion.div whileHover={{ scale: 1.05 }}>
                               <Chip 
-                                label={formatearMoneda(factura.saldo)}
+                                label={formatearMoneda(factura.saldo, 'Bs', 'Bs', factura.moneda)}
                                 color={esFacturaPagada(factura.saldo) ? 'success' : factura.abono > 0 ? 'warning' : 'error'}
                                 variant={esFacturaPagada(factura.saldo) ? 'filled' : 'outlined'}
                                 sx={{ 
@@ -908,7 +926,7 @@ const FacturasPendientes = () => {
                       <Grid item xs={6}>
                         <Typography variant="subtitle2" color="text.secondary">Monto Total:</Typography>
                         <Typography variant="body1" gutterBottom fontWeight="medium">
-                          {formatearMoneda(facturaSeleccionada.monto)}
+                          {formatearMoneda(facturaSeleccionada.monto, 'Bs', 'Bs', facturaSeleccionada.moneda)}
                         </Typography>
                       </Grid>
                       
@@ -922,7 +940,7 @@ const FacturasPendientes = () => {
                       <Grid item xs={6}>
                         <Typography variant="subtitle2" color="text.secondary">Saldo Pendiente:</Typography>
                         <Typography variant="body1" gutterBottom color="error.main" fontWeight="bold">
-                          {formatearMoneda(facturaSeleccionada.saldo)}
+                          {formatearMoneda(facturaSeleccionada.saldo, 'Bs', 'Bs', facturaSeleccionada.moneda)}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -1003,7 +1021,7 @@ const FacturasPendientes = () => {
                         }}
                       >
                         50% ({monedaAbono === 'Bs' 
-                          ? formatearMoneda(facturaSeleccionada.saldo / 2)
+                          ? formatearMoneda(facturaSeleccionada.saldo / 2, 'Bs', 'Bs', facturaSeleccionada.moneda)
                           : `$ ${(facturaSeleccionada.saldo / (2 * tasaCambio)).toFixed(2)}`
                         })
                       </Button>
@@ -1021,7 +1039,7 @@ const FacturasPendientes = () => {
                         }}
                       >
                         100% ({monedaAbono === 'Bs'
-                          ? formatearMoneda(facturaSeleccionada.saldo)
+                          ? formatearMoneda(facturaSeleccionada.saldo, 'Bs', 'Bs', facturaSeleccionada.moneda)
                           : `$ ${(facturaSeleccionada.saldo / tasaCambio).toFixed(2)}`
                         })
                       </Button>
@@ -1194,7 +1212,25 @@ const FacturasPendientes = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Moneda"
+                        name="moneda"
+                        select
+                        value={nuevaFactura.moneda}
+                        onChange={handleNuevaFacturaChange}
+                        variant="outlined"
+                        InputProps={{
+                          sx: { borderRadius: '10px' }
+                        }}
+                      >
+                        <MenuItem value="Bs">Bolívares (Bs)</MenuItem>
+                        <MenuItem value="USD">Dólares ($)</MenuItem>
+                      </TextField>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
                         label="Monto"
@@ -1207,7 +1243,8 @@ const FacturasPendientes = () => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <MoneyIcon color="primary" sx={{ mr: 0.5 }} /> Bs.
+                              <MoneyIcon color="primary" sx={{ mr: 0.5 }} />
+                              {nuevaFactura.moneda === 'USD' ? '$' : 'Bs.'}
                             </InputAdornment>
                           ),
                           sx: { borderRadius: '10px' }
@@ -1215,6 +1252,21 @@ const FacturasPendientes = () => {
                       />
                     </Grid>
                   </Grid>
+                  
+                  {/* Mostrar equivalencia si hay monto y tasa de cambio */}
+                  {nuevaFactura.monto && tasaCambio > 0 && (
+                    <Box sx={{ mt: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: '10px' }}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Equivalencia:
+                      </Typography>
+                      <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                        {nuevaFactura.moneda === 'Bs' 
+                          ? `$ ${(parseFloat(nuevaFactura.monto) / tasaCambio).toFixed(2)}`
+                          : `Bs. ${(parseFloat(nuevaFactura.monto) * tasaCambio).toFixed(2)}`
+                        }
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </DialogContent>
               <DialogActions sx={{ 
