@@ -179,16 +179,14 @@ const FacturasPendientes = () => {
     const tasaAUsar = tasaCambioUsada || tasaCambio;
 
     // Debug: mostrar información para troubleshooting
-    if (process.env.NODE_ENV === 'development') {
-      console.log('formatearMoneda debug:', {
-        valor: valorRedondeado,
-        moneda,
-        monedaOriginal,
-        tasaCambioUsada,
-        tasaCambio,
-        tasaAUsar
-      });
-    }
+    console.log('formatearMoneda debug:', {
+      valor: valorRedondeado,
+      moneda,
+      monedaOriginal,
+      tasaCambioUsada,
+      tasaCambio,
+      tasaAUsar
+    });
 
     // Si no hay tasa de cambio válida, no mostrar equivalencia
     if (!tasaAUsar || tasaAUsar <= 0) {
