@@ -474,35 +474,40 @@ const FacturasPendientes = () => {
           pauseOnHover
         />
         
+        {/* Título y Tasa de Cambio en la misma fila */}
         <motion.div variants={itemVariants}>
-          <Typography 
-            variant="h4" 
-            component={motion.h4}
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            sx={{ 
-              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 'bold',
-              mb: 4
-            }}
-          >
-            Facturas Pendientes
-          </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            mb: 4
+          }}>
+            <Typography 
+              variant="h4" 
+              component={motion.h4}
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              sx={{ 
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: 'bold',
+                flex: 1
+              }}
+            >
+              Facturas Pendientes
+            </Typography>
+            
+            {/* Tasa de Cambio alineada con el título */}
+            <Box sx={{ 
+              maxWidth: '400px',
+              ml: 2
+            }}>
+              <TasaCambio onTasaChange={handleTasaChange} />
+            </Box>
+          </Box>
         </motion.div>
-        
-        {/* Tasa de Cambio en el flujo normal del documento */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          mb: 3,
-          maxWidth: '300px',
-          marginLeft: 'auto'
-        }}>
-          <TasaCambio onTasaChange={handleTasaChange} />
-        </Box>
         
         {/* Filtros */}
         <motion.div

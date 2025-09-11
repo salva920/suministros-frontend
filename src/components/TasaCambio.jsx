@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TextField, Button, Typography, Paper, Box, Chip, IconButton, InputAdornment } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { TrendingUp, Update, AttachMoney } from '@mui/icons-material';
+import { TrendingUp, Update, AttachMoney, CurrencyExchange } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -12,19 +12,21 @@ const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backe
 // Componentes estilizados
 const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: 'white',
-  borderRadius: '8px',
-  padding: theme.spacing(1.5),
+  borderRadius: '12px',
+  padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
-  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
   position: 'relative',
-  maxWidth: '400px',
+  maxWidth: '450px',
   margin: '0 auto',
-  border: '1px solid #e5e7eb',
+  border: '2px solid #e3f2fd',
   transition: 'all 0.3s ease',
   overflow: 'visible',
+  background: 'linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)',
   '&:hover': {
-    boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
-    transform: 'translateY(-2px)',
+    boxShadow: '0 10px 30px rgba(33, 150, 243, 0.2)',
+    transform: 'translateY(-3px)',
+    border: '2px solid #1976d2',
   }
 }));
 
@@ -53,18 +55,22 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#3F51B5',
+  background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
   color: 'white',
-  borderRadius: '4px',
+  borderRadius: '8px',
   padding: theme.spacing(1, 2),
   fontWeight: 'bold',
   textTransform: 'none',
+  boxShadow: '0 3px 5px rgba(33, 150, 243, 0.3)',
   '&:hover': {
-    backgroundColor: '#303F9F',
+    background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
+    boxShadow: '0 5px 10px rgba(33, 150, 243, 0.4)',
+    transform: 'translateY(-1px)',
   },
   '&:disabled': {
-    backgroundColor: '#e0e0e0',
+    background: '#e0e0e0',
     color: '#9e9e9e',
+    boxShadow: 'none',
   },
   transition: 'all 0.2s ease',
 }));
@@ -129,28 +135,33 @@ const TasaCambio = () => {
       <StyledPaper elevation={0}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {/* Información de la tasa */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px' }}>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: '#3F51B5', 
-                fontWeight: 'bold',
-                fontSize: '0.75rem',
-                letterSpacing: '0.5px',
-                mb: 0.5
-              }}
-            >
-              TASA DE CAMBIO
-            </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '140px' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <CurrencyExchange sx={{ color: '#1976d2', fontSize: '1.2rem' }} />
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#1976d2', 
+                  fontWeight: 'bold',
+                  fontSize: '0.8rem',
+                  letterSpacing: '0.8px',
+                  textTransform: 'uppercase'
+                }}
+              >
+                TASA DE CAMBIO
+              </Typography>
+            </Box>
             {ultimaTasa && (
               <>
                 <Typography 
-                  variant="h6" 
+                  variant="h5" 
                   sx={{ 
-                    color: '#3F51B5', 
+                    color: '#1976d2', 
                     fontWeight: 'bold',
-                    fontSize: '1.5rem',
-                    lineHeight: 1
+                    fontSize: '1.8rem',
+                    lineHeight: 1,
+                    textShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
+                    mb: 0.5
                   }}
                 >
                   {ultimaTasa.tasa}
@@ -158,8 +169,13 @@ const TasaCambio = () => {
                 <Typography 
                   variant="caption" 
                   sx={{ 
-                    color: '#6b7280', 
-                    fontSize: '0.7rem'
+                    color: '#666', 
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    backgroundColor: '#e3f2fd',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    border: '1px solid #bbdefb'
                   }}
                 >
                   Bs/USD
@@ -175,7 +191,7 @@ const TasaCambio = () => {
             sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: 1,
+              gap: 1.5,
               flex: 1
             }}
           >
@@ -187,30 +203,36 @@ const TasaCambio = () => {
               required
               size="small"
               sx={{ 
-                width: '120px',
+                width: '130px',
                 '& .MuiInputBase-input': {
-                  fontSize: '0.875rem',
-                  padding: '8px 12px'
+                  fontSize: '0.9rem',
+                  padding: '10px 14px',
+                  fontWeight: '600'
+                },
+                '& .MuiInputLabel-root': {
+                  fontWeight: 'bold',
+                  fontSize: '0.8rem'
                 }
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <AttachMoney sx={{ color: '#3F51B5', fontSize: '0.875rem' }} />
+                    <AttachMoney sx={{ color: '#1976d2', fontSize: '1rem' }} />
                   </InputAdornment>
                 ),
               }}
             />
             <StyledButton 
               type="submit" 
-              startIcon={<Update />}
+              startIcon={<Update sx={{ fontSize: '1rem' }} />}
               disabled={!tasa || tasa <= 0}
               size="small"
               sx={{ 
-                px: 2, 
-                py: 0.5,
-                fontSize: '0.75rem',
-                minWidth: '80px'
+                px: 2.5, 
+                py: 1,
+                fontSize: '0.8rem',
+                minWidth: '90px',
+                fontWeight: 'bold'
               }}
             >
               Actualizar
