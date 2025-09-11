@@ -494,7 +494,13 @@ const FacturasPendientes = () => {
         </motion.div>
         
         {/* Tasa de Cambio en la esquina junto al título */}
-        <Box sx={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
+        <Box sx={{ 
+          position: 'absolute', 
+          top: 80, 
+          right: 20, 
+          zIndex: 10,
+          maxWidth: '300px'
+        }}>
           <TasaCambio onTasaChange={handleTasaChange} />
         </Box>
         

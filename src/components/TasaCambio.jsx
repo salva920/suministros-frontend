@@ -21,12 +21,14 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   margin: '0 auto',
   border: '1px solid #e5e7eb',
   transition: 'all 0.3s ease',
+  overflow: 'visible',
   '&:hover': {
     boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
     transform: 'translateY(-2px)',
     '& .hover-form': {
       opacity: 1,
       maxHeight: '200px',
+      padding: theme.spacing(1, 0),
     }
   }
 }));
@@ -209,9 +211,30 @@ const TasaCambio = () => {
               maxHeight: 0,
               overflow: 'hidden',
               transition: 'all 0.3s ease',
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              backgroundColor: 'white',
+              borderRadius: '0 0 8px 8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              border: '1px solid #e5e7eb',
+              borderTop: 'none',
+              zIndex: 1000,
             }}
           >
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexDirection: 'column' }}>
+            <Box sx={{ p: 2, display: 'flex', gap: 1, alignItems: 'center', flexDirection: 'column' }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#6b7280', 
+                  mb: 1,
+                  fontSize: '0.75rem',
+                  textAlign: 'center'
+                }}
+              >
+                Actualizar tasa de cambio
+              </Typography>
               <StyledTextField
                 label="Nueva tasa ($/BS)"
                 type="number"
