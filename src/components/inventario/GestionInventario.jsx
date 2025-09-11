@@ -631,17 +631,31 @@ const GestionInventario = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => navigate('/dashboard')}
-        sx={{ mb: 2 }}
-        startIcon={<DashboardIcon />}
-      >
-        Regresar al Dashboard
-      </Button>
+      {/* Botón de Dashboard y Tasa de Cambio en la misma fila */}
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 4 
+      }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => navigate('/dashboard')}
+          startIcon={<DashboardIcon />}
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 'bold',
+            background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+            boxShadow: '0 3px 5px rgba(33, 150, 243, .2)'
+          }}
+        >
+          Regresar al Dashboard
+        </Button>
 
-      <TasaCambio />
+        <TasaCambio />
+      </Box>
 
       <Paper elevation={3} sx={{ p: 3, mb: 4, backgroundColor: '#f8f9fa' }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
