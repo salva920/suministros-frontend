@@ -175,8 +175,8 @@ const FacturasPendientes = () => {
       maximumFractionDigits: 2
     }).format(valorRedondeado);
 
-    // Usar la tasa de cambio guardada en la factura si está disponible, sino usar la actual
-    const tasaAUsar = tasaCambioUsada || tasaCambio;
+    // Usar la tasa de cambio guardada en la factura si está disponible y es válida, sino usar la actual
+    const tasaAUsar = (tasaCambioUsada && tasaCambioUsada > 1) ? tasaCambioUsada : tasaCambio;
 
     // Debug: mostrar información para troubleshooting
     console.log('formatearMoneda debug:', {
