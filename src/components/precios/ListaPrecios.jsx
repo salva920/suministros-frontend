@@ -3,8 +3,10 @@ import {
   Container, Typography, Box, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TablePagination, Button, TextField, Dialog, DialogTitle,
   DialogContent, DialogActions, IconButton, CircularProgress, Grid, FormControl,
-  InputLabel, Select, MenuItem, Paper, Chip, useTheme, useMediaQuery, Divider
+  InputLabel, Select, MenuItem, Paper, Chip, useTheme, useMediaQuery, Divider,
+  Alert
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -31,17 +33,46 @@ const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
-// Estilo personalizado para el contenedor principal
-const containerStyle = {
-  backgroundImage: 'linear-gradient(120deg, #f8f9fa 0%, #ffffff 100%)',
+// Componentes estilizados mejorados
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  fontWeight: 'bold',
+  '&.MuiTableCell-head': {
+    backgroundColor: theme.palette.primary.main,
+    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+    color: theme.palette.common.white,
+    fontSize: '0.95rem',
+    whiteSpace: 'nowrap',
+    padding: '16px'
+  }
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(even)': {
+    backgroundColor: theme.palette.action.hover,
+  },
+  '&:hover': {
+    backgroundColor: theme.palette.action.selected,
+    transition: 'background-color 0.3s ease',
+    boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
+    transform: 'translateY(-2px)',
+  },
+  transition: 'all 0.2s ease',
+}));
+
+// Contenedor con estilo para el filtrado
+const FilterContainer = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(3),
   borderRadius: '16px',
-  boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
-  padding: '24px',
-  marginTop: '16px',
-  marginBottom: '16px',
-  overflow: 'hidden',
-  position: 'relative'
-};
+  boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+  background: 'linear-gradient(120deg, #fafafa 0%, #ffffff 100%)'
+}));
+
+// Contenedor principal estilizado
+const MainContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
 
 // Variantes de animación para Framer Motion
 const containerVariants = {
@@ -265,8 +296,8 @@ const ListaPrecios = () => {
       animate="visible"
       variants={containerVariants}
     >
-      <Container style={containerStyle} maxWidth="xl">
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+      <MainContainer maxWidth="lg">
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
           <Button
             variant="contained"
             color="primary"
@@ -283,135 +314,173 @@ const ListaPrecios = () => {
             Ir al Dashboard
           </Button>
         </Box>
+        
+        <ToastContainer 
+          position="top-right" 
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
 
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <motion.div variants={itemVariants}>
+        {/* Título y Tasa de Cambio en la misma fila */}
+        <motion.div variants={itemVariants}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            mb: 4
+          }}>
             <Typography 
               variant="h4" 
-              fontWeight="bold" 
+              component={motion.h4}
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
               sx={{ 
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
+                fontWeight: 'bold',
                 flex: 1
               }}
             >
               Listado de Precios
             </Typography>
-          </motion.div>
-          
-          {/* Tasa de Cambio alineada con el título */}
-          <Box sx={{ 
-            maxWidth: '400px',
-            ml: 2
-          }}>
-            <TasaCambio onTasaChange={handleTasaChange} />
+            
+            {/* Tasa de Cambio alineada con el título */}
+            <Box sx={{ 
+              maxWidth: '400px',
+              ml: 2
+            }}>
+              <TasaCambio onTasaChange={handleTasaChange} />
+            </Box>
           </Box>
-          
-          <motion.div 
-            variants={itemVariants}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setOpenDialog(true);
-                setCurrentItem({ nombreProducto: '', precio1: '', precio2: '', precio3: '' });
-              }}
-              sx={{ 
-                borderRadius: '28px',
-                padding: '8px 24px',
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
-                fontWeight: 'bold',
-                textTransform: 'none'
-              }}
-            >
-              Agregar nuevo
-            </Button>
-          </motion.div>
-        </Box>
+        </motion.div>
 
-        <motion.div variants={itemVariants}>
-          <Paper 
-            elevation={3} 
-            sx={{ 
-              p: 2, 
-              mb: 3, 
-              borderRadius: '12px',
-              background: 'rgba(255, 255, 255, 0.9)'
-            }}
-          >
+        {/* Filtros */}
+        <motion.div
+          variants={itemVariants}
+          transition={{ duration: 0.3 }}
+        >
+          <FilterContainer elevation={2}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              mb: 2
+            }}>
+              <Typography 
+                variant="h6" 
+                color="primary"
+                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+              >
+                <FilterAltIcon /> Filtros
+              </Typography>
+              <Button
+                color="primary"
+                startIcon={<RefreshIcon />}
+                onClick={handleClearFilters}
+                sx={{ textTransform: 'none' }}
+              >
+                Reiniciar filtros
+              </Button>
+            </Box>
+            
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} sm={6} md={4}>
                 <TextField
                   fullWidth
                   label="Buscar por nombre"
                   variant="outlined"
+                  size="small"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   InputProps={{
-                    startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-                    sx: { borderRadius: '8px' }
+                    startAdornment: <SearchIcon color="primary" sx={{ mr: 1 }} />,
+                    sx: { borderRadius: '10px' }
                   }}
                 />
               </Grid>
               
-              <Grid item xs={12} md={8}>
-                <Box 
-                  display="flex" 
-                  justifyContent="space-between" 
-                  alignItems="center"
-                  flexWrap={isMobile ? "wrap" : "nowrap"}
-                  gap={2}
-                >
-                  <Box display="flex" alignItems="center" gap={2} flexGrow={1}>
-                    <FormControl variant="outlined" sx={{ minWidth: 120 }} fullWidth={isMobile}>
-                      <InputLabel>Mes</InputLabel>
-                      <Select
-                        value={mesSeleccionado}
-                        onChange={(e) => setMesSeleccionado(e.target.value)}
-                        label="Mes"
-                      >
-                        <MenuItem value="">
-                          <em>Todos</em>
-                        </MenuItem>
-                        {MESES.map((mes, index) => (
-                          <MenuItem key={index} value={index + 1}>{mes}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    
-                    <FormControl variant="outlined" sx={{ minWidth: 120 }} fullWidth={isMobile}>
-                      <InputLabel>Año</InputLabel>
-                      <Select
-                        value={anioSeleccionado}
-                        onChange={(e) => setAnioSeleccionado(e.target.value)}
-                        label="Año"
-                      >
-                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(anio => (
-                          <MenuItem key={anio} value={anio}>{anio}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                  
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button 
-                      variant="outlined" 
-                      onClick={handleClearFilters} 
-                      startIcon={<CloseIcon />}
-                      sx={{ borderRadius: '8px' }}
-                    >
-                      {isMobile ? '' : 'Limpiar filtros'}
-                    </Button>
-                  </motion.div>
-                </Box>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl variant="outlined" size="small" fullWidth>
+                  <InputLabel>Mes</InputLabel>
+                  <Select
+                    value={mesSeleccionado}
+                    onChange={(e) => setMesSeleccionado(e.target.value)}
+                    label="Mes"
+                    sx={{ borderRadius: '10px' }}
+                  >
+                    <MenuItem value="">
+                      <em>Todos</em>
+                    </MenuItem>
+                    {MESES.map((mes, index) => (
+                      <MenuItem key={index} value={index + 1}>{mes}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl variant="outlined" size="small" fullWidth>
+                  <InputLabel>Año</InputLabel>
+                  <Select
+                    value={anioSeleccionado}
+                    onChange={(e) => setAnioSeleccionado(e.target.value)}
+                    label="Año"
+                    sx={{ borderRadius: '10px' }}
+                  >
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(anio => (
+                      <MenuItem key={anio} value={anio}>{anio}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
             </Grid>
-          </Paper>
+          </FilterContainer>
+        </motion.div>
+        
+        {/* Botón Agregar nuevo */}
+        <motion.div
+          variants={itemVariants}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            mb: 3
+          }}>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  setOpenDialog(true);
+                  setCurrentItem({ nombreProducto: '', precio1: '', precio2: '', precio3: '' });
+                }}
+                sx={{
+                  borderRadius: '12px',
+                  padding: '12px 24px',
+                  background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                  boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  fontSize: '1rem'
+                }}
+              >
+                Agregar nuevo
+              </Button>
+            </motion.div>
+          </Box>
         </motion.div>
 
         {loading ? (
@@ -425,29 +494,24 @@ const ListaPrecios = () => {
             </motion.div>
           </Box>
         ) : (
-          <motion.div 
+          <motion.div
             variants={itemVariants}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                borderRadius: '12px', 
-                overflow: 'hidden',
-                backgroundColor: 'rgba(255, 255, 255, 0.95)'
-              }}
-            >
+            <Paper sx={{ 
+              borderRadius: '16px', 
+              overflow: 'hidden',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+            }}>
               <TableContainer>
                 <Table>
-                  <TableHead sx={{ backgroundColor: 'rgba(33, 150, 243, 0.1)' }}>
+                  <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Nombre del Producto</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 1 (USD)</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 2 (USD)</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 3 (USD)</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Acciones</TableCell>
+                      <StyledTableCell>Nombre del Producto</StyledTableCell>
+                      <StyledTableCell align="center">Precio 1 (USD)</StyledTableCell>
+                      <StyledTableCell align="center">Precio 2 (USD)</StyledTableCell>
+                      <StyledTableCell align="center">Precio 3 (USD)</StyledTableCell>
+                      <StyledTableCell align="center">Acciones</StyledTableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -455,50 +519,68 @@ const ListaPrecios = () => {
                       {listasPrecios.map((item, index) => (
                         <motion.tr
                           key={item._id}
-                          initial={{ opacity: 0, y: 20 }}
+                          initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.3, delay: index * 0.05 }}
-                          whileHover={{ backgroundColor: 'rgba(33, 150, 243, 0.05)' }}
-                          component={TableRow}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.02 }}
+                          component={StyledTableRow}
+                          layout
                         >
-                          <TableCell>{item.nombreProducto}</TableCell>
                           <TableCell>
-                            <Box>
-                              <Chip 
-                                label={formatearMoneda(item.precio1, 'USD', 'Bs', 'USD', null)} 
-                                color="primary" 
-                                variant="outlined"
-                                size="small"
-                                sx={{ mb: 0.5 }}
-                              />
-                            </Box>
+                            <Typography 
+                              sx={{ 
+                                maxWidth: '200px', 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis', 
+                                whiteSpace: 'nowrap',
+                                fontWeight: 'medium'
+                              }}
+                            >
+                              {item.nombreProducto}
+                            </Typography>
                           </TableCell>
-                          <TableCell>
-                            <Box>
-                              <Chip 
-                                label={formatearMoneda(item.precio2, 'USD', 'Bs', 'USD', null)} 
-                                color="secondary" 
-                                variant="outlined"
-                                size="small"
-                                sx={{ mb: 0.5 }}
-                              />
-                            </Box>
+                          <TableCell align="center">
+                            <Chip 
+                              label={formatearMoneda(item.precio1, 'USD', 'Bs', 'USD', null)} 
+                              color="primary" 
+                              variant="outlined"
+                              size="small"
+                              sx={{ 
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 5px rgba(33, 150, 243, 0.2)'
+                              }}
+                            />
                           </TableCell>
-                          <TableCell>
-                            <Box>
-                              <Chip 
-                                label={formatearMoneda(item.precio3, 'USD', 'Bs', 'USD', null)} 
-                                color="info" 
-                                variant="outlined"
-                                size="small"
-                                sx={{ mb: 0.5 }}
-                              />
-                            </Box>
+                          <TableCell align="center">
+                            <Chip 
+                              label={formatearMoneda(item.precio2, 'USD', 'Bs', 'USD', null)} 
+                              color="secondary" 
+                              variant="outlined"
+                              size="small"
+                              sx={{ 
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 5px rgba(156, 39, 176, 0.2)'
+                              }}
+                            />
                           </TableCell>
-                          <TableCell>
-                            <Box display="flex" gap={1}>
-                              <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}>
+                          <TableCell align="center">
+                            <Chip 
+                              label={formatearMoneda(item.precio3, 'USD', 'Bs', 'USD', null)} 
+                              color="info" 
+                              variant="outlined"
+                              size="small"
+                              sx={{ 
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 5px rgba(0, 188, 212, 0.2)'
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                              <motion.div
+                                whileHover={{ scale: 1.15 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
                                 <IconButton 
                                   color="primary"
                                   onClick={() => {
@@ -507,25 +589,34 @@ const ListaPrecios = () => {
                                   }}
                                   size="small"
                                   sx={{ 
-                                    background: 'rgba(33, 150, 243, 0.1)',
-                                    transition: 'all 0.3s'
+                                    boxShadow: '0 2px 5px rgba(33, 150, 243, 0.3)',
+                                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                                    }
                                   }}
                                 >
-                                  <EditIcon fontSize="small" />
+                                  <EditIcon />
                                 </IconButton>
                               </motion.div>
 
-                              <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}>
+                              <motion.div
+                                whileHover={{ scale: 1.15 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
                                 <IconButton 
                                   color="error"
                                   onClick={() => handleDelete(item._id)}
                                   size="small"
                                   sx={{ 
-                                    background: 'rgba(211, 47, 47, 0.1)',
-                                    transition: 'all 0.3s'
+                                    boxShadow: '0 2px 5px rgba(244, 67, 54, 0.3)',
+                                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                                    }
                                   }}
                                 >
-                                  <DeleteIcon fontSize="small" />
+                                  <DeleteIcon />
                                 </IconButton>
                               </motion.div>
                             </Box>
@@ -535,10 +626,23 @@ const ListaPrecios = () => {
                     </AnimatePresence>
                     {listasPrecios.length === 0 && !loading && (
                       <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                          <Typography variant="body1" color="textSecondary">
-                            No hay datos disponibles
-                          </Typography>
+                        <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
+                          <Alert 
+                            severity="info" 
+                            icon={<PriceChangeIcon fontSize="inherit" />}
+                            sx={{ 
+                              maxWidth: '600px', 
+                              mx: 'auto',
+                              borderRadius: '10px',
+                              '& .MuiAlert-icon': {
+                                fontSize: '2rem',
+                                alignItems: 'center'
+                              }
+                            }}
+                          >
+                            <Typography variant="h6" sx={{ mb: 1 }}>No hay productos</Typography>
+                            No hay productos que coincidan con los filtros aplicados
+                          </Alert>
                         </TableCell>
                       </TableRow>
                     )}
@@ -726,19 +830,7 @@ const ListaPrecios = () => {
             </Dialog>
           )}
         </AnimatePresence>
-        
-        <ToastContainer 
-          position="bottom-right" 
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-      </Container>
+      </MainContainer>
     </motion.div>
   );
 };
