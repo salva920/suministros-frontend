@@ -21,6 +21,7 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
+import TasaCambio from '../TasaCambio';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -86,6 +87,9 @@ const ListaPrecios = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  
+  // Estados para tasa de cambio
+  const [tasaCambio, setTasaCambio] = useState(156.37); // Tasa por defecto
 
   // Cargar listas de precios
   const cargarListasPrecios = async () => {
@@ -116,6 +120,68 @@ const ListaPrecios = () => {
   useEffect(() => {
     cargarListasPrecios();
   }, [page, rowsPerPage, busqueda, mesSeleccionado, anioSeleccionado]);
+
+  // Agregar useEffect para obtener la tasa de cambio inicial
+  useEffect(() => {
+    const obtenerTasaCambio = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/tasa-cambio`);
+        setTasaCambio(response.data.tasa);
+      } catch (error) {
+        console.error('Error al obtener la tasa de cambio:', error);
+        toast.error('Error al obtener la tasa de cambio');
+      }
+    };
+
+    obtenerTasaCambio();
+  }, []);
+
+  // Función para manejar cambios en la tasa de cambio
+  const handleTasaChange = (nuevaTasa) => {
+    setTasaCambio(nuevaTasa);
+  };
+
+  // Función para redondear a 2 decimales
+  const redondear = (valor) => {
+    return Math.round(valor * 100) / 100;
+  };
+
+  // Función para formatear moneda con equivalencias (igual que FacturasPendientes)
+  const formatearMoneda = (valor, moneda = 'Bs', monedaAbono = 'Bs', monedaOriginal = 'Bs', tasaCambioUsada = null) => {
+    // Si el valor es muy pequeño, considerarlo como cero
+    if (Math.abs(valor) < 0.01) {
+      valor = 0;
+    }
+
+    const valorRedondeado = redondear(valor);
+    const formateado = new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'VES',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(valorRedondeado);
+
+    // Usar la tasa de cambio guardada en la factura si está disponible y es válida, sino usar la actual
+    const tasaAUsar = (tasaCambioUsada && tasaCambioUsada > 1) ? tasaCambioUsada : tasaCambio;
+
+    // Si no hay tasa de cambio válida, no mostrar equivalencia
+    if (!tasaAUsar || tasaAUsar <= 0) {
+      return formateado;
+    }
+
+    // Mostrar equivalencia si la moneda original era USD
+    if (monedaOriginal === 'USD') {
+      const equivalenteUSD = redondear(valorRedondeado / tasaAUsar);
+      return `${formateado} (Orig: $ ${equivalenteUSD.toFixed(2)})`;
+    }
+    
+    // Mostrar equivalencia en USD si la moneda es Bs
+    if (moneda === 'Bs') {
+      const equivalenteUSD = redondear(valorRedondeado / tasaAUsar);
+      return `${formateado} (Ref: $ ${equivalenteUSD.toFixed(2)})`;
+    }
+    return formateado;
+  };
 
   // Manejar cambios en el formulario
   const handleChange = (e) => {
@@ -223,12 +289,21 @@ const ListaPrecios = () => {
               sx={{ 
                 background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
                 WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
+                WebkitTextFillColor: 'transparent',
+                flex: 1
               }}
             >
               Listado de Precios
             </Typography>
           </motion.div>
+          
+          {/* Tasa de Cambio alineada con el título */}
+          <Box sx={{ 
+            maxWidth: '400px',
+            ml: 2
+          }}>
+            <TasaCambio onTasaChange={handleTasaChange} />
+          </Box>
           
           <motion.div 
             variants={itemVariants}
@@ -366,9 +441,9 @@ const ListaPrecios = () => {
                   <TableHead sx={{ backgroundColor: 'rgba(33, 150, 243, 0.1)' }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold' }}>Nombre del Producto</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 1</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 2</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 3</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 1 (Bs)</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 2 (Bs)</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 3 (Bs)</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
@@ -386,28 +461,37 @@ const ListaPrecios = () => {
                         >
                           <TableCell>{item.nombreProducto}</TableCell>
                           <TableCell>
-                            <Chip 
-                              label={`$${item.precio1}`} 
-                              color="primary" 
-                              variant="outlined"
-                              size="small"
-                            />
+                            <Box>
+                              <Chip 
+                                label={formatearMoneda(item.precio1, 'Bs', 'Bs', 'Bs', null)} 
+                                color="primary" 
+                                variant="outlined"
+                                size="small"
+                                sx={{ mb: 0.5 }}
+                              />
+                            </Box>
                           </TableCell>
                           <TableCell>
-                            <Chip 
-                              label={`$${item.precio2}`} 
-                              color="secondary" 
-                              variant="outlined"
-                              size="small"
-                            />
+                            <Box>
+                              <Chip 
+                                label={formatearMoneda(item.precio2, 'Bs', 'Bs', 'Bs', null)} 
+                                color="secondary" 
+                                variant="outlined"
+                                size="small"
+                                sx={{ mb: 0.5 }}
+                              />
+                            </Box>
                           </TableCell>
                           <TableCell>
-                            <Chip 
-                              label={`$${item.precio3}`} 
-                              color="info" 
-                              variant="outlined"
-                              size="small"
-                            />
+                            <Box>
+                              <Chip 
+                                label={formatearMoneda(item.precio3, 'Bs', 'Bs', 'Bs', null)} 
+                                color="info" 
+                                variant="outlined"
+                                size="small"
+                                sx={{ mb: 0.5 }}
+                              />
+                            </Box>
                           </TableCell>
                           <TableCell>
                             <Box display="flex" gap={1}>
@@ -544,7 +628,7 @@ const ListaPrecios = () => {
                           fullWidth
                           margin="dense"
                           name="precio1"
-                          label="Precio 1"
+                          label="Precio 1 (Bs)"
                           type="number"
                           value={currentItem.precio1 || ''}
                           onChange={handleChange}
@@ -553,13 +637,18 @@ const ListaPrecios = () => {
                             sx: { borderRadius: '8px' }
                           }}
                         />
+                        {currentItem.precio1 && tasaCambio > 0 && (
+                          <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
+                            Equivalente: $ {((currentItem.precio1 || 0) / tasaCambio).toFixed(2)}
+                          </Typography>
+                        )}
                       </Grid>
                       <Grid item xs={12} md={4}>
                         <TextField
                           fullWidth
                           margin="dense"
                           name="precio2"
-                          label="Precio 2"
+                          label="Precio 2 (Bs)"
                           type="number"
                           value={currentItem.precio2 || ''}
                           onChange={handleChange}
@@ -568,13 +657,18 @@ const ListaPrecios = () => {
                             sx: { borderRadius: '8px' }
                           }}
                         />
+                        {currentItem.precio2 && tasaCambio > 0 && (
+                          <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
+                            Equivalente: $ {((currentItem.precio2 || 0) / tasaCambio).toFixed(2)}
+                          </Typography>
+                        )}
                       </Grid>
                       <Grid item xs={12} md={4}>
                         <TextField
                           fullWidth
                           margin="dense"
                           name="precio3"
-                          label="Precio 3"
+                          label="Precio 3 (Bs)"
                           type="number"
                           value={currentItem.precio3 || ''}
                           onChange={handleChange}
@@ -583,6 +677,11 @@ const ListaPrecios = () => {
                             sx: { borderRadius: '8px' }
                           }}
                         />
+                        {currentItem.precio3 && tasaCambio > 0 && (
+                          <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
+                            Equivalente: $ {((currentItem.precio3 || 0) / tasaCambio).toFixed(2)}
+                          </Typography>
+                        )}
                       </Grid>
                     </Grid>
                   </Box>
