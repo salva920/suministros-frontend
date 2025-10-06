@@ -84,7 +84,7 @@ const ListaPrecios = () => {
   
   // Paginación
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(1000); // Mostrar todos los productos por defecto
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   
@@ -564,9 +564,11 @@ const ListaPrecios = () => {
                   onPageChange={handleChangePage}
                   rowsPerPage={rowsPerPage}
                   onRowsPerPageChange={handleChangeRowsPerPage}
-                  rowsPerPageOptions={[5, 10, 25, 50]}
+                  rowsPerPageOptions={[10, 25, 50, 100, 1000]}
                   labelRowsPerPage="Filas por página:"
-                  labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+                  labelDisplayedRows={({ from, to, count }) => 
+                    rowsPerPage >= count ? `Todos los ${count} productos` : `${from}-${to} de ${count}`
+                  }
                   sx={{ 
                     m: 0, 
                     borderTop: 'none',
