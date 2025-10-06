@@ -2,10 +2,11 @@ import React, { useState, useEffect} from 'react';
 import { 
   Container, Typography, Grid, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, 
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, FormControl, InputLabel, 
-  Select, MenuItem, Box, Chip, Tabs, Tab, InputAdornment, Alert, Snackbar
+  Select, MenuItem, Box, Chip, Tabs, Tab, InputAdornment, Alert, Snackbar, Drawer, IconButton,
+  CircularProgress, Tooltip
 } from '@mui/material';
 import { 
-  VpnKey, Dashboard
+  VpnKey, Dashboard, PriceChange as PriceChangeIcon, Close as CloseIcon, Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -73,13 +74,95 @@ const ProcesarVenta = () => {
   const [lotesProducto, setLotesProducto] = useState([]);
   const [loadingLotes, setLoadingLotes] = useState(false);
 
+  // Estados para el Drawer de precios
+  const [openPreciosDrawer, setOpenPreciosDrawer] = useState(false);
+  const [listasPrecios, setListasPrecios] = useState([]);
+  const [loadingPrecios, setLoadingPrecios] = useState(false);
+  const [tasaCambio, setTasaCambio] = useState(156.37);
+
   const handleChangeTab = (event, newValue) => {
     setTabValue(newValue);
   };
 
   useEffect(() => {
     cargarDatosIniciales();
+    obtenerTasaCambio();
   }, []);
+
+  // Función para obtener la tasa de cambio
+  const obtenerTasaCambio = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/tasa-cambio`);
+      setTasaCambio(response.data.tasa);
+    } catch (error) {
+      console.error('Error al obtener la tasa de cambio:', error);
+    }
+  };
+
+  // Función para cargar listas de precios
+  const cargarListasPrecios = async () => {
+    setLoadingPrecios(true);
+    try {
+      const response = await axios.get(`${API_URL}/listaprecios?limit=1000`);
+      setListasPrecios(response.data.listasPrecios || []);
+    } catch (error) {
+      console.error('Error al cargar listas de precios:', error);
+      toast.error('Error al cargar las listas de precios');
+    } finally {
+      setLoadingPrecios(false);
+    }
+  };
+
+  // Función para abrir el drawer de precios
+  const handleAbrirPrecios = () => {
+    setOpenPreciosDrawer(true);
+    cargarListasPrecios();
+  };
+
+  // Función para redondear a 2 decimales
+  const redondear = (valor) => {
+    return Math.round(valor * 100) / 100;
+  };
+
+  // Función para formatear moneda con equivalencias (precios en USD con equivalencia en Bs)
+  const formatearMoneda = (valor, moneda = 'USD', monedaAbono = 'Bs', monedaOriginal = 'USD', tasaCambioUsada = null) => {
+    // Si el valor es muy pequeño, considerarlo como cero
+    if (Math.abs(valor) < 0.01) {
+      valor = 0;
+    }
+
+    const valorRedondeado = redondear(valor);
+    
+    // Los precios están en USD, así que formateamos en USD
+    const formateado = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(valorRedondeado);
+
+    // Usar la tasa de cambio guardada si está disponible y es válida, sino usar la actual
+    const tasaAUsar = (tasaCambioUsada && tasaCambioUsada > 1) ? tasaCambioUsada : tasaCambio;
+
+    // Si no hay tasa de cambio válida, no mostrar equivalencia
+    if (!tasaAUsar || tasaAUsar <= 0) {
+      return formateado;
+    }
+
+    // Mostrar equivalencia en Bs si la moneda es USD
+    if (moneda === 'USD') {
+      const equivalenteBs = redondear(valorRedondeado * tasaAUsar);
+      const formateadoBs = new Intl.NumberFormat('es-VE', {
+        style: 'currency',
+        currency: 'VES',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(equivalenteBs);
+      return `${formateado} (Ref: ${formateadoBs})`;
+    }
+    
+    return formateado;
+  };
 
   const cargarDatosIniciales = async () => {
     try {
@@ -491,6 +574,31 @@ const ProcesarVenta = () => {
             {/* Sección de Productos */}
             <Grid item xs={12} md={7}>
               <Paper sx={{ p: 2, height: 500, overflow: 'auto' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    Productos Disponibles
+                  </Typography>
+                  <Tooltip title="Ver precios de referencia" arrow>
+                    <Button
+                      variant="outlined"
+                      startIcon={<PriceChangeIcon />}
+                      onClick={handleAbrirPrecios}
+                      sx={{
+                        borderRadius: '8px',
+                        textTransform: 'none',
+                        fontWeight: 'medium',
+                        borderColor: 'primary.main',
+                        color: 'primary.main',
+                        '&:hover': {
+                          backgroundColor: 'primary.main',
+                          color: 'white'
+                        }
+                      }}
+                    >
+                      Precios de Referencia
+                    </Button>
+                  </Tooltip>
+                </Box>
                 <TableContainer>
                   <Table>
                     <TableHead>
@@ -747,6 +855,213 @@ const ProcesarVenta = () => {
       />
 
       <ToastContainer position="top-right" autoClose={3000} />
+
+      {/* Drawer de Precios de Referencia */}
+      <Drawer
+        anchor="right"
+        open={openPreciosDrawer}
+        onClose={() => setOpenPreciosDrawer(false)}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: '500px', md: '600px' },
+            backgroundColor: '#f8f9fa'
+          }
+        }}
+      >
+        <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {/* Header del Drawer */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 3,
+            pb: 2,
+            borderBottom: '2px solid #e0e0e0'
+          }}>
+            <Typography variant="h5" sx={{ 
+              fontWeight: 'bold',
+              color: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              <PriceChangeIcon />
+              Precios de Referencia
+            </Typography>
+            <IconButton 
+              onClick={() => setOpenPreciosDrawer(false)}
+              sx={{ 
+                backgroundColor: 'rgba(0,0,0,0.1)',
+                '&:hover': { backgroundColor: 'rgba(0,0,0,0.2)' }
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          {/* Contenido del Drawer */}
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            {loadingPrecios ? (
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                height: '200px' 
+              }}>
+                <CircularProgress size={60} thickness={4} sx={{ color: 'primary.main' }} />
+              </Box>
+            ) : listasPrecios.length === 0 ? (
+              <Alert 
+                severity="info" 
+                icon={<PriceChangeIcon />}
+                sx={{ 
+                  borderRadius: '10px',
+                  '& .MuiAlert-icon': {
+                    fontSize: '2rem'
+                  }
+                }}
+              >
+                <Typography variant="h6" sx={{ mb: 1 }}>No hay precios registrados</Typography>
+                No se encontraron precios de referencia en el sistema
+              </Alert>
+            ) : (
+              <TableContainer component={Paper} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ 
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem'
+                      }}>
+                        Producto
+                      </TableCell>
+                      <TableCell align="center" sx={{ 
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem'
+                      }}>
+                        Precio 1
+                      </TableCell>
+                      <TableCell align="center" sx={{ 
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem'
+                      }}>
+                        Precio 2
+                      </TableCell>
+                      <TableCell align="center" sx={{ 
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem'
+                      }}>
+                        Precio 3
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {listasPrecios.map((item, index) => (
+                      <TableRow 
+                        key={item._id}
+                        sx={{ 
+                          '&:nth-of-type(even)': { backgroundColor: 'rgba(0,0,0,0.02)' },
+                          '&:hover': { backgroundColor: 'rgba(0,0,0,0.05)' }
+                        }}
+                      >
+                        <TableCell>
+                          <Typography sx={{ 
+                            fontWeight: 'medium',
+                            fontSize: '0.9rem',
+                            maxWidth: '150px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {item.nombreProducto}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip 
+                            label={formatearMoneda(item.precio1, 'USD', 'Bs', 'USD', null)} 
+                            color="primary" 
+                            variant="outlined"
+                            size="small"
+                            sx={{ 
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              maxWidth: '120px',
+                              '& .MuiChip-label': {
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip 
+                            label={formatearMoneda(item.precio2, 'USD', 'Bs', 'USD', null)} 
+                            color="secondary" 
+                            variant="outlined"
+                            size="small"
+                            sx={{ 
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              maxWidth: '120px',
+                              '& .MuiChip-label': {
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip 
+                            label={formatearMoneda(item.precio3, 'USD', 'Bs', 'USD', null)} 
+                            color="info" 
+                            variant="outlined"
+                            size="small"
+                            sx={{ 
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              maxWidth: '120px',
+                              '& .MuiChip-label': {
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Box>
+
+          {/* Footer del Drawer */}
+          <Box sx={{ 
+            mt: 3, 
+            pt: 2, 
+            borderTop: '1px solid #e0e0e0',
+            textAlign: 'center'
+          }}>
+            <Typography variant="caption" color="textSecondary">
+              Precios en USD con equivalencia en Bolívares
+            </Typography>
+            <Typography variant="caption" color="textSecondary" display="block">
+              Total: {listasPrecios.length} productos
+            </Typography>
+          </Box>
+        </Box>
+      </Drawer>
 
       {/* Notificación de deudas pendientes */}
       <Snackbar
