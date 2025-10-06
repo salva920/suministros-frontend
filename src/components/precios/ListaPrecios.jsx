@@ -146,22 +146,24 @@ const ListaPrecios = () => {
     return Math.round(valor * 100) / 100;
   };
 
-  // Función para formatear moneda con equivalencias (igual que FacturasPendientes)
-  const formatearMoneda = (valor, moneda = 'Bs', monedaAbono = 'Bs', monedaOriginal = 'Bs', tasaCambioUsada = null) => {
+  // Función para formatear moneda con equivalencias (precios en USD con equivalencia en Bs)
+  const formatearMoneda = (valor, moneda = 'USD', monedaAbono = 'Bs', monedaOriginal = 'USD', tasaCambioUsada = null) => {
     // Si el valor es muy pequeño, considerarlo como cero
     if (Math.abs(valor) < 0.01) {
       valor = 0;
     }
 
     const valorRedondeado = redondear(valor);
-    const formateado = new Intl.NumberFormat('es-VE', {
+    
+    // Los precios están en USD, así que formateamos en USD
+    const formateado = new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'VES',
+      currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(valorRedondeado);
 
-    // Usar la tasa de cambio guardada en la factura si está disponible y es válida, sino usar la actual
+    // Usar la tasa de cambio guardada si está disponible y es válida, sino usar la actual
     const tasaAUsar = (tasaCambioUsada && tasaCambioUsada > 1) ? tasaCambioUsada : tasaCambio;
 
     // Si no hay tasa de cambio válida, no mostrar equivalencia
@@ -169,17 +171,18 @@ const ListaPrecios = () => {
       return formateado;
     }
 
-    // Mostrar equivalencia si la moneda original era USD
-    if (monedaOriginal === 'USD') {
-      const equivalenteUSD = redondear(valorRedondeado / tasaAUsar);
-      return `${formateado} (Orig: $ ${equivalenteUSD.toFixed(2)})`;
+    // Mostrar equivalencia en Bs si la moneda es USD
+    if (moneda === 'USD') {
+      const equivalenteBs = redondear(valorRedondeado * tasaAUsar);
+      const formateadoBs = new Intl.NumberFormat('es-VE', {
+        style: 'currency',
+        currency: 'VES',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(equivalenteBs);
+      return `${formateado} (Ref: ${formateadoBs})`;
     }
     
-    // Mostrar equivalencia en USD si la moneda es Bs
-    if (moneda === 'Bs') {
-      const equivalenteUSD = redondear(valorRedondeado / tasaAUsar);
-      return `${formateado} (Ref: $ ${equivalenteUSD.toFixed(2)})`;
-    }
     return formateado;
   };
 
@@ -441,9 +444,9 @@ const ListaPrecios = () => {
                   <TableHead sx={{ backgroundColor: 'rgba(33, 150, 243, 0.1)' }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold' }}>Nombre del Producto</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 1 (Bs)</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 2 (Bs)</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 3 (Bs)</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 1 (USD)</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 2 (USD)</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Precio 3 (USD)</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
@@ -463,7 +466,7 @@ const ListaPrecios = () => {
                           <TableCell>
                             <Box>
                               <Chip 
-                                label={formatearMoneda(item.precio1, 'Bs', 'Bs', 'Bs', null)} 
+                                label={formatearMoneda(item.precio1, 'USD', 'Bs', 'USD', null)} 
                                 color="primary" 
                                 variant="outlined"
                                 size="small"
@@ -474,7 +477,7 @@ const ListaPrecios = () => {
                           <TableCell>
                             <Box>
                               <Chip 
-                                label={formatearMoneda(item.precio2, 'Bs', 'Bs', 'Bs', null)} 
+                                label={formatearMoneda(item.precio2, 'USD', 'Bs', 'USD', null)} 
                                 color="secondary" 
                                 variant="outlined"
                                 size="small"
@@ -485,7 +488,7 @@ const ListaPrecios = () => {
                           <TableCell>
                             <Box>
                               <Chip 
-                                label={formatearMoneda(item.precio3, 'Bs', 'Bs', 'Bs', null)} 
+                                label={formatearMoneda(item.precio3, 'USD', 'Bs', 'USD', null)} 
                                 color="info" 
                                 variant="outlined"
                                 size="small"
@@ -628,7 +631,7 @@ const ListaPrecios = () => {
                           fullWidth
                           margin="dense"
                           name="precio1"
-                          label="Precio 1 (Bs)"
+                          label="Precio 1 (USD)"
                           type="number"
                           value={currentItem.precio1 || ''}
                           onChange={handleChange}
@@ -639,7 +642,7 @@ const ListaPrecios = () => {
                         />
                         {currentItem.precio1 && tasaCambio > 0 && (
                           <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
-                            Equivalente: $ {((currentItem.precio1 || 0) / tasaCambio).toFixed(2)}
+                            Equivalente: Bs. {((currentItem.precio1 || 0) * tasaCambio).toFixed(2)}
                           </Typography>
                         )}
                       </Grid>
@@ -648,7 +651,7 @@ const ListaPrecios = () => {
                           fullWidth
                           margin="dense"
                           name="precio2"
-                          label="Precio 2 (Bs)"
+                          label="Precio 2 (USD)"
                           type="number"
                           value={currentItem.precio2 || ''}
                           onChange={handleChange}
@@ -659,7 +662,7 @@ const ListaPrecios = () => {
                         />
                         {currentItem.precio2 && tasaCambio > 0 && (
                           <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
-                            Equivalente: $ {((currentItem.precio2 || 0) / tasaCambio).toFixed(2)}
+                            Equivalente: Bs. {((currentItem.precio2 || 0) * tasaCambio).toFixed(2)}
                           </Typography>
                         )}
                       </Grid>
@@ -668,7 +671,7 @@ const ListaPrecios = () => {
                           fullWidth
                           margin="dense"
                           name="precio3"
-                          label="Precio 3 (Bs)"
+                          label="Precio 3 (USD)"
                           type="number"
                           value={currentItem.precio3 || ''}
                           onChange={handleChange}
@@ -679,7 +682,7 @@ const ListaPrecios = () => {
                         />
                         {currentItem.precio3 && tasaCambio > 0 && (
                           <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
-                            Equivalente: $ {((currentItem.precio3 || 0) / tasaCambio).toFixed(2)}
+                            Equivalente: Bs. {((currentItem.precio3 || 0) * tasaCambio).toFixed(2)}
                           </Typography>
                         )}
                       </Grid>
