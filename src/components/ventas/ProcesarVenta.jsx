@@ -925,39 +925,43 @@ const ProcesarVenta = () => {
                 No se encontraron precios de referencia en el sistema
               </Alert>
             ) : (
-              <TableContainer component={Paper} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
-                <Table stickyHeader>
+              <Box sx={{ overflowX: 'auto', overflowY: 'auto' }}>
+                <Table stickyHeader sx={{ minWidth: 650 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ 
                         backgroundColor: 'primary.main',
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: '0.9rem'
+                        fontSize: '0.85rem',
+                        minWidth: 120
                       }}>
                         Producto
                       </TableCell>
-                      <TableCell align="center" sx={{ 
+                      <TableCell sx={{ 
                         backgroundColor: 'primary.main',
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: '0.9rem'
+                        fontSize: '0.85rem',
+                        minWidth: 90
                       }}>
                         Precio 1
                       </TableCell>
-                      <TableCell align="center" sx={{ 
+                      <TableCell sx={{ 
                         backgroundColor: 'primary.main',
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: '0.9rem'
+                        fontSize: '0.85rem',
+                        minWidth: 90
                       }}>
                         Precio 2
                       </TableCell>
-                      <TableCell align="center" sx={{ 
+                      <TableCell sx={{ 
                         backgroundColor: 'primary.main',
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: '0.9rem'
+                        fontSize: '0.85rem',
+                        minWidth: 90
                       }}>
                         Precio 3
                       </TableCell>
@@ -973,76 +977,90 @@ const ProcesarVenta = () => {
                         }}
                       >
                         <TableCell>
-                          <Typography sx={{ 
-                            fontWeight: 'medium',
-                            fontSize: '0.9rem',
-                            maxWidth: '150px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {item.nombreProducto}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={formatearMoneda(item.precio1, 'USD', 'Bs', 'USD', null)} 
-                            color="primary" 
-                            variant="outlined"
-                            size="small"
-                            sx={{ 
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
+                          <Tooltip title={item.nombreProducto} arrow>
+                            <Typography sx={{ 
+                              fontWeight: 'medium',
+                              fontSize: '0.85rem',
                               maxWidth: '120px',
-                              '& .MuiChip-label': {
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }
-                            }}
-                          />
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {item.nombreProducto}
+                            </Typography>
+                          </Tooltip>
                         </TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={formatearMoneda(item.precio2, 'USD', 'Bs', 'USD', null)} 
-                            color="secondary" 
-                            variant="outlined"
-                            size="small"
-                            sx={{ 
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              maxWidth: '120px',
-                              '& .MuiChip-label': {
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }
-                            }}
-                          />
+                        <TableCell>
+                          <Tooltip 
+                            title={formatearMoneda(item.precio1, 'USD', 'Bs', 'USD', null)} 
+                            arrow
+                          >
+                            <Box>
+                              <Typography sx={{ 
+                                fontWeight: 'bold',
+                                fontSize: '0.85rem',
+                                color: 'primary.main'
+                              }}>
+                                ${item.precio1.toFixed(2)}
+                              </Typography>
+                              <Typography sx={{ 
+                                fontSize: '0.7rem',
+                                color: 'text.secondary'
+                              }}>
+                                Bs. {(item.precio1 * tasaCambio).toFixed(2)}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
                         </TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={formatearMoneda(item.precio3, 'USD', 'Bs', 'USD', null)} 
-                            color="info" 
-                            variant="outlined"
-                            size="small"
-                            sx={{ 
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              maxWidth: '120px',
-                              '& .MuiChip-label': {
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }
-                            }}
-                          />
+                        <TableCell>
+                          <Tooltip 
+                            title={formatearMoneda(item.precio2, 'USD', 'Bs', 'USD', null)} 
+                            arrow
+                          >
+                            <Box>
+                              <Typography sx={{ 
+                                fontWeight: 'bold',
+                                fontSize: '0.85rem',
+                                color: 'secondary.main'
+                              }}>
+                                ${item.precio2.toFixed(2)}
+                              </Typography>
+                              <Typography sx={{ 
+                                fontSize: '0.7rem',
+                                color: 'text.secondary'
+                              }}>
+                                Bs. {(item.precio2 * tasaCambio).toFixed(2)}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip 
+                            title={formatearMoneda(item.precio3, 'USD', 'Bs', 'USD', null)} 
+                            arrow
+                          >
+                            <Box>
+                              <Typography sx={{ 
+                                fontWeight: 'bold',
+                                fontSize: '0.85rem',
+                                color: 'info.main'
+                              }}>
+                                ${item.precio3.toFixed(2)}
+                              </Typography>
+                              <Typography sx={{ 
+                                fontSize: '0.7rem',
+                                color: 'text.secondary'
+                              }}>
+                                Bs. {(item.precio3 * tasaCambio).toFixed(2)}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </Box>
             )}
           </Box>
 
