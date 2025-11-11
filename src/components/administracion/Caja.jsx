@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
 import axios from 'axios';
 import { 
   Container, Typography, Grid, Paper, TextField, Button,
@@ -91,6 +91,36 @@ const normalizarTransaccion = (transaccion) => {
     salida: parseFloat(transaccion.salida) || 0,
     saldo: parseFloat(transaccion.saldo) || 0,
     tasaCambio: parseFloat(transaccion.tasaCambio) || 1
+  };
+};
+
+const crearFormularioMovimiento = (transaccion, tasaCambioActual) => {
+  if (transaccion) {
+    const normalizada = normalizarTransaccion(transaccion);
+
+    if (!normalizada) {
+      return crearFormularioMovimiento(null, tasaCambioActual);
+    }
+
+    const montoBase = normalizada.entrada > 0 ? normalizada.entrada : normalizada.salida;
+
+    return {
+      fecha: moment.utc(normalizada.fecha).format('YYYY-MM-DD'),
+      concepto: normalizada.concepto,
+      moneda: normalizada.moneda,
+      tipo: normalizada.entrada > 0 ? 'entrada' : 'salida',
+      monto: montoBase ? montoBase.toString() : '',
+      tasaCambio: normalizada.tasaCambio || tasaCambioActual || 0
+    };
+  }
+
+  return {
+    fecha: moment.utc().format('YYYY-MM-DD'),
+    concepto: '',
+    moneda: 'USD',
+    tipo: 'entrada',
+    monto: '',
+    tasaCambio: tasaCambioActual || 0
   };
 };
 
@@ -213,17 +243,22 @@ const MovimientoForm = ({
   onClose,
   onSubmit,
   initialData,
-  tasaCambio
+  tasaCambio,
+  isEditing
 }) => {
-  const [form, setForm] = useState(initialData);
+  const [form, setForm] = useState(initialData || crearFormularioMovimiento(null, tasaCambio));
 
   useEffect(() => {
-    setForm(initialData);
-  }, [initialData, open]);
+    setForm(initialData || crearFormularioMovimiento(null, tasaCambio));
+  }, [initialData, open, tasaCambio]);
+
+  const montoValido = form.monto !== '' && parseFloat(form.monto) > 0;
+  const tasaCambioValida = form.tasaCambio !== '' && parseFloat(form.tasaCambio) > 0;
+  const puedeRegistrar = Boolean(form.fecha && form.concepto?.trim() && form.moneda && form.tipo) && montoValido && tasaCambioValida;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Registrar Movimiento</DialogTitle>
+      <DialogTitle>{isEditing ? 'Editar Movimiento' : 'Registrar Movimiento'}</DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>
@@ -279,12 +314,31 @@ const MovimientoForm = ({
                 onChange={(e) => setForm(prev => ({ ...prev, monto: e.target.value }))}
               />
             </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Tasa de Cambio"
+                type="number"
+                fullWidth
+                inputProps={{ min: 0, step: '0.0001' }}
+                value={form.tasaCambio}
+                onChange={(e) => setForm(prev => ({ ...prev, tasaCambio: e.target.value }))}
+                error={!tasaCambioValida}
+                helperText={tasaCambioValida ? '' : 'La tasa debe ser mayor a 0'}
+              />
+            </Grid>
           </Grid>
         </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="secondary">Cancelar</Button>
-        <Button onClick={() => onSubmit(form)} color="primary" variant="contained">Registrar</Button>
+        <Button 
+          onClick={() => onSubmit(form)} 
+          color="primary" 
+          variant="contained"
+          disabled={!puedeRegistrar}
+        >
+          {isEditing ? 'Guardar Cambios' : 'Registrar'}
+        </Button>
       </DialogActions>
     </Dialog>
   );
@@ -312,14 +366,27 @@ const CajaInteractiva = () => {
     }
   });
 
-  const [nuevaTransaccion, setNuevaTransaccion] = useState({
-      fecha: moment.utc().format('YYYY-MM-DD'),
-      concepto: '',
-      moneda: 'USD',
-      tipo: 'entrada',
-      monto: '',
-      tasaCambio: 0
-  });
+  const tasaCambioActual = state.tasaCambio;
+  const modalOpen = state.modalOpen;
+  const editingTransaction = state.editingTransaction;
+
+  const [nuevaTransaccion, setNuevaTransaccion] = useState(() => crearFormularioMovimiento(null, tasaCambioActual));
+
+  const resetNuevaTransaccion = useCallback(() => {
+    setNuevaTransaccion(crearFormularioMovimiento(null, tasaCambioActual));
+  }, [tasaCambioActual]);
+
+  useEffect(() => {
+    if (!modalOpen || !editingTransaction) {
+      setNuevaTransaccion(prev => {
+        const nuevaTasa = tasaCambioActual || prev.tasaCambio;
+        if (prev.tasaCambio === nuevaTasa) {
+          return prev;
+        }
+        return { ...prev, tasaCambio: nuevaTasa };
+      });
+    }
+  }, [tasaCambioActual, modalOpen, editingTransaction]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -383,21 +450,29 @@ const CajaInteractiva = () => {
 
   const handleRegistrarMovimiento = async (formData) => {
     try {
-      if (!formData.monto || parseFloat(formData.monto) <= 0) {
+      const montoNumerico = parseFloat(formData.monto);
+      if (!formData.monto || Number.isNaN(montoNumerico) || montoNumerico <= 0) {
         toast.error('El monto debe ser mayor a 0');
+        return;
+      }
+
+      const tasaCambioSeleccionada = parseFloat(formData.tasaCambio || tasaCambioActual);
+      if (!tasaCambioSeleccionada || Number.isNaN(tasaCambioSeleccionada) || tasaCambioSeleccionada <= 0) {
+        toast.error('Debe indicar una tasa de cambio válida');
         return;
       }
 
       const movimiento = {
         ...formData,
+        concepto: formData.concepto?.trim() || '',
         fecha: dateUtils.toUTC(formData.fecha),
-        monto: parseFloat(formData.monto),
-        tasaCambio: state.tasaCambio
+        monto: montoNumerico,
+        tasaCambio: tasaCambioSeleccionada
       };
 
       let res;
-      if (state.editingTransaction && state.editingTransaction._id) {
-        res = await axios.put(`${API_URL}/caja/transacciones/${state.editingTransaction._id}`, movimiento);
+      if (editingTransaction && editingTransaction._id) {
+        res = await axios.put(`${API_URL}/caja/transacciones/${editingTransaction._id}`, movimiento);
         toast.success('Movimiento actualizado exitosamente!');
       } else {
         res = await axios.post(`${API_URL}/caja/transacciones`, movimiento);
@@ -412,14 +487,7 @@ const CajaInteractiva = () => {
           modalOpen: false,
           editingTransaction: null
         }));
-        setNuevaTransaccion({
-            fecha: moment.utc().format('YYYY-MM-DD'),
-            concepto: '',
-            moneda: 'USD',
-            tipo: 'entrada',
-            monto: '',
-            tasaCambio: state.tasaCambio
-        });
+        resetNuevaTransaccion();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al procesar la transacción');
@@ -469,23 +537,28 @@ const CajaInteractiva = () => {
   }, {});
 
   const handleEditTransaction = (transaction) => {
-    console.log('Transacción a editar:', transaction);
-    const transactionId = transaction._id || transaction.id;
-    
+    const transactionId = transaction?._id || transaction?.id;
+
     if (!transaction || !transactionId) {
       toast.error('Transacción inválida');
+      return;
+    }
+
+    const normalizada = normalizarTransaccion({ ...transaction, _id: transactionId });
+
+    if (!normalizada) {
+      toast.error('No se pudo preparar la transacción para editar');
       return;
     }
 
     setState(prev => ({
       ...prev,
       modalOpen: true,
-      editingTransaction: { ...transaction, _id: transactionId }
+      editingTransaction: { ...normalizada, _id: transactionId }
     }));
   };
 
   const handleDeleteTransaction = async (id) => {
-    console.log('ID a eliminar:', id);
     if (!id) {
       toast.error('ID de transacción no válido');
       return;
@@ -510,6 +583,15 @@ const CajaInteractiva = () => {
       console.error('Respuesta del servidor:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al eliminar el movimiento');
     }
+  };
+
+  const handleCloseModal = () => {
+    setState(prev => ({
+      ...prev,
+      modalOpen: false,
+      editingTransaction: null
+    }));
+    resetNuevaTransaccion();
   };
 
   const corregirFechas = async () => {
@@ -696,7 +778,10 @@ const CajaInteractiva = () => {
                 <Button 
                   variant="contained" 
                   startIcon={<Add />}
-                  onClick={() => setState(prev => ({ ...prev, modalOpen: true }))}
+                  onClick={() => {
+                    resetNuevaTransaccion();
+                    setState(prev => ({ ...prev, modalOpen: true, editingTransaction: null }));
+                  }}
                 >
                   Nuevo Movimiento
                 </Button>
@@ -735,11 +820,14 @@ const CajaInteractiva = () => {
       </Grid>
 
       <MovimientoForm
-        open={state.modalOpen}
-        onClose={() => setState(prev => ({ ...prev, modalOpen: false }))}
+        open={modalOpen}
+        onClose={handleCloseModal}
         onSubmit={handleRegistrarMovimiento}
-        initialData={nuevaTransaccion}
-        tasaCambio={state.tasaCambio}
+        initialData={editingTransaction
+          ? crearFormularioMovimiento(editingTransaction, editingTransaction.tasaCambio || tasaCambioActual)
+          : nuevaTransaccion}
+        tasaCambio={tasaCambioActual}
+        isEditing={Boolean(editingTransaction)}
       />
     </Container>
   );

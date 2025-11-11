@@ -3,11 +3,14 @@ import {
   Container, Typography, Grid, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, 
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, FormControl, InputLabel, 
   Select, MenuItem, Box, Chip, Tabs, Tab, InputAdornment, Alert, Snackbar, Drawer, IconButton,
-  CircularProgress, Tooltip
+  CircularProgress, Tooltip, useTheme, useMediaQuery
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import { 
-  VpnKey, Dashboard, PriceChange as PriceChangeIcon, Close as CloseIcon, Visibility as VisibilityIcon
+  VpnKey, Dashboard, PriceChange as PriceChangeIcon, Close as CloseIcon, Visibility as VisibilityIcon,
+  Add as AddIcon, ShoppingCart as ShoppingCartIcon, Person as PersonIcon, Inventory as InventoryIcon
 } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ConfirmarPagoModal from './ConfirmarPagoModal';
@@ -17,6 +20,78 @@ import ListadoHistorialVentas from './ListadoHistorialVentas';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
+
+// Componentes estilizados
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  fontWeight: 'bold',
+  '&.MuiTableCell-head': {
+    backgroundColor: theme.palette.primary.main,
+    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+    color: theme.palette.common.white,
+    fontSize: '0.95rem',
+    whiteSpace: 'nowrap',
+    padding: '16px'
+  }
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(even)': {
+    backgroundColor: theme.palette.action.hover,
+  },
+  '&:hover': {
+    backgroundColor: theme.palette.action.selected,
+    transition: 'background-color 0.3s ease',
+    boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
+    transform: 'translateY(-2px)',
+  },
+  transition: 'all 0.2s ease',
+}));
+
+const FilterContainer = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+  borderRadius: '16px',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+  background: 'linear-gradient(120deg, #fafafa 0%, #ffffff 100%)'
+}));
+
+const MainContainer = styled(Container)(({ theme }) => ({
+  marginTop: theme.spacing(4),
+  marginBottom: theme.spacing(4),
+}));
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  borderRadius: '12px',
+  padding: '12px 24px',
+  background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+  boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+  textTransform: 'none',
+  fontWeight: 'bold',
+  fontSize: '1rem',
+  '&:hover': {
+    background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
+    boxShadow: '0 5px 8px 2px rgba(33, 150, 243, .4)',
+    transform: 'translateY(-2px)',
+  },
+  transition: 'all 0.3s ease',
+}));
+
+// Variantes de animación
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      when: "beforeChildren",
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -38,7 +113,10 @@ function TabPanel(props) {
   );
 }
 
-const ProcesarVenta = () => { 
+const ProcesarVenta = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [state, setState] = useState({
     busquedaDni: '',
     cliente: null,
@@ -461,367 +539,843 @@ const ProcesarVenta = () => {
   }, [state.productosVenta, totalGeneral]);
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Botón para ir al Dashboard */}
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => navigate('/dashboard')}
-        sx={{ mb: 2 }}
-        startIcon={<Dashboard />}
-      >
-        Ir al Dashboard
-      </Button>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <MainContainer maxWidth="xl">
+        {/* Botón para ir al Dashboard */}
+        <motion.div variants={itemVariants}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <StyledButton
+                variant="contained"
+                color="primary"
+                onClick={() => navigate('/dashboard')}
+                startIcon={<Dashboard />}
+              >
+                Ir al Dashboard
+              </StyledButton>
+            </motion.div>
+          </Box>
+        </motion.div>
 
-      <Paper elevation={3} sx={{ p: 3, backgroundColor: '#f8f9fa', mb: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ 
-          color: 'primary.main',
-          fontWeight: 'bold',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2
-        }}>
-          Procesar Venta
-        </Typography>
+        {/* Título Principal */}
+        <motion.div variants={itemVariants}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            mb: 4
+          }}>
+            <Typography 
+              variant="h4" 
+              component={motion.h4}
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              sx={{ 
+                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: 'bold',
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <ShoppingCartIcon sx={{ fontSize: '2rem' }} />
+              Procesar Venta
+            </Typography>
+          </Box>
+        </motion.div>
 
-        <Tabs 
-          value={tabValue} 
-          onChange={handleChangeTab} 
-          aria-label="Pestañas de Procesar Venta"
-          sx={{
-            '& .MuiTabs-indicator': {
-              backgroundColor: 'primary.main',
-            },
-          }}
-        >
-          <Tab label="Nueva Venta" sx={{ fontWeight: 'bold' }} />
-          <Tab label="Historial de Ventas" sx={{ fontWeight: 'bold' }} />
-        </Tabs>
-      </Paper>
+        {/* Tabs */}
+        <motion.div variants={itemVariants}>
+          <Paper elevation={3} sx={{ 
+            p: 3, 
+            backgroundColor: '#f8f9fa', 
+            mb: 3,
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+          }}>
+            <Tabs 
+              value={tabValue} 
+              onChange={handleChangeTab} 
+              aria-label="Pestañas de Procesar Venta"
+              sx={{
+                '& .MuiTabs-indicator': {
+                  backgroundColor: 'primary.main',
+                  height: 3,
+                  borderRadius: '2px'
+                },
+                '& .MuiTab-root': {
+                  borderRadius: '8px 8px 0 0',
+                  marginRight: 1,
+                  '&:hover': {
+                    backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                  }
+                }
+              }}
+            >
+              <Tab 
+                label="Nueva Venta" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  fontSize: '1rem'
+                }} 
+              />
+              <Tab 
+                label="Historial de Ventas" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  fontSize: '1rem'
+                }} 
+              />
+            </Tabs>
+          </Paper>
+        </motion.div>
 
-      <Paper elevation={3} sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+        <motion.div variants={itemVariants}>
+          <Paper elevation={3} sx={{ 
+            p: 3, 
+            backgroundColor: '#f8f9fa',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+          }}>
         <TabPanel value={tabValue} index={0}>
           <Grid container spacing={3}>
             {/* Sección de Clientes */}
             <Grid item xs={12}>
-              <Paper sx={{ p: 2 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Buscar Cliente (RIF o Nombre)"
-                      value={state.busquedaDni}
-                      onChange={(e) => {
-                        setState(prev => ({ ...prev, busquedaDni: e.target.value }));
-                        filtrarClientes();
-                      }}
-                      fullWidth
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Seleccionar Cliente</InputLabel>
-                      <Select
-                        value={state.cliente?.id || ''}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <FilterContainer elevation={2}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    mb: 2
+                  }}>
+                    <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    <Typography 
+                      variant="h6" 
+                      color="primary"
+                      sx={{ fontWeight: 'bold' }}
+                    >
+                      Selección de Cliente
+                    </Typography>
+                  </Box>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Buscar Cliente (RIF o Nombre)"
+                        value={state.busquedaDni}
                         onChange={(e) => {
-                          const clienteSeleccionado = state.clientesFiltrados.find(c => c.id === e.target.value);
-                          if (clienteSeleccionado) seleccionarCliente(clienteSeleccionado);
+                          setState(prev => ({ ...prev, busquedaDni: e.target.value }));
+                          filtrarClientes();
                         }}
-                        MenuProps={{
-                          PaperProps: {
-                            style: {
-                              maxHeight: 400,
+                        fullWidth
+                        variant="outlined"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: '12px',
+                            '&:hover fieldset': {
+                              borderColor: 'primary.main',
                             },
-                          },
-                          anchorOrigin: {
-                            vertical: 'bottom',
-                            horizontal: 'left',
-                          },
-                          transformOrigin: {
-                            vertical: 'top',
-                            horizontal: 'left',
-                          },
+                          }
                         }}
-                      >
-                        {state.clientesFiltrados.map(cliente => (
-                          <MenuItem 
-                            key={cliente.id} 
-                            value={cliente.id}
-                            sx={{
-                              whiteSpace: 'normal',
-                              wordBreak: 'break-word',
-                              py: 1,
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'flex-start'
-                            }}
-                          >
-                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                              {cliente.nombre}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              RIF: {cliente.rif}
-                            </Typography>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                      />
+                    </Grid>
+                  
+                    <Grid item xs={12} md={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Seleccionar Cliente</InputLabel>
+                        <Select
+                          value={state.cliente?.id || ''}
+                          onChange={(e) => {
+                            const clienteSeleccionado = state.clientesFiltrados.find(c => c.id === e.target.value);
+                            if (clienteSeleccionado) seleccionarCliente(clienteSeleccionado);
+                          }}
+                          sx={{
+                            borderRadius: '12px',
+                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                              borderColor: 'primary.main',
+                            },
+                          }}
+                          MenuProps={{
+                            PaperProps: {
+                              style: {
+                                maxHeight: 400,
+                                borderRadius: '12px',
+                              },
+                            },
+                            anchorOrigin: {
+                              vertical: 'bottom',
+                              horizontal: 'left',
+                            },
+                            transformOrigin: {
+                              vertical: 'top',
+                              horizontal: 'left',
+                            },
+                          }}
+                        >
+                          {state.clientesFiltrados.map(cliente => (
+                            <MenuItem 
+                              key={cliente.id} 
+                              value={cliente.id}
+                              sx={{
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                py: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                borderRadius: '8px',
+                                margin: '4px',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                                }
+                              }}
+                            >
+                              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                                {cliente.nombre}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                RIF: {cliente.rif}
+                              </Typography>
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
                   </Grid>
-                </Grid>
-              </Paper>
+                </FilterContainer>
+              </motion.div>
             </Grid>
 
             {/* Sección de Productos */}
             <Grid item xs={12} md={7}>
-              <Paper sx={{ p: 2, height: 500, overflow: 'auto' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Productos Disponibles
-                  </Typography>
-                  <Tooltip title="Ver precios de referencia" arrow>
-                    <Button
-                      variant="outlined"
-                      startIcon={<PriceChangeIcon />}
-                      onClick={handleAbrirPrecios}
-                      sx={{
-                        borderRadius: '8px',
-                        textTransform: 'none',
-                        fontWeight: 'medium',
-                        borderColor: 'primary.main',
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
+                <Paper sx={{ 
+                  p: 2, 
+                  height: 500, 
+                  overflow: 'auto',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+                }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    pb: 2,
+                    borderBottom: '2px solid #e0e0e0'
+                  }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 'bold',
                         color: 'primary.main',
-                        '&:hover': {
-                          backgroundColor: 'primary.main',
-                          color: 'white'
-                        }
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
                       }}
                     >
-                      Precios de Referencia
-                    </Button>
-                  </Tooltip>
-                </Box>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Producto</TableCell>
-                        <TableCell>Código</TableCell>
-                        {state.showPrecios && <TableCell>Costo Final</TableCell>}
-                        <TableCell>Stock</TableCell>
-                        <TableCell>Acciones</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {state.productos.map((producto) => (
-                        <TableRow key={producto._id}>
-                          <TableCell>{producto.nombre}</TableCell>
-                          <TableCell>{producto.codigo}</TableCell>
-                          {state.showPrecios && (
-                            <TableCell>${producto.costoFinal?.toFixed(2)}</TableCell>
-                          )}
-                          <TableCell>
-                            <Chip 
-                              label={producto.stock} 
-                              color={producto.stock > 5 ? 'success' : 'error'}
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="contained"
-                              color="primary"
-                              onClick={() => handleSeleccionarProducto(producto)}
-                              disabled={producto.stock <= 0}
-                            >
-                              Agregar
-                            </Button>
-                          </TableCell>
+                      <InventoryIcon />
+                      Productos Disponibles
+                    </Typography>
+                    <Tooltip title="Ver precios de referencia" arrow>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          variant="outlined"
+                          startIcon={<PriceChangeIcon />}
+                          onClick={handleAbrirPrecios}
+                          sx={{
+                            borderRadius: '12px',
+                            textTransform: 'none',
+                            fontWeight: 'bold',
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            px: 3,
+                            py: 1,
+                            boxShadow: '0 2px 5px rgba(33, 150, 243, 0.2)',
+                            '&:hover': {
+                              backgroundColor: 'primary.main',
+                              color: 'white',
+                              boxShadow: '0 4px 8px rgba(33, 150, 243, 0.3)',
+                              transform: 'translateY(-2px)'
+                            },
+                            transition: 'all 0.3s ease'
+                          }}
+                        >
+                          Precios de Referencia
+                        </Button>
+                      </motion.div>
+                    </Tooltip>
+                  </Box>
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <StyledTableCell>Producto</StyledTableCell>
+                          <StyledTableCell>Código</StyledTableCell>
+                          {state.showPrecios && <StyledTableCell>Costo Final</StyledTableCell>}
+                          <StyledTableCell>Stock</StyledTableCell>
+                          <StyledTableCell>Acciones</StyledTableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
+                      </TableHead>
+                      <TableBody>
+                        <AnimatePresence>
+                          {state.productos.map((producto, index) => (
+                            <motion.tr
+                              key={producto._id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.02 }}
+                              component={StyledTableRow}
+                              layout
+                            >
+                              <TableCell>
+                                <Typography sx={{ fontWeight: 'medium' }}>
+                                  {producto.nombre}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography sx={{ color: 'text.secondary' }}>
+                                  {producto.codigo}
+                                </Typography>
+                              </TableCell>
+                              {state.showPrecios && (
+                                <TableCell>
+                                  <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                    ${producto.costoFinal?.toFixed(2)}
+                                  </Typography>
+                                </TableCell>
+                              )}
+                              <TableCell>
+                                <Chip 
+                                  label={producto.stock} 
+                                  color={producto.stock > 5 ? 'success' : 'error'}
+                                  variant="outlined"
+                                  sx={{
+                                    fontWeight: 'bold',
+                                    boxShadow: producto.stock > 5 
+                                      ? '0 2px 5px rgba(76, 175, 80, 0.2)' 
+                                      : '0 2px 5px rgba(244, 67, 54, 0.2)'
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <motion.div
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={() => handleSeleccionarProducto(producto)}
+                                    disabled={producto.stock <= 0}
+                                    sx={{
+                                      borderRadius: '8px',
+                                      textTransform: 'none',
+                                      fontWeight: 'bold',
+                                      boxShadow: '0 2px 5px rgba(33, 150, 243, 0.3)',
+                                      '&:hover': {
+                                        boxShadow: '0 4px 8px rgba(33, 150, 243, 0.4)',
+                                        transform: 'translateY(-2px)'
+                                      },
+                                      '&:disabled': {
+                                        backgroundColor: 'rgba(0,0,0,0.12)',
+                                        color: 'rgba(0,0,0,0.26)'
+                                      },
+                                      transition: 'all 0.3s ease'
+                                    }}
+                                  >
+                                    <AddIcon sx={{ mr: 0.5 }} />
+                                    Agregar
+                                  </Button>
+                                </motion.div>
+                              </TableCell>
+                            </motion.tr>
+                          ))}
+                        </AnimatePresence>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+              </motion.div>
             </Grid>
 
             {/* Detalle de Venta */}
             <Grid item xs={12} md={5}>
-              <Paper sx={{ p: 2, height: 500, display: 'flex', flexDirection: 'column' }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="h6">Detalle de Venta</Typography>
-                  <Button 
-                    variant="outlined" 
-                    startIcon={<VpnKey />}
-                    onClick={() => setState(prev => ({ ...prev, pinDialog: true }))}
-                  >
-                    Desbloquear Costos
-                  </Button>
-                </Box>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+              >
+                <Paper sx={{ 
+                  p: 2, 
+                  height: 500, 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+                }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    mb: 2,
+                    pb: 2,
+                    borderBottom: '2px solid #e0e0e0'
+                  }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 'bold',
+                        color: 'primary.main',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      <ShoppingCartIcon />
+                      Detalle de Venta
+                    </Typography>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button 
+                        variant="outlined" 
+                        startIcon={<VpnKey />}
+                        onClick={() => setState(prev => ({ ...prev, pinDialog: true }))}
+                        sx={{
+                          borderRadius: '12px',
+                          textTransform: 'none',
+                          fontWeight: 'bold',
+                          borderColor: 'warning.main',
+                          color: 'warning.main',
+                          px: 3,
+                          py: 1,
+                          boxShadow: '0 2px 5px rgba(255, 152, 0, 0.2)',
+                          '&:hover': {
+                            backgroundColor: 'warning.main',
+                            color: 'white',
+                            boxShadow: '0 4px 8px rgba(255, 152, 0, 0.3)',
+                            transform: 'translateY(-2px)'
+                          },
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        Desbloquear Costos
+                      </Button>
+                    </motion.div>
+                  </Box>
                 
-                <TableContainer sx={{ flex: 1 }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Producto</TableCell>
-                        <TableCell>Cantidad</TableCell>
-                        <TableCell>P. Venta</TableCell>
-                        <TableCell>Total</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {state.productosVenta.map((producto) => (
-                        <TableRow key={producto._id}>
-                          <TableCell>{producto.nombre}</TableCell>
-                          <TableCell>{producto.cantidad}</TableCell>
-                          <TableCell>${producto.precioVenta.toFixed(2)}</TableCell>
-                          <TableCell>${(producto.precioVenta * producto.cantidad).toFixed(2)}</TableCell>
+                  <TableContainer sx={{ flex: 1 }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <StyledTableCell>Producto</StyledTableCell>
+                          <StyledTableCell>Cantidad</StyledTableCell>
+                          <StyledTableCell>P. Venta</StyledTableCell>
+                          <StyledTableCell>Total</StyledTableCell>
                         </TableRow>
-                      ))}
-                      <TableRow>
-                        <TableCell colSpan={3} align="right">Total General:</TableCell>
-                        <TableCell>${totalGeneral.toFixed(2)}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        <AnimatePresence>
+                          {state.productosVenta.map((producto, index) => (
+                            <motion.tr
+                              key={producto._id}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                              component={StyledTableRow}
+                              layout
+                            >
+                              <TableCell>
+                                <Typography sx={{ fontWeight: 'medium' }}>
+                                  {producto.nombre}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Chip 
+                                  label={producto.cantidad} 
+                                  color="info" 
+                                  variant="outlined"
+                                  size="small"
+                                  sx={{ fontWeight: 'bold' }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                  ${producto.precioVenta.toFixed(2)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                                  ${(producto.precioVenta * producto.cantidad).toFixed(2)}
+                                </Typography>
+                              </TableCell>
+                            </motion.tr>
+                          ))}
+                        </AnimatePresence>
+                        <TableRow sx={{ backgroundColor: 'rgba(25, 118, 210, 0.04)' }}>
+                          <TableCell colSpan={3} align="right">
+                            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                              Total General:
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography 
+                              variant="h6" 
+                              sx={{ 
+                                fontWeight: 'bold', 
+                                color: 'primary.main',
+                                background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent'
+                              }}
+                            >
+                              ${totalGeneral.toFixed(2)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 
-                <Box sx={{ mt: 2, p: 2 }}>
-                  <Button 
-                    variant="contained" 
-                    color="success" 
-                    fullWidth
-                    onClick={handleFinalizarVenta}
-                    sx={{ height: 50 }}
-                    disabled={state.productosVenta.length === 0}
-                  >
-                    Finalizar Venta
-                  </Button>
-                </Box>
-              </Paper>
+                  <Box sx={{ mt: 2, p: 2 }}>
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Button 
+                        variant="contained" 
+                        color="success" 
+                        fullWidth
+                        onClick={handleFinalizarVenta}
+                        disabled={state.productosVenta.length === 0}
+                        sx={{ 
+                          height: 50,
+                          borderRadius: '12px',
+                          textTransform: 'none',
+                          fontWeight: 'bold',
+                          fontSize: '1.1rem',
+                          background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
+                          boxShadow: '0 3px 5px 2px rgba(76, 175, 80, .3)',
+                          '&:hover': {
+                            background: 'linear-gradient(45deg, #388e3c 30%, #4caf50 90%)',
+                            boxShadow: '0 5px 8px 2px rgba(76, 175, 80, .4)',
+                            transform: 'translateY(-2px)'
+                          },
+                          '&:disabled': {
+                            backgroundColor: 'rgba(0,0,0,0.12)',
+                            color: 'rgba(0,0,0,0.26)',
+                            background: 'none'
+                          },
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <ShoppingCartIcon sx={{ mr: 1 }} />
+                        Finalizar Venta
+                      </Button>
+                    </motion.div>
+                  </Box>
+                </Paper>
+              </motion.div>
             </Grid>
           </Grid>
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <ListadoHistorialVentas handleVerCliente={(venta) => {
-            console.log('Ver cliente:', venta.cliente);
-          }} />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ListadoHistorialVentas handleVerCliente={(venta) => {
+              console.log('Ver cliente:', venta.cliente);
+            }} />
+          </motion.div>
         </TabPanel>
       </Paper>
+    </motion.div>
 
-      {/* Modal de Cantidad y Precio */}
-      <Dialog
-        open={!!state.productoSeleccionado}
-        onClose={() => {
-          setState(prev => ({ ...prev, productoSeleccionado: null }));
-          setLotesProducto([]);
-        }}
-      >
-        <DialogTitle>Agregar Producto</DialogTitle>
-        <DialogContent>
-          {loadingLotes ? (
-            <Typography>Cargando lotes...</Typography>
-          ) : lotesProducto.length === 0 ? (
-            <Typography color="error">No hay lotes disponibles para este producto.</Typography>
-          ) : (
-            <>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Lote seleccionado: 
-                <b> {lotesProducto[0]?.fecha ? moment.utc(lotesProducto[0].fecha).format('DD/MM/YYYY') : 'Sin fecha'} </b>
-                {state.showPrecios && (
-                  <> | Costo: <b>${lotesProducto[0]?.costoFinal?.toFixed(2) || 'N/A'}</b></>
-                )}
-                | Stock disponible: {lotesProducto[0]?.stockLote}
-              </Typography>
-              <Grid container spacing={2} sx={{ pt: 2 }}>
-                <Grid item xs={6}>
+        {/* Modal de Cantidad y Precio */}
+        <AnimatePresence>
+          {state.productoSeleccionado && (
+            <Dialog
+              open={!!state.productoSeleccionado}
+              onClose={() => {
+                setState(prev => ({ ...prev, productoSeleccionado: null }));
+                setLotesProducto([]);
+              }}
+              PaperProps={{
+                style: {
+                  borderRadius: '16px',
+                  boxShadow: '0 24px 38px rgba(0,0,0,0.14), 0 9px 46px rgba(0,0,0,0.12), 0 11px 15px rgba(0,0,0,0.2)',
+                  overflow: 'hidden'
+                }
+              }}
+              TransitionComponent={motion.div}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <DialogTitle sx={{ 
+                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                  color: 'white',
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  <AddIcon />
+                  Agregar Producto
+                </DialogTitle>
+                <DialogContent sx={{ pt: 3, px: 3 }}>
+                  {loadingLotes ? (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      alignItems: 'center', 
+                      height: '100px' 
+                    }}>
+                      <CircularProgress size={40} thickness={4} sx={{ color: 'primary.main' }} />
+                      <Typography sx={{ ml: 2 }}>Cargando lotes...</Typography>
+                    </Box>
+                  ) : lotesProducto.length === 0 ? (
+                    <Alert severity="error" sx={{ borderRadius: '10px' }}>
+                      <Typography>No hay lotes disponibles para este producto.</Typography>
+                    </Alert>
+                  ) : (
+                    <Box component={motion.div} layout>
+                      <Alert 
+                        severity="info" 
+                        sx={{ 
+                          mb: 2, 
+                          borderRadius: '10px',
+                          backgroundColor: 'rgba(33, 150, 243, 0.1)'
+                        }}
+                      >
+                        <Typography variant="subtitle2">
+                          <strong>Lote seleccionado:</strong> {lotesProducto[0]?.fecha ? moment.utc(lotesProducto[0].fecha).format('DD/MM/YYYY') : 'Sin fecha'}
+                          {state.showPrecios && (
+                            <> | <strong>Costo:</strong> ${lotesProducto[0]?.costoFinal?.toFixed(2) || 'N/A'}</>
+                          )}
+                          | <strong>Stock disponible:</strong> {lotesProducto[0]?.stockLote}
+                        </Typography>
+                      </Alert>
+                      <Grid container spacing={2} sx={{ pt: 2 }}>
+                        <Grid item xs={6}>
+                          <TextField
+                            fullWidth
+                            label="Cantidad"
+                            type="number"
+                            value={state.cantidadInput}
+                            onChange={(e) => setState(prev => ({ ...prev, cantidadInput: e.target.value }))}
+                            inputProps={{ 
+                              min: 1, 
+                              max: state.productoSeleccionado?.stock || 0 
+                            }}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                borderRadius: '12px',
+                              }
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={6}>
+                          <TextField
+                            fullWidth
+                            label="Precio de Venta"
+                            type="number"
+                            value={state.precioVentaInput}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^\d*\.?\d*$/.test(value)) {
+                                setState(prev => ({ ...prev, precioVentaInput: value }));
+                              }
+                            }}
+                            inputProps={{ 
+                              min: lotesProducto[0]?.costoFinal || 0,
+                              step: "0.01"
+                            }}
+                            error={state.precioVentaInput !== '' && isNaN(state.precioVentaInput)}
+                            helperText={state.precioVentaInput !== '' && isNaN(state.precioVentaInput) 
+                              ? 'Ingrese un número válido' 
+                              : ''
+                            }
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                borderRadius: '12px',
+                              }
+                            }}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+                </DialogContent>
+                <DialogActions sx={{ p: 3, justifyContent: 'space-between' }}>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      onClick={() => {
+                        setState(prev => ({ ...prev, productoSeleccionado: null }));
+                        setLotesProducto([]);
+                      }}
+                      variant="outlined"
+                      sx={{ 
+                        borderRadius: '8px',
+                        px: 3,
+                        textTransform: 'none',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      onClick={agregarProducto} 
+                      variant="contained"
+                      sx={{ 
+                        borderRadius: '8px',
+                        px: 3,
+                        background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                        boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                        textTransform: 'none',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      <AddIcon sx={{ mr: 0.5 }} />
+                      Aceptar
+                    </Button>
+                  </motion.div>
+                </DialogActions>
+              </motion.div>
+            </Dialog>
+          )}
+        </AnimatePresence>
+
+        {/* Modal de PIN */}
+        <AnimatePresence>
+          {state.pinDialog && (
+            <Dialog
+              open={state.pinDialog}
+              onClose={() => setState(prev => ({ ...prev, pinDialog: false }))}
+              PaperProps={{
+                style: {
+                  borderRadius: '16px',
+                  boxShadow: '0 24px 38px rgba(0,0,0,0.14), 0 9px 46px rgba(0,0,0,0.12), 0 11px 15px rgba(0,0,0,0.2)',
+                  overflow: 'hidden'
+                }
+              }}
+              TransitionComponent={motion.div}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <DialogTitle sx={{ 
+                  background: 'linear-gradient(45deg, #ff9800 30%, #ffb74d 90%)',
+                  color: 'white',
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  <VpnKey />
+                  Ingrese el PIN de seguridad
+                </DialogTitle>
+                <DialogContent sx={{ pt: 3, px: 3 }}>
                   <TextField
+                    autoFocus
                     fullWidth
-                    label="Cantidad"
-                    type="number"
-                    value={state.cantidadInput}
-                    onChange={(e) => setState(prev => ({ ...prev, cantidadInput: e.target.value }))}
-                    inputProps={{ 
-                      min: 1, 
-                      max: state.productoSeleccionado?.stock || 0 
+                    margin="dense"
+                    type="password"
+                    label="PIN"
+                    value={state.pinInput}
+                    onChange={(e) => setState(prev => ({ ...prev, pinInput: e.target.value }))}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <VpnKey />
+                        </InputAdornment>
+                      ),
+                      sx: { borderRadius: '12px' }
                     }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Precio de Venta"
-                    type="number"
-                    value={state.precioVentaInput}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^\d*\.?\d*$/.test(value)) {
-                        setState(prev => ({ ...prev, precioVentaInput: value }));
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '12px',
                       }
                     }}
-                    inputProps={{ 
-                      min: lotesProducto[0]?.costoFinal || 0,
-                      step: "0.01"
-                    }}
-                    error={state.precioVentaInput !== '' && isNaN(state.precioVentaInput)}
-                    helperText={state.precioVentaInput !== '' && isNaN(state.precioVentaInput) 
-                      ? 'Ingrese un número válido' 
-                      : ''
-                    }
                   />
-                </Grid>
-              </Grid>
-            </>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, justifyContent: 'space-between' }}>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      onClick={() => setState(prev => ({ ...prev, pinDialog: false }))}
+                      variant="outlined"
+                      sx={{ 
+                        borderRadius: '8px',
+                        px: 3,
+                        textTransform: 'none',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      onClick={handlePinSubmit} 
+                      variant="contained"
+                      sx={{ 
+                        borderRadius: '8px',
+                        px: 3,
+                        background: 'linear-gradient(45deg, #ff9800 30%, #ffb74d 90%)',
+                        boxShadow: '0 3px 5px 2px rgba(255, 152, 0, .3)',
+                        textTransform: 'none',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      <VpnKey sx={{ mr: 0.5 }} />
+                      Aceptar
+                    </Button>
+                  </motion.div>
+                </DialogActions>
+              </motion.div>
+            </Dialog>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setState(prev => ({ ...prev, productoSeleccionado: null }));
-            setLotesProducto([]);
-          }}>
-            Cancelar
-          </Button>
-          <Button onClick={agregarProducto} color="primary">
-            Aceptar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Modal de PIN */}
-      <Dialog
-        open={state.pinDialog}
-        onClose={() => setState(prev => ({ ...prev, pinDialog: false }))}
-      >
-        <DialogTitle>
-          <VpnKey sx={{ mr: 1 }} />
-          Ingrese el PIN de seguridad
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            margin="dense"
-            type="password"
-            label="PIN"
-            value={state.pinInput}
-            onChange={(e) => setState(prev => ({ ...prev, pinInput: e.target.value }))}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <VpnKey />
-                </InputAdornment>
-              )
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setState(prev => ({ ...prev, pinDialog: false }))}>
-            Cancelar
-          </Button>
-          <Button onClick={handlePinSubmit} color="primary">
-            Aceptar
-          </Button>
-        </DialogActions>
-      </Dialog>
+        </AnimatePresence>
 
       {/* Modal de Confirmación de Pago */}
       <ConfirmarPagoModal
@@ -854,7 +1408,17 @@ const ProcesarVenta = () => {
         showPrecios={state.showPrecios}
       />
 
-      <ToastContainer position="top-right" autoClose={3000} />
+        <ToastContainer 
+          position="top-right" 
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
 
       {/* Drawer de Precios de Referencia */}
       <Drawer
@@ -1081,25 +1645,47 @@ const ProcesarVenta = () => {
         </Box>
       </Drawer>
 
-      {/* Notificación de deudas pendientes */}
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity="warning" sx={{ width: '100%' }}>
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+        {/* Notificación de deudas pendientes */}
+        <Snackbar
+          open={openSnackbar}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert 
+            onClose={handleCloseSnackbar} 
+            severity="warning" 
+            sx={{ 
+              width: '100%',
+              borderRadius: '12px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+            }}
+          >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
 
-      {/* Mostrar error si existe */}
-      {state.error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {state.error}
-        </Alert>
-      )}
-    </Container>
+        {/* Mostrar error si existe */}
+        {state.error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 2,
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+              }}
+            >
+              {state.error}
+            </Alert>
+          </motion.div>
+        )}
+      </MainContainer>
+    </motion.div>
   );
 };
 
