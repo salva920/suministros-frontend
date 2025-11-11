@@ -659,14 +659,36 @@ const CajaInteractiva = () => {
         <Dashboard sx={{ mr: 1 }} /> Ir al Dashboard
       </Button>
 
-      <Box sx={{ mb: 4, textAlign: 'center', p: 3, bgcolor: 'background.paper', borderRadius: 2 }}>
-        <Typography variant="h3" sx={{ fontWeight: 800, color: 'primary.main' }}>
-          <AccountBalanceWallet sx={{ fontSize: 48, verticalAlign: 'middle', mr: 2 }} />
-          Gestión de Caja
-        </Typography>
-      </Box>
+      <Box
+        sx={{
+          mb: 4,
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'stretch',
+          justifyContent: 'space-between',
+          gap: 3
+        }}
+      >
+        <Box
+          sx={{
+            flex: '1 1 260px',
+            textAlign: 'center',
+            p: 3,
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: theme.shadows[2]
+          }}
+        >
+          <Typography variant="h3" sx={{ fontWeight: 800, color: 'primary.main' }}>
+            <AccountBalanceWallet sx={{ fontSize: 48, verticalAlign: 'middle', mr: 2 }} />
+            Gestión de Caja
+          </Typography>
+        </Box>
 
-      <TasaCambio onTasaChange={handleTasaChange} />
+        <Box sx={{ flex: '0 1 320px' }}>
+          <TasaCambio onTasaChange={handleTasaChange} />
+        </Box>
+      </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={4}>
