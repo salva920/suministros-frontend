@@ -8,7 +8,7 @@ import {
   DialogActions, IconButton, CircularProgress, Pagination
 } from '@mui/material';
 import { 
-   AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, Visibility
+   AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, Visibility, FileDownload
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
@@ -18,6 +18,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import TasaCambio from '../TasaCambio';
 import moment from 'moment-timezone';
 import 'moment-timezone';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -122,6 +124,158 @@ const crearFormularioMovimiento = (transaccion, tasaCambioActual) => {
     monto: '',
     tasaCambio: tasaCambioActual || 0
   };
+};
+
+// Función para exportar a Excel
+const exportarAExcel = (transacciones, filtros, saldos, tasaCambio) => {
+  // Filtrar transacciones según los filtros aplicados
+  const transaccionesFiltradas = transacciones.filter(t => {
+    const transactionDate = new Date(t.fecha);
+    const start = filtros.fecha.start && new Date(filtros.fecha.start);
+    const end = filtros.fecha.end && new Date(filtros.fecha.end);
+    
+    const matchesCurrency = filtros.moneda === 'TODAS' || t.moneda === filtros.moneda;
+    
+    return matchesCurrency &&
+           (!start || transactionDate >= start) &&
+           (!end || transactionDate <= end);
+  });
+
+  // Ordenar transacciones por fecha descendente
+  const transaccionesOrdenadas = [...transaccionesFiltradas].sort((a, b) => {
+    return new Date(b.fecha) - new Date(a.fecha);
+  });
+
+  // Crear un nuevo libro de trabajo
+  const wb = XLSX.utils.book_new();
+
+  // Crear hoja de datos
+  const datos = [];
+
+  // Título principal
+  datos.push(['REPORTE DE MOVIMIENTOS DE CAJA']);
+  datos.push([]); // Línea en blanco
+
+  // Información de resumen con título subrayado (usando guiones bajos)
+  datos.push(['═══════════════════════════════════════════════════════════════════════════════']);
+  datos.push(['RESUMEN DE SALDOS']);
+  datos.push(['═══════════════════════════════════════════════════════════════════════════════']);
+  datos.push(['Saldo en Dólares (USD):', `$ ${saldos.USD.toFixed(2)}`]);
+  datos.push(['Saldo en Bolívares (Bs):', `Bs ${saldos.Bs.toFixed(2)}`]);
+  datos.push(['Tasa de Cambio:', tasaCambio.toFixed(4)]);
+  datos.push(['Valor Total Consolidado (USD):', `$ ${(saldos.USD + (saldos.Bs / tasaCambio)).toFixed(2)}`]);
+  datos.push([]); // Línea en blanco
+
+  // Información de filtros con título subrayado
+  datos.push(['═══════════════════════════════════════════════════════════════════════════════']);
+  datos.push(['FILTROS APLICADOS']);
+  datos.push(['═══════════════════════════════════════════════════════════════════════════════']);
+  datos.push(['Moneda:', filtros.moneda === 'TODAS' ? 'Todas las monedas' : filtros.moneda]);
+  if (filtros.fecha.start || filtros.fecha.end) {
+    datos.push(['Fecha Desde:', filtros.fecha.start ? dateUtils.formatForDisplay(filtros.fecha.start) : 'No especificada']);
+    datos.push(['Fecha Hasta:', filtros.fecha.end ? dateUtils.formatForDisplay(filtros.fecha.end) : 'No especificada']);
+  } else {
+    datos.push(['Rango de Fechas:', 'Todas las fechas']);
+  }
+  datos.push(['Total de Movimientos:', transaccionesOrdenadas.length]);
+  datos.push([]); // Línea en blanco
+
+  // Encabezados de la tabla con línea subrayada
+  datos.push(['═══════════════════════════════════════════════════════════════════════════════']);
+  const encabezados = [
+    'Fecha',
+    'Concepto',
+    'Moneda',
+    'Entrada',
+    'Salida',
+    'Equivalente',
+    'Saldo',
+    'Tasa de Cambio'
+  ];
+  datos.push(encabezados);
+  datos.push(['═══════════════════════════════════════════════════════════════════════════════']);
+
+  // Agregar datos de transacciones
+  transaccionesOrdenadas.forEach(t => {
+    const equivalente = t.entrada || t.salida 
+      ? (t.moneda === 'USD' 
+          ? (t.entrada || t.salida) * tasaCambio 
+          : (t.entrada || t.salida) / tasaCambio)
+      : 0;
+    
+    datos.push([
+      dateUtils.formatForDisplay(t.fecha),
+      t.concepto || '',
+      t.moneda || '',
+      t.entrada > 0 ? parseFloat(t.entrada) : '',
+      t.salida > 0 ? parseFloat(t.salida) : '',
+      equivalente > 0 ? parseFloat(equivalente.toFixed(2)) : '',
+      parseFloat((t.saldo || 0).toFixed(2)),
+      parseFloat((t.tasaCambio || tasaCambio).toFixed(4))
+    ]);
+  });
+
+  // Crear hoja de trabajo
+  const ws = XLSX.utils.aoa_to_sheet(datos);
+
+  // Ajustar ancho de columnas
+  const colWidths = [
+    { wch: 12 }, // Fecha
+    { wch: 35 }, // Concepto
+    { wch: 10 }, // Moneda
+    { wch: 12 }, // Entrada
+    { wch: 12 }, // Salida
+    { wch: 15 }, // Equivalente
+    { wch: 12 }, // Saldo
+    { wch: 15 }  // Tasa de Cambio
+  ];
+  ws['!cols'] = colWidths;
+
+  // Combinar celdas para el título principal
+  if (!ws['!merges']) ws['!merges'] = [];
+  ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } });
+
+  // Combinar celdas para las líneas de separación
+  const filasSeparador = datos
+    .map((row, idx) => row[0] && row[0].includes('═') ? idx : -1)
+    .filter(idx => idx !== -1);
+  
+  filasSeparador.forEach(fila => {
+    ws['!merges'].push({ s: { r: fila, c: 0 }, e: { r: fila, c: 7 } });
+  });
+
+  // Combinar celdas para títulos de sección
+  const filaResumen = datos.findIndex(row => row[0] === 'RESUMEN DE SALDOS');
+  if (filaResumen > 0) {
+    ws['!merges'].push({ s: { r: filaResumen, c: 0 }, e: { r: filaResumen, c: 7 } });
+  }
+
+  const filaFiltros = datos.findIndex(row => row[0] === 'FILTROS APLICADOS');
+  if (filaFiltros > 0) {
+    ws['!merges'].push({ s: { r: filaFiltros, c: 0 }, e: { r: filaFiltros, c: 7 } });
+  }
+
+  // Agregar hoja al libro
+  XLSX.utils.book_append_sheet(wb, ws, 'Movimientos de Caja');
+
+  // Generar nombre de archivo con fecha y filtros
+  const fechaExportacion = moment().format('YYYYMMDD_HHmmss');
+  let nombreArchivo = `movimientos_caja_${fechaExportacion}`;
+  
+  if (filtros.fecha.start || filtros.fecha.end) {
+    const fechaInicio = filtros.fecha.start ? moment(filtros.fecha.start).format('YYYYMMDD') : '';
+    const fechaFin = filtros.fecha.end ? moment(filtros.fecha.end).format('YYYYMMDD') : '';
+    if (fechaInicio || fechaFin) {
+      nombreArchivo += `_${fechaInicio}_${fechaFin}`;
+    }
+  }
+  
+  nombreArchivo += '.xlsx';
+
+  // Escribir archivo
+  XLSX.writeFile(wb, nombreArchivo);
+  
+  return nombreArchivo;
 };
 
 const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) => {
@@ -796,7 +950,28 @@ const CajaInteractiva = () => {
           <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6">Movimientos Recientes</Typography>
-              <Box>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button 
+                  variant="outlined" 
+                  color="success"
+                  startIcon={<FileDownload />}
+                  onClick={() => {
+                    try {
+                      const nombreArchivo = exportarAExcel(
+                        state.transacciones,
+                        state.filtros,
+                        state.saldos,
+                        state.tasaCambio
+                      );
+                      toast.success(`Archivo ${nombreArchivo} exportado exitosamente`);
+                    } catch (error) {
+                      console.error('Error al exportar:', error);
+                      toast.error('Error al exportar el archivo Excel');
+                    }
+                  }}
+                >
+                  Exportar a Excel
+                </Button>
                 <Button 
                   variant="contained" 
                   startIcon={<Add />}
