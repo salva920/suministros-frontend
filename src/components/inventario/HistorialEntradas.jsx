@@ -328,46 +328,29 @@ const HistorialEntradas = () => {
                 }
                 hojaDatos.push([]);
 
-                // Encabezados de tabla
+                // Encabezados de tabla (solo lo que quieres ver)
                 hojaDatos.push([
-                  'Producto',
-                  'Código',
                   'Cantidad',
-                  'Stock Anterior',
-                  'Stock Nuevo',
                   'Fecha',
-                  'Operación',
-                  'Costo Final (USD)'
+                  'Operación'
                 ]);
 
-                // Filas de datos
+                // Filas de datos (solo cantidad, fecha y operación)
                 datosOrdenados.forEach(entrada => {
                   hojaDatos.push([
-                    entrada.nombreProducto || '',
-                    entrada.codigoProducto || '',
                     entrada.cantidad || 0,
-                    entrada.stockAnterior ?? '',
-                    entrada.stockNuevo ?? '',
                     moment
                       .utc(entrada.fecha)
                       .format('DD/MM/YYYY HH:mm'),
-                    (entrada.operacion || '').toUpperCase(),
-                    Number(
-                      calcularCosto(entrada.producto, entrada.cantidad).toFixed(2)
-                    )
+                    (entrada.operacion || '').toUpperCase()
                   ]);
                 });
 
                 const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
                 ws['!cols'] = [
-                  { wch: 30 },
-                  { wch: 14 },
-                  { wch: 10 },
-                  { wch: 14 },
-                  { wch: 14 },
-                  { wch: 20 },
-                  { wch: 12 },
-                  { wch: 18 }
+                  { wch: 12 }, // Cantidad
+                  { wch: 20 }, // Fecha
+                  { wch: 14 }  // Operación
                 ];
 
                 const wb = XLSX.utils.book_new();
