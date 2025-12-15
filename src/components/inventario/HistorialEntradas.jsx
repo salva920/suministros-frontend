@@ -14,7 +14,7 @@ import {
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon
 } from '@mui/icons-material';
-import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 import moment from 'moment-timezone';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
@@ -286,26 +286,104 @@ const HistorialEntradas = () => {
             variant="contained"
             startIcon={<ExportIcon />}
             onClick={() => {
-              const csvContent = [
-                ['Producto', 'Código', 'Cantidad', 'Stock Anterior', 'Stock Nuevo', 'Fecha y Hora', 'Operación', 'Costo Final'],
-                ...filteredHistorial.map(entrada => [
-                  `"${entrada.nombreProducto.replace(/"/g, '""')}"`,
-                  entrada.codigoProducto,
-                  `+${entrada.cantidad}`,
-                  entrada.stockAnterior,
-                  entrada.stockNuevo,
-                  `"${moment.utc(entrada.fecha).format('DD/MM/YYYY HH:mm')}"`,
-                  entrada.operacion.toUpperCase(),
-                  `$${calcularCosto(entrada.producto, entrada.cantidad).toFixed(2)}`
-                ])
-              ].join('\n');
-              
-              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-              saveAs(blob, 'historial_entradas.csv');
+              try {
+                // Ordenar por fecha ascendente dentro del filtro aplicado
+                const datosOrdenados = [...filteredHistorial].sort(
+                  (a, b) => new Date(a.fecha) - new Date(b.fecha)
+                );
+
+                // Construir datos para Excel
+                const hojaDatos = [];
+
+                // Título
+                hojaDatos.push(['REPORTE DE ENTRADAS DE INVENTARIO']);
+                hojaDatos.push([]);
+
+                // Resumen
+                hojaDatos.push(['Resumen']);
+                hojaDatos.push([`Total de registros:`, datosOrdenados.length]);
+                hojaDatos.push([]);
+
+                // Filtros aplicados
+                hojaDatos.push(['Filtros aplicados']);
+                hojaDatos.push([
+                  'Búsqueda:',
+                  inputValue ? inputValue : 'Sin filtro de búsqueda'
+                ]);
+                if (dateFilter.start || dateFilter.end) {
+                  hojaDatos.push([
+                    'Desde:',
+                    dateFilter.start
+                      ? new Date(dateFilter.start).toLocaleDateString('es-ES')
+                      : 'No especificado'
+                  ]);
+                  hojaDatos.push([
+                    'Hasta:',
+                    dateFilter.end
+                      ? new Date(dateFilter.end).toLocaleDateString('es-ES')
+                      : 'No especificado'
+                  ]);
+                } else {
+                  hojaDatos.push(['Rango de fechas:', 'Todas las fechas']);
+                }
+                hojaDatos.push([]);
+
+                // Encabezados de tabla
+                hojaDatos.push([
+                  'Producto',
+                  'Código',
+                  'Cantidad',
+                  'Stock Anterior',
+                  'Stock Nuevo',
+                  'Fecha',
+                  'Operación',
+                  'Costo Final (USD)'
+                ]);
+
+                // Filas de datos
+                datosOrdenados.forEach(entrada => {
+                  hojaDatos.push([
+                    entrada.nombreProducto || '',
+                    entrada.codigoProducto || '',
+                    entrada.cantidad || 0,
+                    entrada.stockAnterior ?? '',
+                    entrada.stockNuevo ?? '',
+                    moment
+                      .utc(entrada.fecha)
+                      .format('DD/MM/YYYY HH:mm'),
+                    (entrada.operacion || '').toUpperCase(),
+                    Number(
+                      calcularCosto(entrada.producto, entrada.cantidad).toFixed(2)
+                    )
+                  ]);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
+                ws['!cols'] = [
+                  { wch: 30 },
+                  { wch: 14 },
+                  { wch: 10 },
+                  { wch: 14 },
+                  { wch: 14 },
+                  { wch: 20 },
+                  { wch: 12 },
+                  { wch: 18 }
+                ];
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Entradas');
+
+                const nombreArchivo = `historial_entradas_${moment().format(
+                  'YYYYMMDD_HHmmss'
+                )}.xlsx`;
+                XLSX.writeFile(wb, nombreArchivo);
+              } catch (error) {
+                console.error('Error al exportar entradas a Excel:', error);
+              }
             }}
             sx={{ borderRadius: '25px', textTransform: 'none', px: 3 }}
           >
-            Exportar
+            Exportar Excel
           </Button>
         </Box>
       </Box>

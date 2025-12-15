@@ -141,9 +141,9 @@ const exportarAExcel = (transacciones, filtros, saldos, tasaCambio) => {
            (!end || transactionDate <= end);
   });
 
-  // Ordenar transacciones por fecha descendente
+  // Ordenar transacciones por fecha ascendente (más antiguos primero)
   const transaccionesOrdenadas = [...transaccionesFiltradas].sort((a, b) => {
-    return new Date(b.fecha) - new Date(a.fecha);
+    return new Date(a.fecha) - new Date(b.fecha);
   });
 
   // Crear un nuevo libro de trabajo

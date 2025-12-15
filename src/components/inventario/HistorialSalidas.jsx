@@ -12,7 +12,7 @@ import {
   FileDownload as ExportIcon,
   Lock as LockIcon
 } from '@mui/icons-material';
-import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 import { debounce } from 'lodash';
 import { toast } from 'react-hot-toast';
 import moment from 'moment';
@@ -147,37 +147,126 @@ const HistorialSalidas = ({ productos, showFinancials }) => {
   const currentRows = filteredHistorial.slice(indexOfFirstRow, indexOfLastRow);
   const totalPages = Math.ceil(filteredHistorial.length / rowsPerPage);
 
-  // Exportar a CSV
-  const exportToCSV = () => {
-    const headers = [
-      'Fecha y Hora', 
-      'Producto', 
-      'Cantidad', 
-      'Cliente', 
-      'Precio Unitario', 
-      'Total', 
-      'Número de Factura',
-      'Ganancia Unitaria',
-      'Ganancia Total'
-    ];
-    
-    const csvContent = [
-      headers.join(','),
-      ...filteredHistorial.map(salida => [
-        `"${salida.fechaFormateada || ''}"`,
-        `"${salida.producto || ''}"`,
-        salida.cantidad || 0,
-        `"${salida.cliente || ''}"`,
-        (salida.precioUnitario || 0).toFixed(2),
-        (salida.totalVenta || 0).toFixed(2),
-        `"${salida.nrFactura || ''}"`,
-        (salida.gananciaUnitaria || 0).toFixed(2),
-        (salida.gananciaTotal || 0).toFixed(2)
-      ].join(','))
-    ].join('\n');
+  // Exportar a Excel
+  const exportToExcel = () => {
+    try {
+      const datosOrdenados = [...filteredHistorial].sort(
+        (a, b) => new Date(a.fecha) - new Date(b.fecha)
+      );
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, `historial_salidas_${moment().format('YYYYMMDD_HHmmss')}.csv`);
+      const hojaDatos = [];
+
+      // Título
+      hojaDatos.push(['REPORTE DE SALIDAS DE INVENTARIO']);
+      hojaDatos.push([]);
+
+      // Resumen
+      hojaDatos.push(['Resumen']);
+      hojaDatos.push(['Total de registros:', datosOrdenados.length]);
+      hojaDatos.push([]);
+
+      // Filtros
+      hojaDatos.push(['Filtros aplicados']);
+      hojaDatos.push([
+        'Búsqueda:',
+        searchTerm ? searchTerm : 'Sin filtro de búsqueda'
+      ]);
+      if (dateFilter.start || dateFilter.end) {
+        hojaDatos.push([
+          'Desde:',
+          dateFilter.start
+            ? new Date(dateFilter.start).toLocaleDateString('es-ES')
+            : 'No especificado'
+        ]);
+        hojaDatos.push([
+          'Hasta:',
+          dateFilter.end
+            ? new Date(dateFilter.end).toLocaleDateString('es-ES')
+            : 'No especificado'
+        ]);
+      } else {
+        hojaDatos.push(['Rango de fechas:', 'Todas las fechas']);
+      }
+      hojaDatos.push([]);
+
+      // Encabezados
+      const headers = [
+        'Fecha',
+        'Producto',
+        'Cantidad',
+        'Cliente',
+        'Total Venta'
+      ];
+
+      if (showFinancials) {
+        headers.splice(3, 0,
+          'Costo Unitario',
+          'Precio Venta Unit.',
+          'Ganancia Unitaria',
+          'Ganancia Total Prod.'
+        );
+      }
+
+      headers.push('Método Pago', 'Número de Factura');
+      hojaDatos.push(headers);
+
+      // Filas de datos
+      datosOrdenados.forEach(salida => {
+        const filaBase = [
+          salida.fechaFormateada || '',
+          salida.producto || '',
+          salida.cantidad || 0
+        ];
+
+        const columnasFinancieras = showFinancials
+          ? [
+              Number((salida.costoInicial || 0).toFixed(2)),
+              Number((salida.precioUnitario || 0).toFixed(2)),
+              Number((salida.gananciaUnitaria || 0).toFixed(2)),
+              Number((salida.gananciaTotal || 0).toFixed(2))
+            ]
+          : [];
+
+        const resto = [
+          salida.cliente || '',
+          Number((salida.totalVenta || 0).toFixed(2)),
+          salida.metodoPago || '',
+          salida.nrFactura || ''
+        ];
+
+        hojaDatos.push([...filaBase, ...columnasFinancieras, ...resto]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
+      ws['!cols'] = [
+        { wch: 14 }, // Fecha
+        { wch: 30 }, // Producto
+        { wch: 10 }, // Cantidad
+        ...(showFinancials
+          ? [
+              { wch: 14 }, // Costo Unit.
+              { wch: 16 }, // P. Venta Unit.
+              { wch: 16 }, // G. Unitaria
+              { wch: 18 }  // G. Total Prod.
+            ]
+          : []),
+        { wch: 26 }, // Cliente
+        { wch: 14 }, // Total Venta
+        { wch: 16 }, // Método Pago
+        { wch: 18 }  // Factura
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Salidas');
+
+      const nombreArchivo = `historial_salidas_${moment().format(
+        'YYYYMMDD_HHmmss'
+      )}.xlsx`;
+      XLSX.writeFile(wb, nombreArchivo);
+    } catch (error) {
+      console.error('Error al exportar salidas a Excel:', error);
+      toast.error('Error al exportar a Excel');
+    }
   };
 
   // Función para manejar el filtrado por fecha
@@ -246,10 +335,10 @@ const HistorialSalidas = ({ productos, showFinancials }) => {
           <Button
             variant="contained"
             startIcon={<ExportIcon />}
-            onClick={exportToCSV}
+            onClick={exportToExcel}
             sx={{ borderRadius: '25px', px: 3 }}
           >
-            Exportar
+            Exportar Excel
           </Button>
         </Box>
       </Box>
