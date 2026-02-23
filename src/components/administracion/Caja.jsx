@@ -307,18 +307,18 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
   );
 };
 
-const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual, onEdit, onDelete }) => {
-  const filteredTransactions = transactions.filter(t => {
-    const transactionDate = new Date(t.fecha);
-    const start = dateFilter.start && new Date(dateFilter.start);
-    const end = dateFilter.end && new Date(dateFilter.end);
-    
-    const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
-    
-    return matchesCurrency &&
-           (!start || transactionDate >= start) &&
-           (!end || transactionDate <= end);
-  });
+const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual, onEdit, onDelete, serverFiltered = false }) => {
+  const filteredTransactions = serverFiltered
+    ? transactions
+    : transactions.filter(t => {
+        const transactionDate = new Date(t.fecha);
+        const start = dateFilter?.start && new Date(dateFilter.start);
+        const end = dateFilter?.end && new Date(dateFilter.end);
+        const matchesCurrency = currencyFilter === 'TODAS' || t.moneda === currencyFilter;
+        return matchesCurrency &&
+               (!start || transactionDate >= start) &&
+               (!end || transactionDate <= end);
+      });
 
   return (
     <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2 }}>
@@ -502,13 +502,18 @@ const MovimientoForm = ({
 const MemoTransactionTable = memo(TransactionTable);
 
 const CajaInteractiva = () => {
+  const now = new Date();
   const [state, setState] = useState({
     transacciones: [],
     saldos: { USD: 0, Bs: 0 },
     tasaCambio: 0,
     filtros: {
       moneda: 'TODAS',
-      fecha: { start: null, end: null }
+      fecha: { start: null, end: null },
+      // Por defecto filtrar por mes actual para carga rápida
+      mes: String(now.getMonth() + 1),
+      anio: String(now.getFullYear()),
+      verTodosLosMeses: false
     },
     modalOpen: false,
     editingTransaction: null,
@@ -548,45 +553,60 @@ const CajaInteractiva = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  const fetchData = async (page = 1, moneda = state.filtros.moneda) => {
+  const fetchData = useCallback(async (page = 1, opts = {}) => {
+    const {
+      moneda = state.filtros.moneda,
+      mes = state.filtros.mes,
+      anio = state.filtros.anio,
+      verTodosLosMeses = state.filtros.verTodosLosMeses,
+      fechaStart = state.filtros.fecha.start,
+      fechaEnd = state.filtros.fecha.end
+    } = opts;
     setLoading(true);
-      try {
-        const [cajaRes, tasaRes] = await Promise.all([
-        axios.get(`${API_URL}/caja`, {
-          params: {
-            page,
-            limit: state.pagination.limit,
-            moneda
-          }
-        }),
-          axios.get(`${API_URL}/tasa-cambio`)
-        ]);
-        
-        if (cajaRes.data && Array.isArray(cajaRes.data.transacciones)) {
-          setState(prev => ({
-            ...prev,
-            transacciones: cajaRes.data.transacciones,
-            saldos: cajaRes.data.saldos || { USD: 0, Bs: 0 },
-            tasaCambio: tasaRes.data.tasa,
-          pagination: {
-            ...prev.pagination,
-            page,
-            total: cajaRes.data.total,
-            totalPages: cajaRes.data.totalPages
-            }
-          }));
+    try {
+      const limit = state.pagination.limit;
+      const paramsTransacciones = {
+        page,
+        limit,
+        moneda
+      };
+      if (!verTodosLosMeses && mes && anio) {
+        paramsTransacciones.mes = mes;
+        paramsTransacciones.anio = anio;
+      }
+      if (fechaStart) paramsTransacciones.fechaDesde = fechaStart;
+      if (fechaEnd) paramsTransacciones.fechaHasta = fechaEnd;
+
+      const [cajaRes, tasaRes, transaccionesRes] = await Promise.all([
+        axios.get(`${API_URL}/caja`),
+        axios.get(`${API_URL}/tasa-cambio`),
+        axios.get(`${API_URL}/caja/transacciones`, { params: paramsTransacciones })
+      ]);
+
+      const data = transaccionesRes.data;
+      setState(prev => ({
+        ...prev,
+        transacciones: Array.isArray(data.transacciones) ? data.transacciones : [],
+        saldos: cajaRes.data?.saldos || { USD: 0, Bs: 0 },
+        tasaCambio: tasaRes.data?.tasa ?? prev.tasaCambio,
+        pagination: {
+          ...prev.pagination,
+          page: data.page || page,
+          total: data.total ?? 0,
+          totalPages: data.totalPages ?? 0
         }
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
-        toast.error('Error al cargar los datos');
-      setError(error.message);
+      }));
+    } catch (err) {
+      console.error('Error al cargar datos:', err);
+      toast.error('Error al cargar los datos');
+      setError(err.message);
     } finally {
       setLoading(false);
-      }
-    };
+    }
+  }, [state.filtros.moneda, state.filtros.mes, state.filtros.anio, state.filtros.verTodosLosMeses, state.filtros.fecha.start, state.filtros.fecha.end, state.pagination.limit]);
 
   useEffect(() => {
-    fetchData();
+    fetchData(1);
   }, []);
 
   const handlePageChange = (event, newPage) => {
@@ -595,11 +615,29 @@ const CajaInteractiva = () => {
 
   const handleMonedaChange = (e) => {
     const nuevaMoneda = e.target.value;
+    setState(prev => ({ ...prev, filtros: { ...prev.filtros, moneda: nuevaMoneda } }));
+    fetchData(1, { moneda: nuevaMoneda });
+  };
+
+  const handleMesAnioChange = (mes, anio, verTodosLosMeses) => {
     setState(prev => ({
       ...prev,
-      filtros: { ...prev.filtros, moneda: nuevaMoneda }
+      filtros: {
+        ...prev.filtros,
+        mes: mes ?? prev.filtros.mes,
+        anio: anio ?? prev.filtros.anio,
+        verTodosLosMeses: Boolean(verTodosLosMeses)
+      }
     }));
-    fetchData(1, nuevaMoneda);
+    fetchData(1, { mes, anio, verTodosLosMeses });
+  };
+
+  const handleRangoFechasChange = (start, end) => {
+    setState(prev => ({
+      ...prev,
+      filtros: { ...prev.filtros, fecha: { start, end } }
+    }));
+    fetchData(1, { fechaStart: start, fechaEnd: end });
   };
 
   const handleRegistrarMovimiento = async (formData) => {
@@ -636,12 +674,12 @@ const CajaInteractiva = () => {
       if (res.data && res.data.success) {
         setState(prev => ({
           ...prev,
-          transacciones: res.data.transacciones,
-          saldos: res.data.saldos,
+          saldos: res.data.saldos || prev.saldos,
           modalOpen: false,
           editingTransaction: null
         }));
         resetNuevaTransaccion();
+        fetchData(state.pagination.page);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al procesar la transacción');
@@ -655,33 +693,8 @@ const CajaInteractiva = () => {
     }));
   };
 
-  // Calcular el último saldo de cada moneda
-  const getUltimoSaldo = (moneda) => {
-    const transaccionesMoneda = state.transacciones
-      .filter(t => t.moneda === moneda)
-      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-    
-    return transaccionesMoneda.length > 0 ? transaccionesMoneda[0].saldo : 0;
-  };
-
-  // Calcular el valor total consolidado usando los últimos saldos
-  const totalCajaUSD = getUltimoSaldo('USD') + (getUltimoSaldo('Bs') / state.tasaCambio);
-
-  // Actualizar el estado de saldos cuando cambian las transacciones
-  useEffect(() => {
-    if (state.transacciones.length > 0) {
-      const saldoUSD = getUltimoSaldo('USD');
-      const saldoBs = getUltimoSaldo('Bs');
-      
-      setState(prev => ({
-        ...prev,
-        saldos: {
-          USD: saldoUSD,
-          Bs: saldoBs
-        }
-      }));
-    }
-  }, [state.transacciones]);
+  // Valor total consolidado desde saldos del backend
+  const totalCajaUSD = state.saldos.USD + (state.saldos.Bs / (state.tasaCambio || 1));
 
   const getResumenMonedas = () => state.transacciones.reduce((acc, t) => {
     if (!acc[t.moneda]) acc[t.moneda] = { entradas: 0, salidas: 0 };
@@ -727,10 +740,10 @@ const CajaInteractiva = () => {
       if (res.data && res.data.success) {
         setState(prev => ({
           ...prev,
-          transacciones: res.data.transacciones,
-          saldos: res.data.saldos
+          saldos: res.data.saldos || prev.saldos
         }));
         toast.success('Movimiento eliminado exitosamente');
+        fetchData(state.pagination.page);
       }
     } catch (error) {
       console.error('Error al eliminar:', error);
@@ -878,7 +891,7 @@ const CajaInteractiva = () => {
 
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={2}>
             <FormControl fullWidth>
               <InputLabel>Moneda</InputLabel>
               <Select
@@ -891,28 +904,61 @@ const CajaInteractiva = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>Mes</InputLabel>
+              <Select
+                value={state.filtros.verTodosLosMeses ? 'TODOS' : state.filtros.mes}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === 'TODOS') {
+                    handleMesAnioChange(state.filtros.mes, state.filtros.anio, true);
+                  } else {
+                    handleMesAnioChange(v, state.filtros.anio, false);
+                  }
+                }}
+              >
+                <MenuItem value="TODOS">Todos los meses</MenuItem>
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                  <MenuItem key={m} value={String(m)}>
+                    {moment().locale('es').month(m - 1).format('MMMM')}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>Año</InputLabel>
+              <Select
+                value={state.filtros.anio}
+                onChange={(e) => handleMesAnioChange(state.filtros.mes, e.target.value, state.filtros.verTodosLosMeses)}
+                disabled={state.filtros.verTodosLosMeses}
+              >
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                  <MenuItem key={y} value={String(y)}>{y}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
             <TextField
               label="Desde"
               type="date"
               fullWidth
+              value={state.filtros.fecha.start || ''}
               InputLabelProps={{ shrink: true }}
-              onChange={(e) => setState(prev => ({
-                ...prev,
-                filtros: { ...prev.filtros, fecha: { ...prev.filtros.fecha, start: e.target.value } }
-              }))}
+              onChange={(e) => handleRangoFechasChange(e.target.value || null, state.filtros.fecha.end)}
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={2}>
             <TextField
               label="Hasta"
               type="date"
               fullWidth
+              value={state.filtros.fecha.end || ''}
               InputLabelProps={{ shrink: true }}
-              onChange={(e) => setState(prev => ({
-                ...prev,
-                filtros: { ...prev.filtros, fecha: { ...prev.filtros.fecha, end: e.target.value } }
-              }))}
+              onChange={(e) => handleRangoFechasChange(state.filtros.fecha.start, e.target.value || null)}
             />
           </Grid>
         </Grid>
@@ -951,14 +997,27 @@ const CajaInteractiva = () => {
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6">Movimientos Recientes</Typography>
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button 
-                  variant="outlined" 
+                <Button
+                  variant="outlined"
                   color="success"
                   startIcon={<FileDownload />}
-                  onClick={() => {
+                  onClick={async () => {
                     try {
+                      const params = {
+                        limit: 99999,
+                        page: 1,
+                        moneda: state.filtros.moneda
+                      };
+                      if (!state.filtros.verTodosLosMeses && state.filtros.mes && state.filtros.anio) {
+                        params.mes = state.filtros.mes;
+                        params.anio = state.filtros.anio;
+                      }
+                      if (state.filtros.fecha.start) params.fechaDesde = state.filtros.fecha.start;
+                      if (state.filtros.fecha.end) params.fechaHasta = state.filtros.fecha.end;
+                      const { data } = await axios.get(`${API_URL}/caja/transacciones`, { params });
+                      const todas = Array.isArray(data.transacciones) ? data.transacciones : [];
                       const nombreArchivo = exportarAExcel(
-                        state.transacciones,
+                        todas,
                         state.filtros,
                         state.saldos,
                         state.tasaCambio
@@ -991,14 +1050,15 @@ const CajaInteractiva = () => {
               </Box>
             ) : (
               <>
-                <MemoTransactionTable 
-              transactions={state.transacciones}
-              currencyFilter={state.filtros.moneda}
-              dateFilter={state.filtros.fecha}
-              tasaActual={state.tasaCambio}
-              onEdit={handleEditTransaction}
-              onDelete={handleDeleteTransaction}
-            />
+                <MemoTransactionTable
+                  transactions={state.transacciones}
+                  currencyFilter={state.filtros.moneda}
+                  dateFilter={state.filtros.fecha}
+                  tasaActual={state.tasaCambio}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                  serverFiltered
+                />
                 
                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
                   <Pagination 
