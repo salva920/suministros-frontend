@@ -7,11 +7,10 @@ import {
   Box, LinearProgress, Dialog, DialogTitle, DialogContent,
   DialogActions, IconButton, CircularProgress, Pagination
 } from '@mui/material';
-import { 
-   AttachMoney, Add, Receipt, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, Visibility, FileDownload
+import {
+  AttachMoney, Add, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, FileDownload
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -19,7 +18,6 @@ import TasaCambio from '../TasaCambio';
 import moment from 'moment-timezone';
 import 'moment-timezone';
 import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
 
@@ -280,27 +278,53 @@ const exportarAExcel = (transacciones, filtros, saldos, tasaCambio) => {
 
 const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) => {
   const theme = useTheme();
-  
+  const isDark = theme.palette.mode === 'dark';
   return (
-    <Paper sx={{ 
-      p: 3, 
-      backgroundColor: theme.palette.background.paper,
-      borderLeft: `6px solid ${theme.palette[color].main}`,
-      borderRadius: 2,
-      boxShadow: theme.shadows[3],
-      transition: 'transform 0.2s, box-shadow 0.2s',
-      '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[6] }
-    }}>
-      <Box display="flex" alignItems="center" gap={2}>
-        <Icon sx={{ fontSize: 40, color: theme.palette[color].main }} />
-        <Box>
-          <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 500 }}>
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2, sm: 2.5, md: 3 },
+        borderRadius: 3,
+        border: `1px solid ${theme.palette.divider}`,
+        background: isDark
+          ? `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.action.hover} 100%)`
+          : theme.palette.background.paper,
+        boxShadow: theme.shadows[1],
+        transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+        '&:hover': {
+          transform: 'translateY(-6px)',
+          boxShadow: theme.shadows[8],
+          borderColor: theme.palette[color].main + '40'
+        }
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: 2.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: theme.palette[color].main + '18',
+            color: theme.palette[color].main
+          }}
+        >
+          <Icon sx={{ fontSize: 28 }} />
+        </Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>
             {title}
           </Typography>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette[color].dark }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette[color].main, letterSpacing: '-0.02em' }}>
             {currency}{value.toFixed(2)}
           </Typography>
-          {subvalue && <Typography variant="body2" color="text.secondary">{subvalue}</Typography>}
+          {subvalue && (
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+              {subvalue}
+            </Typography>
+          )}
         </Box>
       </Box>
     </Paper>
@@ -320,65 +344,88 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
                (!end || transactionDate <= end);
       });
 
+  const theme = useTheme();
   return (
-    <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2 }}>
-      <Table>
-        <TableHead sx={{ bgcolor: 'background.default' }}>
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        mt: 2,
+        borderRadius: 3,
+        border: `1px solid ${theme.palette.divider}`,
+        overflowX: 'auto',
+        '& .MuiTable-root': { minWidth: 720 }
+      }}
+    >
+      <Table size="small" stickyHeader>
+        <TableHead>
           <TableRow>
             {['Fecha', 'Concepto', 'Moneda', 'Entrada', 'Salida', 'Equivalente', 'Saldo', 'Acciones'].map(header => (
-              <TableCell key={header} sx={{ fontWeight: 'bold' }}>{header}</TableCell>
+              <TableCell
+                key={header}
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  bgcolor: theme.palette.mode === 'dark' ? 'action.hover' : 'grey.50',
+                  color: 'text.secondary',
+                  py: 1.5,
+                  borderBottom: `2px solid ${theme.palette.divider}`
+                }}
+              >
+                {header}
+              </TableCell>
             ))}
           </TableRow>
         </TableHead>
         <TableBody>
           {filteredTransactions.map((t) => (
-            <TableRow key={t._id || t.id} hover>
-              <TableCell>
+            <TableRow
+              key={t._id || t.id}
+              hover
+              sx={{
+                '&:hover': { bgcolor: theme.palette.action.hover + '40' },
+                '&:last-child td': { border: 0 }
+              }}
+            >
+              <TableCell sx={{ py: 1.5, fontWeight: 500 }}>
                 {dateUtils.formatForDisplay(t.fecha)}
               </TableCell>
-              <TableCell>{t.concepto}</TableCell>
-              <TableCell>
-                <Chip 
-                  label={t.moneda} 
-                  color={t.moneda === 'USD' ? 'primary' : 'secondary'} 
-                  variant="outlined" 
+              <TableCell sx={{ py: 1.5, maxWidth: 200 }}>{t.concepto}</TableCell>
+              <TableCell sx={{ py: 1.5 }}>
+                <Chip
+                  label={t.moneda}
+                  color={t.moneda === 'USD' ? 'primary' : 'secondary'}
+                  size="small"
+                  sx={{ fontWeight: 600 }}
                 />
               </TableCell>
-              <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
+              <TableCell sx={{ color: 'success.main', fontWeight: 700, py: 1.5 }}>
                 {t.entrada > 0 ? formatMonetaryValue(t.entrada, t.moneda) : '-'}
               </TableCell>
-              <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
+              <TableCell sx={{ color: 'error.main', fontWeight: 700, py: 1.5 }}>
                 {t.salida > 0 ? formatMonetaryValue(t.salida, t.moneda) : '-'}
               </TableCell>
-              <TableCell>
-                {t.entrada || t.salida ? 
-                  formatMonetaryValue(
-                    t.moneda === 'USD' ? 
-                      (t.entrada || t.salida) * tasaActual : 
-                      (t.entrada || t.salida) / tasaActual,
-                    t.moneda === 'USD' ? 'Bs' : 'USD'
-                  ) 
+              <TableCell sx={{ py: 1.5 }}>
+                {t.entrada || t.salida
+                  ? formatMonetaryValue(
+                      t.moneda === 'USD'
+                        ? (t.entrada || t.salida) * tasaActual
+                        : (t.entrada || t.salida) / tasaActual,
+                      t.moneda === 'USD' ? 'Bs' : 'USD'
+                    )
                   : '-'}
               </TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>
+              <TableCell sx={{ fontWeight: 700, py: 1.5 }}>
                 {formatMonetaryValue(t.saldo, t.moneda)}
               </TableCell>
-              <TableCell>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <IconButton 
-                    size="small" 
-                    color="primary"
-                    onClick={() => onEdit(t)}
-                    title="Editar"
-                  >
+              <TableCell sx={{ py: 1.5 }}>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <IconButton size="small" color="primary" onClick={() => onEdit(t)} title="Editar" sx={{ '&:hover': { bgcolor: 'primary.main', color: 'primary.contrastText' } }}>
                     <Edit fontSize="small" />
                   </IconButton>
-                  <IconButton 
-                    size="small" 
-                    color="error"
-                    onClick={() => onDelete(t._id || t.id)}
-                    title="Eliminar"
-                  >
+                  <IconButton size="small" color="error" onClick={() => onDelete(t._id || t.id)} title="Eliminar" sx={{ '&:hover': { bgcolor: 'error.main', color: 'error.contrastText' } }}>
                     <Delete fontSize="small" />
                   </IconButton>
                 </Box>
@@ -410,86 +457,104 @@ const MovimientoForm = ({
   const tasaCambioValida = form.tasaCambio !== '' && parseFloat(form.tasaCambio) > 0;
   const puedeRegistrar = Boolean(form.fecha && form.concepto?.trim() && form.moneda && form.tipo) && montoValido && tasaCambioValida;
 
+  const theme = useTheme();
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{isEditing ? 'Editar Movimiento' : 'Registrar Movimiento'}</DialogTitle>
-      <DialogContent>
-        <Box sx={{ mt: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Fecha"
-                type="date"
-                fullWidth
-                value={form.fecha}
-                onChange={(e) => setForm(prev => ({ ...prev, fecha: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Concepto"
-                fullWidth
-                value={form.concepto}
-                onChange={(e) => setForm(prev => ({ ...prev, concepto: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Moneda</InputLabel>
-                <Select
-                  value={form.moneda}
-                  onChange={(e) => setForm(prev => ({ ...prev, moneda: e.target.value }))}
-                >
-                  <MenuItem value="USD">USD</MenuItem>
-                  <MenuItem value="Bs">Bs</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo de Movimiento</InputLabel>
-                <Select
-                  value={form.tipo}
-                  onChange={(e) => setForm(prev => ({ ...prev, tipo: e.target.value }))}
-                >
-                  <MenuItem value="entrada">Entrada</MenuItem>
-                  <MenuItem value="salida">Salida</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Monto"
-                type="number"
-                fullWidth
-                inputProps={{ min: 0 }}
-                value={form.monto}
-                onChange={(e) => setForm(prev => ({ ...prev, monto: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Tasa de Cambio"
-                type="number"
-                fullWidth
-                inputProps={{ min: 0, step: '0.0001' }}
-                value={form.tasaCambio}
-                onChange={(e) => setForm(prev => ({ ...prev, tasaCambio: e.target.value }))}
-                error={!tasaCambioValida}
-                helperText={tasaCambioValida ? '' : 'La tasa debe ser mayor a 0'}
-              />
-            </Grid>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          boxShadow: theme.shadows[24],
+          overflow: 'hidden'
+        }
+      }}
+    >
+      <DialogTitle sx={{ fontWeight: 700, fontSize: '1.25rem', borderBottom: `1px solid ${theme.palette.divider}`, py: 2 }}>
+        {isEditing ? 'Editar Movimiento' : 'Registrar Movimiento'}
+      </DialogTitle>
+      <DialogContent sx={{ pt: 3, pb: 2 }}>
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Fecha"
+              type="date"
+              fullWidth
+              value={form.fecha}
+              onChange={(e) => setForm(prev => ({ ...prev, fecha: e.target.value }))}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
           </Grid>
-        </Box>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Concepto"
+              fullWidth
+              value={form.concepto}
+              onChange={(e) => setForm(prev => ({ ...prev, concepto: e.target.value }))}
+              size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+              <InputLabel>Moneda</InputLabel>
+              <Select value={form.moneda} onChange={(e) => setForm(prev => ({ ...prev, moneda: e.target.value }))} label="Moneda">
+                <MenuItem value="USD">USD</MenuItem>
+                <MenuItem value="Bs">Bs</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+              <InputLabel>Tipo de Movimiento</InputLabel>
+              <Select value={form.tipo} onChange={(e) => setForm(prev => ({ ...prev, tipo: e.target.value }))} label="Tipo de Movimiento">
+                <MenuItem value="entrada">Entrada</MenuItem>
+                <MenuItem value="salida">Salida</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Monto"
+              type="number"
+              fullWidth
+              inputProps={{ min: 0 }}
+              value={form.monto}
+              onChange={(e) => setForm(prev => ({ ...prev, monto: e.target.value }))}
+              size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Tasa de Cambio"
+              type="number"
+              fullWidth
+              inputProps={{ min: 0, step: '0.0001' }}
+              value={form.tasaCambio}
+              onChange={(e) => setForm(prev => ({ ...prev, tasaCambio: e.target.value }))}
+              error={!tasaCambioValida}
+              helperText={tasaCambioValida ? '' : 'La tasa debe ser mayor a 0'}
+              size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </Grid>
+        </Grid>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="secondary">Cancelar</Button>
-        <Button 
-          onClick={() => onSubmit(form)} 
-          color="primary" 
+      <DialogActions sx={{ px: 3, py: 2, borderTop: `1px solid ${theme.palette.divider}`, gap: 1 }}>
+        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 2 }}>
+          Cancelar
+        </Button>
+        <Button
+          onClick={() => onSubmit(form)}
+          color="primary"
           variant="contained"
           disabled={!puedeRegistrar}
+          sx={{ borderRadius: 2, fontWeight: 600 }}
         >
           {isEditing ? 'Guardar Cambios' : 'Registrar'}
         </Button>
@@ -797,77 +862,100 @@ const CajaInteractiva = () => {
   // Renderizado condicional para mostrar estado de carga o error
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '80vh',
+          gap: 2
+        }}
+      >
+        <CircularProgress size={48} thickness={4} />
+        <Typography color="text.secondary" variant="body2">Cargando caja...</Typography>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography color="error" variant="h6">
-          {error}
-        </Typography>
-        <Button 
-          variant="contained" 
-          onClick={fetchData}
-          sx={{ mt: 2 }}
+      <Container maxWidth="sm">
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            mt: 4,
+            borderRadius: 3,
+            border: `1px solid ${theme.palette.divider}`,
+            textAlign: 'center'
+          }}
         >
-          Reintentar
-        </Button>
-      </Box>
+          <Typography color="error" variant="h6" sx={{ mb: 1 }}>
+            Error al cargar
+          </Typography>
+          <Typography color="text.secondary" variant="body2" sx={{ mb: 3 }}>
+            {error}
+          </Typography>
+          <Button variant="contained" onClick={() => fetchData(1)} sx={{ borderRadius: 2 }}>
+            Reintentar
+          </Button>
+        </Paper>
+      </Container>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Button variant="contained" color="primary" onClick={() => navigate('/dashboard')} sx={{ mb: 2 }}>
-        <Dashboard sx={{ mr: 1 }} /> Ir al Dashboard
+    <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1.5, sm: 2 } }}>
+      <Button
+        variant="outlined"
+        startIcon={<Dashboard />}
+        onClick={() => navigate('/dashboard')}
+        sx={{ mb: 3, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+      >
+        Ir al Dashboard
       </Button>
 
       <Box
         sx={{
-          mb: 4,
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'stretch',
           justifyContent: 'space-between',
-          gap: 3
+          gap: 3,
+          mb: 4
         }}
       >
         <Box
           sx={{
             flex: '1 1 260px',
-            textAlign: 'center',
-            p: 3,
-            bgcolor: 'background.paper',
-            borderRadius: 2,
-            boxShadow: theme.shadows[2]
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: { xs: 'center', md: 'flex-start' },
+            gap: 2,
+            p: { xs: 2, md: 3 },
+            borderRadius: 3,
+            border: `1px solid ${theme.palette.divider}`,
+            bgcolor: 'background.paper'
           }}
         >
-          <Typography variant="h3" sx={{ fontWeight: 800, color: 'primary.main' }}>
-            <AccountBalanceWallet sx={{ fontSize: 48, verticalAlign: 'middle', mr: 2 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 2.5, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+            <AccountBalanceWallet sx={{ fontSize: 28 }} />
+          </Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: '-0.02em' }}>
             Gestión de Caja
           </Typography>
         </Box>
-
-        <Box sx={{ flex: '0 1 320px' }}>
+        <Box sx={{ flex: '0 1 320px', minWidth: { xs: '100%', sm: 280 } }}>
           <TasaCambio onTasaChange={handleTasaChange} />
         </Box>
       </Box>
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
-          <SummaryCard
-            title="Saldo en Dólares"
-            value={state.saldos.USD}
-            currency="$"
-            icon={AttachMoney}
-            color="success"
-          />
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} lg={4}>
+          <SummaryCard title="Saldo en Dólares" value={state.saldos.USD} currency="$" icon={AttachMoney} color="success" />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={6} lg={4}>
           <SummaryCard
             title="Saldo en Bolívares"
             value={state.saldos.Bs}
@@ -877,7 +965,7 @@ const CajaInteractiva = () => {
             color="info"
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={6} lg={4}>
           <SummaryCard
             title="Valor Total Consolidado"
             value={totalCajaUSD}
@@ -889,51 +977,55 @@ const CajaInteractiva = () => {
         </Grid>
       </Grid>
 
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2, sm: 3 },
+          mb: 3,
+          borderRadius: 3,
+          border: `1px solid ${theme.palette.divider}`
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+          Filtros
+        </Typography>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
               <InputLabel>Moneda</InputLabel>
-              <Select
-                value={state.filtros.moneda}
-                onChange={handleMonedaChange}
-              >
+              <Select value={state.filtros.moneda} onChange={handleMonedaChange} label="Moneda">
                 <MenuItem value="TODAS">Todas</MenuItem>
                 <MenuItem value="USD">Dólares</MenuItem>
                 <MenuItem value="Bs">Bolívares</MenuItem>
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
               <InputLabel>Mes</InputLabel>
               <Select
                 value={state.filtros.verTodosLosMeses ? 'TODOS' : state.filtros.mes}
                 onChange={(e) => {
                   const v = e.target.value;
-                  if (v === 'TODOS') {
-                    handleMesAnioChange(state.filtros.mes, state.filtros.anio, true);
-                  } else {
-                    handleMesAnioChange(v, state.filtros.anio, false);
-                  }
+                  if (v === 'TODOS') handleMesAnioChange(state.filtros.mes, state.filtros.anio, true);
+                  else handleMesAnioChange(v, state.filtros.anio, false);
                 }}
+                label="Mes"
               >
                 <MenuItem value="TODOS">Todos los meses</MenuItem>
                 {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
-                  <MenuItem key={m} value={String(m)}>
-                    {moment().locale('es').month(m - 1).format('MMMM')}
-                  </MenuItem>
+                  <MenuItem key={m} value={String(m)}>{moment().locale('es').month(m - 1).format('MMMM')}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} disabled={state.filtros.verTodosLosMeses}>
               <InputLabel>Año</InputLabel>
               <Select
                 value={state.filtros.anio}
                 onChange={(e) => handleMesAnioChange(state.filtros.mes, e.target.value, state.filtros.verTodosLosMeses)}
-                disabled={state.filtros.verTodosLosMeses}
+                label="Año"
               >
                 {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                   <MenuItem key={y} value={String(y)}>{y}</MenuItem>
@@ -941,65 +1033,98 @@ const CajaInteractiva = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} sm={6} md={2}>
             <TextField
               label="Desde"
               type="date"
               fullWidth
+              size="small"
               value={state.filtros.fecha.start || ''}
               InputLabelProps={{ shrink: true }}
               onChange={(e) => handleRangoFechasChange(e.target.value || null, state.filtros.fecha.end)}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} sm={6} md={2}>
             <TextField
               label="Hasta"
               type="date"
               fullWidth
+              size="small"
               value={state.filtros.fecha.end || ''}
               InputLabelProps={{ shrink: true }}
               onChange={(e) => handleRangoFechasChange(state.filtros.fecha.start, e.target.value || null)}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
           </Grid>
         </Grid>
       </Paper>
 
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Distribución de Movimientos</Typography>
-            {Object.entries(getResumenMonedas()).map(([moneda, datos]) => (
-              <Box key={moneda} sx={{ mb: 3 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  {moneda} - Entradas: {datos.entradas.toFixed(2)}, Salidas: {datos.salidas.toFixed(2)}
-                </Typography>
-                <Box display="flex" gap={1} height={10}>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={(datos.entradas / (datos.entradas + datos.salidas)) * 100} 
-                    sx={{ flexGrow: 1, backgroundColor: 'success.light',
-                      '& .MuiLinearProgress-bar': { backgroundColor: 'success.main' }}} 
-                  />
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={(datos.salidas / (datos.entradas + datos.salidas)) * 100} 
-                    sx={{ flexGrow: 1, backgroundColor: 'error.light',
-                      '& .MuiLinearProgress-bar': { backgroundColor: 'error.main' }}} 
-                  />
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
+        <Grid item xs={12} lg={4}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              border: `1px solid ${theme.palette.divider}`,
+              height: '100%'
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ mb: 2.5, fontWeight: 700 }}>
+              Distribución de Movimientos
+            </Typography>
+            {Object.entries(getResumenMonedas()).length === 0 ? (
+              <Typography variant="body2" color="text.secondary">Sin movimientos en este período.</Typography>
+            ) : (
+              Object.entries(getResumenMonedas()).map(([moneda, datos]) => (
+                <Box key={moneda} sx={{ mb: 3 }}>
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                    {moneda} — Entradas: {datos.entradas.toFixed(2)} · Salidas: {datos.salidas.toFixed(2)}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, height: 8, borderRadius: 1, overflow: 'hidden' }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={(datos.entradas / (datos.entradas + datos.salidas)) * 100}
+                      sx={{ flex: 1, borderRadius: 1, bgcolor: 'success.light', '& .MuiLinearProgress-bar': { bgcolor: 'success.main' } }}
+                    />
+                    <LinearProgress
+                      variant="determinate"
+                      value={(datos.salidas / (datos.entradas + datos.salidas)) * 100}
+                      sx={{ flex: 1, borderRadius: 1, bgcolor: 'error.light', '& .MuiLinearProgress-bar': { bgcolor: 'error.main' } }}
+                    />
+                  </Box>
                 </Box>
-              </Box>
-            ))}
+              ))
+            )}
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6">Movimientos Recientes</Typography>
-              <Box sx={{ display: 'flex', gap: 2 }}>
+        <Grid item xs={12} lg={8}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: { xs: 2, sm: 3 },
+              borderRadius: 3,
+              border: `1px solid ${theme.palette.divider}`
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 2,
+                mb: 3
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Movimientos</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
                 <Button
                   variant="outlined"
                   color="success"
+                  size="small"
                   startIcon={<FileDownload />}
                   onClick={async () => {
                     try {
@@ -1028,25 +1153,28 @@ const CajaInteractiva = () => {
                       toast.error('Error al exportar el archivo Excel');
                     }
                   }}
+                  sx={{ borderRadius: 2, textTransform: 'none' }}
                 >
-                  Exportar a Excel
+                  Exportar
                 </Button>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
+                  size="small"
                   startIcon={<Add />}
                   onClick={() => {
                     resetNuevaTransaccion();
                     setState(prev => ({ ...prev, modalOpen: true, editingTransaction: null }));
                   }}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
                 >
                   Nuevo Movimiento
                 </Button>
               </Box>
             </Box>
-            
+
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                <CircularProgress />
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={32} />
               </Box>
             ) : (
               <>
@@ -1059,17 +1187,23 @@ const CajaInteractiva = () => {
                   onDelete={handleDeleteTransaction}
                   serverFiltered
                 />
-                
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                  <Pagination 
-                    count={state.pagination.totalPages}
-                    page={state.pagination.page}
-                    onChange={handlePageChange}
-                    color="primary"
-                    showFirstButton
-                    showLastButton
-                  />
-                </Box>
+                {state.pagination.totalPages > 1 && (
+                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <Pagination
+                      count={state.pagination.totalPages}
+                      page={state.pagination.page}
+                      onChange={handlePageChange}
+                      color="primary"
+                      showFirstButton
+                      showLastButton
+                      size="medium"
+                      sx={{
+                        '& .MuiPaginationItem-root': { borderRadius: 1.5 },
+                        '& .Mui-selected': { fontWeight: 700 }
+                      }}
+                    />
+                  </Box>
+                )}
               </>
             )}
           </Paper>
