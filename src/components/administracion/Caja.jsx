@@ -8,7 +8,7 @@ import {
   DialogActions, IconButton, CircularProgress, Pagination
 } from '@mui/material';
 import {
-  AttachMoney, Add, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, FileDownload
+  AttachMoney, Add, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, FileDownload, CurrencyBitcoin, Savings, AccountBalance
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +20,20 @@ import 'moment-timezone';
 import * as XLSX from 'xlsx';
 
 const API_URL = "https://suministros-backend.vercel.app/api"; // URL de tu backend en Vercel
+const MONEDAS_CAJA = ['USD', 'Bs', 'ZELLE', 'BINANCE'];
+const SALDOS_POR_DEFECTO = { USD: 0, Bs: 0, ZELLE: 0, BINANCE: 0 };
+const MONEDA_LABEL = {
+  USD: 'Dólares',
+  Bs: 'Bolívares',
+  ZELLE: 'Zelle',
+  BINANCE: 'Binance'
+};
+const MONEDA_CHIP_SX = {
+  USD: { bgcolor: '#E8F5E9', color: '#2E7D32', borderColor: '#A5D6A7' },
+  Bs: { bgcolor: '#E3F2FD', color: '#1565C0', borderColor: '#90CAF9' },
+  ZELLE: { bgcolor: '#EDE7F6', color: '#5E35B1', borderColor: '#B39DDB' },
+  BINANCE: { bgcolor: '#FFF8E1', color: '#B26A00', borderColor: '#FFE082' }
+};
 
 // Funciones de utilidad
 const dateUtils = {
@@ -42,15 +56,19 @@ const formatMonetaryValue = (value, currency) => {
   if (value === undefined || value === null) return '-';
   const numValue = parseFloat(value);
   if (isNaN(numValue)) return '-';
-  return `${currency === 'USD' ? '$' : 'Bs'} ${numValue.toFixed(2)}`;
+  const symbol = currency === 'Bs' ? 'Bs' : '$';
+  return `${symbol} ${numValue.toFixed(2)}`;
 };
 
 const formatEquivalentValue = (value, moneda, tasa) => {
   if (value === undefined || value === null || !tasa) return '-';
   const numValue = parseFloat(value);
   if (isNaN(numValue)) return '-';
-  const equivalent = moneda === 'USD' ? numValue * tasa : numValue / tasa;
-  return `${moneda === 'USD' ? 'Bs' : '$'} ${equivalent.toFixed(2)}`;
+  const equivalent = ['USD', 'ZELLE', 'BINANCE'].includes(moneda)
+    ? numValue * tasa
+    : numValue / tasa;
+  const simboloOrigenEsDolar = ['USD', 'ZELLE', 'BINANCE'].includes(moneda);
+  return `${simboloOrigenEsDolar ? 'Bs' : '$'} ${equivalent.toFixed(2)}`;
 };
 
 const normalizarTransaccion = (transaccion) => {
@@ -196,7 +214,7 @@ const exportarAExcel = (transacciones, filtros, saldos, tasaCambio) => {
   // Agregar datos de transacciones
   transaccionesOrdenadas.forEach(t => {
     const equivalente = t.entrada || t.salida 
-      ? (t.moneda === 'USD' 
+      ? (['USD', 'ZELLE', 'BINANCE'].includes(t.moneda)
           ? (t.entrada || t.salida) * tasaCambio 
           : (t.entrada || t.salida) / tasaCambio)
       : 0;
@@ -395,10 +413,14 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
               <TableCell sx={{ py: 1.5, maxWidth: 200 }}>{t.concepto}</TableCell>
               <TableCell sx={{ py: 1.5 }}>
                 <Chip
-                  label={t.moneda}
-                  color={t.moneda === 'USD' ? 'primary' : 'secondary'}
+                  label={MONEDA_LABEL[t.moneda] || t.moneda}
                   size="small"
-                  sx={{ fontWeight: 600 }}
+                  variant="outlined"
+                  sx={{
+                    fontWeight: 700,
+                    borderWidth: 1,
+                    ...MONEDA_CHIP_SX[t.moneda]
+                  }}
                 />
               </TableCell>
               <TableCell sx={{ color: 'success.main', fontWeight: 700, py: 1.5 }}>
@@ -410,10 +432,10 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
               <TableCell sx={{ py: 1.5 }}>
                 {t.entrada || t.salida
                   ? formatMonetaryValue(
-                      t.moneda === 'USD'
+                      ['USD', 'ZELLE', 'BINANCE'].includes(t.moneda)
                         ? (t.entrada || t.salida) * tasaActual
                         : (t.entrada || t.salida) / tasaActual,
-                      t.moneda === 'USD' ? 'Bs' : 'USD'
+                      ['USD', 'ZELLE', 'BINANCE'].includes(t.moneda) ? 'Bs' : 'USD'
                     )
                   : '-'}
               </TableCell>
@@ -503,8 +525,9 @@ const MovimientoForm = ({
             <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
               <InputLabel>Moneda</InputLabel>
               <Select value={form.moneda} onChange={(e) => setForm(prev => ({ ...prev, moneda: e.target.value }))} label="Moneda">
-                <MenuItem value="USD">USD</MenuItem>
-                <MenuItem value="Bs">Bs</MenuItem>
+                {MONEDAS_CAJA.map(moneda => (
+                  <MenuItem key={moneda} value={moneda}>{moneda}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -570,7 +593,7 @@ const CajaInteractiva = () => {
   const now = new Date();
   const [state, setState] = useState({
     transacciones: [],
-    saldos: { USD: 0, Bs: 0 },
+    saldos: SALDOS_POR_DEFECTO,
     tasaCambio: 0,
     filtros: {
       moneda: 'TODAS',
@@ -652,7 +675,7 @@ const CajaInteractiva = () => {
       setState(prev => ({
         ...prev,
         transacciones: Array.isArray(data.transacciones) ? data.transacciones : [],
-        saldos: cajaRes.data?.saldos || { USD: 0, Bs: 0 },
+        saldos: { ...SALDOS_POR_DEFECTO, ...(cajaRes.data?.saldos || {}) },
         tasaCambio: tasaRes.data?.tasa ?? prev.tasaCambio,
         pagination: {
           ...prev.pagination,
@@ -759,7 +782,12 @@ const CajaInteractiva = () => {
   };
 
   // Valor total consolidado desde saldos del backend
-  const totalCajaUSD = state.saldos.USD + (state.saldos.Bs / (state.tasaCambio || 1));
+  const totalCajaUSD = (
+    (state.saldos.USD || 0) +
+    (state.saldos.ZELLE || 0) +
+    (state.saldos.BINANCE || 0) +
+    ((state.saldos.Bs || 0) / (state.tasaCambio || 1))
+  );
 
   const getResumenMonedas = () => state.transacciones.reduce((acc, t) => {
     if (!acc[t.moneda]) acc[t.moneda] = { entradas: 0, salidas: 0 };
@@ -953,17 +981,23 @@ const CajaInteractiva = () => {
 
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} lg={4}>
-          <SummaryCard title="Saldo en Dólares" value={state.saldos.USD} currency="$" icon={AttachMoney} color="success" />
+          <SummaryCard title="Saldo en Dólares (USD)" value={state.saldos.USD || 0} currency="$" icon={Savings} color="success" />
         </Grid>
         <Grid item xs={12} sm={6} lg={4}>
           <SummaryCard
             title="Saldo en Bolívares"
-            value={state.saldos.Bs}
-            subvalue={`Ref: $ ${(state.saldos.Bs / state.tasaCambio).toFixed(2)}`}
+            value={state.saldos.Bs || 0}
+            subvalue={`Ref: $ ${((state.saldos.Bs || 0) / (state.tasaCambio || 1)).toFixed(2)}`}
             currency="Bs"
-            icon={AttachMoney}
+            icon={AccountBalance}
             color="info"
           />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={4}>
+          <SummaryCard title="Saldo Zelle" value={state.saldos.ZELLE || 0} currency="$" icon={AttachMoney} color="primary" />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={4}>
+          <SummaryCard title="Saldo Binance" value={state.saldos.BINANCE || 0} currency="$" icon={CurrencyBitcoin} color="secondary" />
         </Grid>
         <Grid item xs={12} sm={6} lg={4}>
           <SummaryCard
@@ -995,8 +1029,9 @@ const CajaInteractiva = () => {
               <InputLabel>Moneda</InputLabel>
               <Select value={state.filtros.moneda} onChange={handleMonedaChange} label="Moneda">
                 <MenuItem value="TODAS">Todas</MenuItem>
-                <MenuItem value="USD">Dólares</MenuItem>
-                <MenuItem value="Bs">Bolívares</MenuItem>
+                {MONEDAS_CAJA.map(moneda => (
+                  <MenuItem key={moneda} value={moneda}>{MONEDA_LABEL[moneda] || moneda}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -1121,6 +1156,17 @@ const CajaInteractiva = () => {
             >
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Movimientos</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                  {MONEDAS_CAJA.map(moneda => (
+                    <Chip
+                      key={moneda}
+                      label={MONEDA_LABEL[moneda]}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontWeight: 700, ...MONEDA_CHIP_SX[moneda] }}
+                    />
+                  ))}
+                </Box>
                 <Button
                   variant="outlined"
                   color="success"
