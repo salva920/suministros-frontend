@@ -644,7 +644,8 @@ const CajaInteractiva = () => {
       limit: 50,
       total: 0,
       totalPages: 0
-    }
+    },
+    saldosMeta: { alCierre: false, fechaCierre: null }
   });
 
   const tasaCambioActual = state.tasaCambio;
@@ -698,9 +699,15 @@ const CajaInteractiva = () => {
       }
       if (fechaStart) paramsTransacciones.fechaDesde = fechaStart;
       if (fechaEnd) paramsTransacciones.fechaHasta = fechaEnd;
+      if (verTodosLosMeses) paramsTransacciones.verTodosLosMeses = 'true';
+
+      const paramsCaja = { ...paramsTransacciones };
+      delete paramsCaja.page;
+      delete paramsCaja.limit;
+      delete paramsCaja.moneda;
 
       const [cajaRes, tasaRes, transaccionesRes] = await Promise.all([
-        axios.get(`${API_URL}/caja`),
+        axios.get(`${API_URL}/caja`, { params: paramsCaja }),
         axios.get(`${API_URL}/tasa-cambio`),
         axios.get(`${API_URL}/caja/transacciones`, { params: paramsTransacciones })
       ]);
@@ -710,6 +717,10 @@ const CajaInteractiva = () => {
         ...prev,
         transacciones: Array.isArray(data.transacciones) ? data.transacciones : [],
         saldos: { ...SALDOS_POR_DEFECTO, ...(cajaRes.data?.saldos || {}) },
+        saldosMeta: {
+          alCierre: Boolean(cajaRes.data?.saldosAlCierre),
+          fechaCierre: cajaRes.data?.fechaCierreSaldos || null
+        },
         tasaCambio: tasaRes.data?.tasa ?? prev.tasaCambio,
         pagination: {
           ...prev.pagination,
@@ -1104,18 +1115,26 @@ const CajaInteractiva = () => {
                 <Chip size="small" variant="outlined" label={`${state.pagination.total} movimiento(s) en este filtro`} sx={{ fontWeight: 600 }} />
               )}
             </Stack>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, maxWidth: 900 }}>
-              La tabla y la distribución respetan estos filtros. Los saldos de esta misma tarjeta son acumulados de toda la caja y no cambian al filtrar por mes (solo cambian al registrar, editar o borrar movimientos).
-            </Typography>
           </Box>
 
           <Divider />
 
           <Box>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" sx={{ mb: 1.5 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.9 }}>
-                Saldos de la caja (totales)
-              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.9 }}>
+                  {state.saldosMeta.alCierre ? 'Saldos al cierre del período' : 'Saldos actuales de la caja'}
+                </Typography>
+                {state.saldosMeta.alCierre && state.saldosMeta.fechaCierre && (
+                  <Chip
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    label={`Hasta ${moment.utc(state.saldosMeta.fechaCierre).format('DD/MM/YYYY')}`}
+                    sx={{ fontWeight: 600 }}
+                  />
+                )}
+              </Stack>
               <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                 {MONEDAS_CAJA.map(moneda => (
                   <Chip
