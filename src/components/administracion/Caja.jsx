@@ -1,11 +1,12 @@
 import React, { useState, useEffect, memo, useCallback } from 'react';
 import axios from 'axios';
-import { 
+import {
   Container, Typography, Grid, Paper, TextField, Button,
-  Table, TableBody, TableCell, TableContainer, TableHead, 
+  Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Chip, FormControl, InputLabel, Select, MenuItem,
   Box, LinearProgress, Dialog, DialogTitle, DialogContent,
-  DialogActions, IconButton, CircularProgress, Pagination
+  DialogActions, IconButton, CircularProgress, Pagination,
+  Divider, Stack
 } from '@mui/material';
 import {
   AttachMoney, Add, AccountBalanceWallet, ShowChart, Dashboard, Edit, Delete, FileDownload, CurrencyBitcoin, Savings, AccountBalance
@@ -35,6 +36,22 @@ const MONEDA_CHIP_SX = {
   BINANCE: { bgcolor: '#FFF8E1', color: '#B26A00', borderColor: '#FFE082' }
 };
 
+const etiquetaPeriodoFiltros = (filtros) => {
+  let periodo = '';
+  if (filtros.verTodosLosMeses) periodo = 'Todos los meses';
+  else if (filtros.mes && filtros.anio) {
+    periodo = moment({ year: parseInt(filtros.anio, 10), month: parseInt(filtros.mes, 10) - 1, day: 1 })
+      .locale('es')
+      .format('MMMM YYYY');
+  }
+  const extras = [];
+  if (filtros.fecha.start) extras.push(`desde ${moment(filtros.fecha.start).format('DD/MM/YYYY')}`);
+  if (filtros.fecha.end) extras.push(`hasta ${moment(filtros.fecha.end).format('DD/MM/YYYY')}`);
+  if (extras.length) periodo = periodo ? `${periodo} · ${extras.join(' · ')}` : extras.join(' · ');
+  const monedaTxt = filtros.moneda === 'TODAS' ? 'Todas las monedas' : (MONEDA_LABEL[filtros.moneda] || filtros.moneda);
+  return { periodo: periodo || 'Sin filtro de mes', monedaTxt };
+};
+
 // Funciones de utilidad
 const dateUtils = {
   toUTC: (fecha) => {
@@ -56,8 +73,9 @@ const formatMonetaryValue = (value, currency) => {
   if (value === undefined || value === null) return '-';
   const numValue = parseFloat(value);
   if (isNaN(numValue)) return '-';
-  const symbol = currency === 'Bs' ? 'Bs' : '$';
-  return `${symbol} ${numValue.toFixed(2)}`;
+  const formatted = numValue.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (currency === 'Bs') return `Bs ${formatted}`;
+  return `$ ${formatted}`;
 };
 
 const formatEquivalentValue = (value, moneda, tasa) => {
@@ -297,31 +315,36 @@ const exportarAExcel = (transacciones, filtros, saldos, tasaCambio) => {
 const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const amount = formatMonetaryValue(value, currency === 'Bs' ? 'Bs' : 'USD');
   return (
     <Paper
       elevation={0}
       sx={{
-        p: { xs: 2, sm: 2.5, md: 3 },
-        borderRadius: 3,
+        height: '100%',
+        minHeight: { xs: 132, sm: 144 },
+        p: { xs: 1.75, sm: 2 },
+        borderRadius: 2.5,
         border: `1px solid ${theme.palette.divider}`,
         background: isDark
           ? `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.action.hover} 100%)`
           : theme.palette.background.paper,
         boxShadow: theme.shadows[1],
-        transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
         '&:hover': {
-          transform: 'translateY(-6px)',
-          boxShadow: theme.shadows[8],
-          borderColor: theme.palette[color].main + '40'
+          boxShadow: theme.shadows[4],
+          borderColor: theme.palette[color].main + '55'
         }
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
         <Box
           sx={{
-            width: 56,
-            height: 56,
-            borderRadius: 2.5,
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            borderRadius: 2,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -329,17 +352,28 @@ const SummaryCard = ({ title, value, currency, subvalue, icon: Icon, color }) =>
             color: theme.palette[color].main
           }}
         >
-          <Icon sx={{ fontSize: 28 }} />
+          <Icon sx={{ fontSize: 22 }} />
         </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', lineHeight: 1.2 }}>
             {title}
           </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette[color].main, letterSpacing: '-0.02em' }}>
-            {currency}{value.toFixed(2)}
+          <Typography
+            component="div"
+            sx={{
+              fontWeight: 800,
+              color: theme.palette[color].main,
+              letterSpacing: '-0.02em',
+              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.2rem' },
+              lineHeight: 1.25,
+              wordBreak: 'break-word',
+              mt: 0.5
+            }}
+          >
+            {amount}
           </Typography>
           {subvalue && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, mt: 0.5, display: 'block' }}>
               {subvalue}
             </Typography>
           )}
@@ -372,7 +406,7 @@ const TransactionTable = ({ transactions, currencyFilter, dateFilter, tasaActual
         borderRadius: 3,
         border: `1px solid ${theme.palette.divider}`,
         overflowX: 'auto',
-        '& .MuiTable-root': { minWidth: 720 }
+        '& .MuiTable-root': { minWidth: { xs: 560, sm: 680 } }
       }}
     >
       <Table size="small" stickyHeader>
@@ -789,6 +823,8 @@ const CajaInteractiva = () => {
     ((state.saldos.Bs || 0) / (state.tasaCambio || 1))
   );
 
+  const resumenFiltrosTexto = etiquetaPeriodoFiltros(state.filtros);
+
   const getResumenMonedas = () => state.transacciones.reduce((acc, t) => {
     if (!acc[t.moneda]) acc[t.moneda] = { entradas: 0, salidas: 0 };
     acc[t.moneda].entradas += t.entrada;
@@ -979,123 +1015,168 @@ const CajaInteractiva = () => {
         </Box>
       </Box>
 
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} lg={4}>
-          <SummaryCard title="Saldo en Dólares (USD)" value={state.saldos.USD || 0} currency="$" icon={Savings} color="success" />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
-          <SummaryCard
-            title="Saldo en Bolívares"
-            value={state.saldos.Bs || 0}
-            subvalue={`Ref: $ ${((state.saldos.Bs || 0) / (state.tasaCambio || 1)).toFixed(2)}`}
-            currency="Bs"
-            icon={AccountBalance}
-            color="info"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
-          <SummaryCard title="Saldo Zelle" value={state.saldos.ZELLE || 0} currency="$" icon={AttachMoney} color="primary" />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
-          <SummaryCard title="Saldo Binance" value={state.saldos.BINANCE || 0} currency="$" icon={CurrencyBitcoin} color="secondary" />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={4}>
-          <SummaryCard
-            title="Valor Total Consolidado"
-            value={totalCajaUSD}
-            subvalue={`Bs ${(totalCajaUSD * state.tasaCambio).toFixed(2)}`}
-            currency="$"
-            icon={ShowChart}
-            color="warning"
-          />
-        </Grid>
-      </Grid>
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2, sm: 2.5, md: 3 },
+          mb: 3,
+          borderRadius: 3,
+          border: `1px solid ${theme.palette.divider}`,
+          bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'grey.50'
+        }}
+      >
+        <Stack spacing={2.5}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.9, mb: 1.5 }}>
+              Filtros y vista
+            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 2,
+                '& > *': { flex: '1 1 160px', minWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'min(180px, 20%)' }, maxWidth: { md: '100%' } }
+              }}
+            >
+              <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' } }}>
+                <InputLabel>Moneda</InputLabel>
+                <Select value={state.filtros.moneda} onChange={handleMonedaChange} label="Moneda">
+                  <MenuItem value="TODAS">Todas</MenuItem>
+                  {MONEDAS_CAJA.map(moneda => (
+                    <MenuItem key={moneda} value={moneda}>{MONEDA_LABEL[moneda] || moneda}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' } }}>
+                <InputLabel>Mes</InputLabel>
+                <Select
+                  value={state.filtros.verTodosLosMeses ? 'TODOS' : state.filtros.mes}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === 'TODOS') handleMesAnioChange(state.filtros.mes, state.filtros.anio, true);
+                    else handleMesAnioChange(v, state.filtros.anio, false);
+                  }}
+                  label="Mes"
+                >
+                  <MenuItem value="TODOS">Todos los meses</MenuItem>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                    <MenuItem key={m} value={String(m)}>{moment().locale('es').month(m - 1).format('MMMM')}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' } }} disabled={state.filtros.verTodosLosMeses}>
+                <InputLabel>Año</InputLabel>
+                <Select
+                  value={state.filtros.anio}
+                  onChange={(e) => handleMesAnioChange(state.filtros.mes, e.target.value, state.filtros.verTodosLosMeses)}
+                  label="Año"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                    <MenuItem key={y} value={String(y)}>{y}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Desde"
+                type="date"
+                fullWidth
+                size="small"
+                value={state.filtros.fecha.start || ''}
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) => handleRangoFechasChange(e.target.value || null, state.filtros.fecha.end)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' } }}
+              />
+              <TextField
+                label="Hasta"
+                type="date"
+                fullWidth
+                size="small"
+                value={state.filtros.fecha.end || ''}
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) => handleRangoFechasChange(state.filtros.fecha.start, e.target.value || null)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' } }}
+              />
+            </Box>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.5, alignItems: 'center' }}>
+              <Chip size="small" variant="outlined" label={`Período: ${resumenFiltrosTexto.periodo}`} sx={{ fontWeight: 600 }} />
+              <Chip size="small" variant="outlined" label={`Moneda tabla: ${resumenFiltrosTexto.monedaTxt}`} sx={{ fontWeight: 600 }} />
+              {state.pagination.total > 0 && (
+                <Chip size="small" variant="outlined" label={`${state.pagination.total} movimiento(s) en este filtro`} sx={{ fontWeight: 600 }} />
+              )}
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, maxWidth: 900 }}>
+              La tabla y la distribución respetan estos filtros. Los saldos de esta misma tarjeta son acumulados de toda la caja y no cambian al filtrar por mes (solo cambian al registrar, editar o borrar movimientos).
+            </Typography>
+          </Box>
+
+          <Divider />
+
+          <Box>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" sx={{ mb: 1.5 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.9 }}>
+                Saldos de la caja (totales)
+              </Typography>
+              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                {MONEDAS_CAJA.map(moneda => (
+                  <Chip
+                    key={moneda}
+                    label={MONEDA_LABEL[moneda]}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 700, fontSize: '0.7rem', ...MONEDA_CHIP_SX[moneda] }}
+                  />
+                ))}
+              </Stack>
+            </Stack>
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 2,
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, minmax(0, 1fr))',
+                  md: 'repeat(3, minmax(0, 1fr))',
+                  lg: 'repeat(5, minmax(0, 1fr))'
+                }
+              }}
+            >
+              <SummaryCard title="Saldo en Dólares (USD)" value={state.saldos.USD || 0} currency="$" icon={Savings} color="success" />
+              <SummaryCard
+                title="Saldo en Bolívares"
+                value={state.saldos.Bs || 0}
+                subvalue={`Ref: ${formatMonetaryValue((state.saldos.Bs || 0) / (state.tasaCambio || 1), 'USD')}`}
+                currency="Bs"
+                icon={AccountBalance}
+                color="info"
+              />
+              <SummaryCard title="Saldo Zelle" value={state.saldos.ZELLE || 0} currency="$" icon={AttachMoney} color="primary" />
+              <SummaryCard title="Saldo Binance" value={state.saldos.BINANCE || 0} currency="$" icon={CurrencyBitcoin} color="secondary" />
+              <SummaryCard
+                title="Valor total consolidado"
+                value={totalCajaUSD}
+                subvalue={formatMonetaryValue(totalCajaUSD * (state.tasaCambio || 1), 'Bs')}
+                currency="$"
+                icon={ShowChart}
+                color="warning"
+              />
+            </Box>
+          </Box>
+        </Stack>
+      </Paper>
 
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2, sm: 3 },
+          p: { xs: 2, sm: 2.5, md: 3 },
           mb: 3,
           borderRadius: 3,
           border: `1px solid ${theme.palette.divider}`
         }}
       >
-        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.8 }}>
-          Filtros
+        <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 800, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.9 }}>
+          Detalle según filtros
         </Typography>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={2}>
-            <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
-              <InputLabel>Moneda</InputLabel>
-              <Select value={state.filtros.moneda} onChange={handleMonedaChange} label="Moneda">
-                <MenuItem value="TODAS">Todas</MenuItem>
-                {MONEDAS_CAJA.map(moneda => (
-                  <MenuItem key={moneda} value={moneda}>{MONEDA_LABEL[moneda] || moneda}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
-              <InputLabel>Mes</InputLabel>
-              <Select
-                value={state.filtros.verTodosLosMeses ? 'TODOS' : state.filtros.mes}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === 'TODOS') handleMesAnioChange(state.filtros.mes, state.filtros.anio, true);
-                  else handleMesAnioChange(v, state.filtros.anio, false);
-                }}
-                label="Mes"
-              >
-                <MenuItem value="TODOS">Todos los meses</MenuItem>
-                {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
-                  <MenuItem key={m} value={String(m)}>{moment().locale('es').month(m - 1).format('MMMM')}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} disabled={state.filtros.verTodosLosMeses}>
-              <InputLabel>Año</InputLabel>
-              <Select
-                value={state.filtros.anio}
-                onChange={(e) => handleMesAnioChange(state.filtros.mes, e.target.value, state.filtros.verTodosLosMeses)}
-                label="Año"
-              >
-                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                  <MenuItem key={y} value={String(y)}>{y}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <TextField
-              label="Desde"
-              type="date"
-              fullWidth
-              size="small"
-              value={state.filtros.fecha.start || ''}
-              InputLabelProps={{ shrink: true }}
-              onChange={(e) => handleRangoFechasChange(e.target.value || null, state.filtros.fecha.end)}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <TextField
-              label="Hasta"
-              type="date"
-              fullWidth
-              size="small"
-              value={state.filtros.fecha.end || ''}
-              InputLabelProps={{ shrink: true }}
-              onChange={(e) => handleRangoFechasChange(state.filtros.fecha.start, e.target.value || null)}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            />
-          </Grid>
-        </Grid>
-      </Paper>
-
-      <Grid container spacing={{ xs: 2, sm: 3 }}>
+        <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid item xs={12} lg={4}>
           <Paper
             elevation={0}
@@ -1103,11 +1184,12 @@ const CajaInteractiva = () => {
               p: 3,
               borderRadius: 3,
               border: `1px solid ${theme.palette.divider}`,
-              height: '100%'
+              height: '100%',
+              bgcolor: 'background.paper'
             }}
           >
             <Typography variant="subtitle1" sx={{ mb: 2.5, fontWeight: 700 }}>
-              Distribución de Movimientos
+              Distribución de movimientos
             </Typography>
             {Object.entries(getResumenMonedas()).length === 0 ? (
               <Typography variant="body2" color="text.secondary">Sin movimientos en este período.</Typography>
@@ -1115,7 +1197,7 @@ const CajaInteractiva = () => {
               Object.entries(getResumenMonedas()).map(([moneda, datos]) => (
                 <Box key={moneda} sx={{ mb: 3 }}>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-                    {moneda} — Entradas: {datos.entradas.toFixed(2)} · Salidas: {datos.salidas.toFixed(2)}
+                    {MONEDA_LABEL[moneda] || moneda} — Entradas: {datos.entradas.toFixed(2)} · Salidas: {datos.salidas.toFixed(2)}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, height: 8, borderRadius: 1, overflow: 'hidden' }}>
                     <LinearProgress
@@ -1155,18 +1237,7 @@ const CajaInteractiva = () => {
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Movimientos</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-                  {MONEDAS_CAJA.map(moneda => (
-                    <Chip
-                      key={moneda}
-                      label={MONEDA_LABEL[moneda]}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontWeight: 700, ...MONEDA_CHIP_SX[moneda] }}
-                    />
-                  ))}
-                </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
                 <Button
                   variant="outlined"
                   color="success"
@@ -1255,6 +1326,7 @@ const CajaInteractiva = () => {
           </Paper>
         </Grid>
       </Grid>
+      </Paper>
 
       <MovimientoForm
         open={modalOpen}
